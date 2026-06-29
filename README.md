@@ -90,15 +90,28 @@ Danh sách quét có thể **tùy chỉnh** qua nút **⚙ Cài đặt Kiểm tr
 
 ### Tải về
 
-Tải file `WinLicApp-v1.0-beta1.zip` từ [**Releases**](https://github.com/ardennguyen/WinLic/releases) — giải nén và chạy trực tiếp, không cần cài đặt.
+Tải từ [**Releases**](https://github.com/ardennguyen/WinLic/releases):
+
+| File | Mô tả |
+|---|---|
+| `WinLicApp-v1.0-beta1.zip` | **File chính** — giải nén và chạy, không cần cài đặt |
+| `WinLicApp-v1.0-beta1.zip.sha256` | Kiểm tra toàn vẹn của file ZIP |
+| `WinLicApp-v1.0-beta1.exe.sha256` | Kiểm tra toàn vẹn của file EXE bên trong ZIP |
 
 ### Kiểm tra toàn vẹn (tùy chọn)
 
-Tải thêm `WinLicApp-v1.0-beta1.sha256.txt` và xác minh bằng PowerShell:
-
 ```powershell
+# PowerShell
 Get-FileHash .\WinLicApp-v1.0-beta1.zip -Algorithm SHA256
-# So sánh kết quả với nội dung file .sha256.txt
+# So sánh với nội dung WinLicApp-v1.0-beta1.zip.sha256
+```
+```bash
+# Linux / macOS
+sha256sum -c WinLicApp-v1.0-beta1.zip.sha256
+```
+```cmd
+:: CMD / certutil
+certutil -hashfile WinLicApp-v1.0-beta1.zip SHA256
 ```
 
 ### Chạy ứng dụng
@@ -151,6 +164,16 @@ WinLic/
 │   └── WinLicApp.csproj         # Định nghĩa dự án .NET Framework 4.8 WPF
 └── README.md
 ```
+
+---
+
+## Mã nguồn phiên bản hiện tại
+
+| | |
+|---|---|
+| **Branch** | [`release/v1.0-beta1`](https://github.com/ardennguyen/WinLic/tree/release/v1.0-beta1) |
+| **Commit** | [`b4738b0`](https://github.com/ardennguyen/WinLic/commit/b4738b0) |
+| **Development** | [`main`](https://github.com/ardennguyen/WinLic/tree/main) |
 
 ---
 
