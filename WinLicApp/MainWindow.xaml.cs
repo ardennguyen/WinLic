@@ -18,7 +18,7 @@ namespace WinLicApp
 {
     public partial class MainWindow : Window
     {
-        // ── Colour tokens — calibrated for white log background ──────────────────
+        // ── Color tokens — calibrated for white log background ──────────────────
         private static readonly SolidColorBrush ColSep    = Freeze("#e2dcf4");
         private static readonly SolidColorBrush ColAction = Freeze("#6d28d9");
         private static readonly SolidColorBrush ColCmd    = Freeze("#94a3b8");
@@ -175,7 +175,7 @@ namespace WinLicApp
         private void BtnElevate_Click(object sender, RoutedEventArgs e) => Elevate();
 
         // Restore log lines saved before the last elevation relaunch.
-        // Uses a muted colour so previous-session lines are visually distinct.
+        // Uses a muted color so previous-session lines are visually distinct.
         private void RestoreSessionLog()
         {
             if (!File.Exists(SessionLogPath)) return;

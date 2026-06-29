@@ -212,7 +212,7 @@ namespace WinLicApp
             ["O4_Prompt"]          = ("Enter the 25-character product key:\n\nFormat:  XXXXX-XXXXX-XXXXX-XXXXX-XXXXX",
                                       "Nhập Key Bản Quyền gồm 25 ký tự:\n\nĐịnh dạng:  XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"),
             ["O4_PromptTitle"]     = ("Enter Product Key",  "Nhập Key Bản Quyền"),
-            ["O4_Cancelled"]       = ("Cancelled — no key entered.",
+            ["O4_Cancelled"]       = ("Canceled — no key entered.",
                                       "Đã hủy — không nhập Key Bản Quyền."),
             ["O4_BadFormat"]       = ("Invalid format. Key must be  XXXXX-XXXXX-XXXXX-XXXXX-XXXXX",
                                       "Định dạng không hợp lệ. Key phải có dạng  XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"),
@@ -236,7 +236,7 @@ namespace WinLicApp
             // ── Option 5 ──────────────────────────────────────────────────────────
             ["O5_Confirm"]         = ("⚠  WARNING\n\nThis will uninstall the current Windows product key AND clear it from the registry.\n\nWindows will become UNACTIVATED after this operation.\n\nContinue?",
                                       "⚠  CẢNH BÁO\n\nThao tác này sẽ gỡ cài đặt Key Bản Quyền Windows hiện tại VÀ xóa khỏi Registry.\n\nWindows sẽ trở thành CHƯA ĐƯỢC KÍCH HOẠT sau thao tác này.\n\nTiếp tục?"),
-            ["O5_Cancelled"]       = ("Cancelled.", "Đã hủy."),
+            ["O5_Cancelled"]       = ("Canceled.", "Đã hủy."),
             ["O5_Uninstalling"]    = ("Uninstalling product key  (slmgr /upk)…",
                                       "Đang gỡ cài đặt Key Bản Quyền  (slmgr /upk)…"),
             ["O5_Clearing"]        = ("Clearing key from registry  (slmgr /cpky)…",
@@ -247,7 +247,7 @@ namespace WinLicApp
             // ── Option 6 ──────────────────────────────────────────────────────────
             ["O6_Confirm"]         = ("⚠  WARNING\n\nThis resets the licensing status and activation timers (rearm).\n\nA computer restart is required for changes to take effect.\n\nContinue?",
                                       "⚠  CẢNH BÁO\n\nThao tác này đặt lại trạng thái bản quyền và bộ đếm kích hoạt (rearm).\n\nCần khởi động lại máy tính để áp dụng thay đổi.\n\nTiếp tục?"),
-            ["O6_Cancelled"]       = ("Cancelled.", "Đã hủy."),
+            ["O6_Cancelled"]       = ("Canceled.", "Đã hủy."),
             ["O6_Rearming"]        = ("Executing  slmgr /rearm…",  "Đang thực thi  slmgr /rearm…"),
             ["O6_Done"]            = ("Rearm complete. Restart your computer for changes to take effect.",
                                       "Rearm hoàn tất. Khởi động lại máy tính để áp dụng thay đổi."),

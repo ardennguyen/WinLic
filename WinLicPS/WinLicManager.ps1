@@ -1,4 +1,4 @@
-# =============================================================================
+﻿# =============================================================================
 # WinLicManager.ps1  --  Windows Licensing & Information Manager  v1.0 (beta1)
 # =============================================================================
 # Mirrors the WinLic Manager GUI application for power-user / CLI usage.
@@ -160,7 +160,7 @@ function Elevate-For-Option {
             Write-Fail "Please right-click PowerShell and choose 'Run as Administrator'."
         }
     } else {
-        Write-Warn "Cancelled. Returning to menu."
+        Write-Warn "Canceled. Returning to menu."
     }
 }
 
@@ -519,7 +519,7 @@ function Test-ProductKey {
     Write-Blank
 
     if (-not (Ask-YesNo "Install this key now?")) {
-        Write-Warn "Cancelled -- no changes made."
+        Write-Warn "Canceled -- no changes made."
         return
     }
 
@@ -571,7 +571,7 @@ function Remove-License {
     Write-Blank
 
     if (-not (Ask-YesNo "Are you sure you want to proceed?")) {
-        Write-Warn "Cancelled."
+        Write-Warn "Canceled."
         return
     }
 
@@ -603,7 +603,7 @@ function Reset-Activation {
     Write-Blank
 
     if (-not (Ask-YesNo "Are you sure you want to proceed?")) {
-        Write-Warn "Cancelled."
+        Write-Warn "Canceled."
         return
     }
 
