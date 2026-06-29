@@ -1,0 +1,125 @@
+# =============================================================================
+# settings.ini  --  WinLic Manager (PowerShell) -- Option 7 Scan Configuration
+# =============================================================================
+#
+# This file extends the built-in scan lists used by the 3rd Party Activation
+# Audit (Option 7).  Copy or rename this file to "settings.ini" and place it
+# in the same folder as WinLicManager.ps1.
+#
+# HOW IT WORKS
+# ------------
+# Built-in defaults are always included and cannot be removed.
+# Entries you add here are MERGED with the built-in defaults at scan time.
+# Remove or comment out any line you do not want.
+#
+# FORMAT RULES
+# ------------
+#   [SectionName]    -- section header (case-sensitive, must match exactly)
+#   value            -- one value per line
+#   ; comment        -- lines starting with ; or # are ignored
+#   # comment
+#
+# =============================================================================
+
+
+# =============================================================================
+# [ExtraPorts]
+# Additional TCP ports to probe on localhost for KMS listeners.
+#
+# Built-in default: 1688  (standard Microsoft KMS port)
+#
+# When to add:
+#   Some custom KMS emulators (e.g. vlmcsd with -P flag) can be configured to
+#   listen on non-standard ports.  Add those ports here.
+#
+# Valid range: 1 - 65535  (non-integer lines are silently ignored)
+# =============================================================================
+[ExtraPorts]
+; 1689
+; 8080
+
+
+# =============================================================================
+# [ExtraServices]
+# Additional Windows service name keywords to flag as suspicious.
+#
+# Built-in defaults:
+#   KMSpico, KMService, WinKSO, KMSELDI, KMS_VL_ALL,
+#   KMSAuto, AutoKMS, KMSSS, KMSEmulator, vlmcsd
+#
+# Matching is case-insensitive and uses a wildcard (*keyword*).
+# The service's Name AND DisplayName are both checked.
+#
+# When to add:
+#   You know of a specific KMS tool service not in the built-in list.
+# =============================================================================
+[ExtraServices]
+; MyKmsService
+; CustomActivator
+
+
+# =============================================================================
+# [ExtraTaskKeywords]
+# Additional scheduled task name keywords to flag as suspicious.
+#
+# Built-in defaults:
+#   AutoKMS, KMSAuto, KMS_VL_ALL, KMSpico, KMSSS,
+#   KMSEmulator, KMService, WinKSO, vlmcsd
+#
+# Matching is case-insensitive and uses a wildcard (*keyword*).
+#
+# When to add:
+#   You know of a specific scheduled task created by an activation tool.
+# =============================================================================
+[ExtraTaskKeywords]
+; AutoActivate
+; LicenseRenew
+
+
+# =============================================================================
+# [ExtraProcesses]
+# Additional process name keywords to flag as suspicious.
+#
+# Built-in defaults:
+#   KMSpico, KMSELDI, AutoKMS, KMSAuto, KMSguard,
+#   WinKSO, KMService, vlmcsd, AAct, KMS_VL_ALL
+#
+# Matching is case-insensitive and uses a wildcard (*keyword*).
+# The .exe extension is not required.
+#
+# When to add:
+#   You know of an activation tool process not in the built-in list.
+# =============================================================================
+[ExtraProcesses]
+; mykms.exe
+; kms_server
+
+
+# =============================================================================
+# [ExtraFilePaths]
+# Additional absolute file or folder paths to check for activation tool traces.
+#
+# Built-in defaults (computed from system environment variables at scan time):
+#   %ProgramFiles%\KMSpico
+#   %ProgramFiles(x86)%\KMSpico
+#   %APPDATA%\KMSpico
+#   %ProgramData%\KMSpico
+#   %SystemRoot%\System32\KMSELDI.exe
+#   %ProgramFiles%\KMSAuto Net
+#   %ProgramFiles(x86)%\KMSAuto Net
+#   %ProgramFiles%\KMSAuto
+#   %ProgramFiles(x86)%\KMSAuto
+#   %SystemRoot%\KMS
+#   %SystemRoot%\System32\SppExtComObj.exe.bak
+#   %ProgramFiles%\AAct
+#   %ProgramFiles(x86)%\AAct
+#
+# Provide FULL absolute paths.  Environment variables are NOT expanded here --
+# use the actual resolved path (e.g. C:\Program Files\MyTool).
+#
+# When to add:
+#   You know of a specific file or folder path used by an activation tool.
+# =============================================================================
+[ExtraFilePaths]
+; C:\Tools\KMSTool
+; C:\ProgramData\CustomKMS\server.exe

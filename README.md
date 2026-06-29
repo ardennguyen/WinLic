@@ -148,22 +148,50 @@ EXE xuất ra tại: `WinLicApp/bin/Release/net4.8-windows/WinLicApp.exe`
 
 ```
 WinLic/
-├── WinLicApp/
-│   ├── MainWindow.xaml          # Giao diện chính
-│   ├── MainWindow.xaml.cs       # Logic chính, 7 tùy chọn
-│   ├── Localization.cs          # Bảng chuỗi EN/VIE
-│   ├── AppSettings.cs           # Quản lý settings.ini (Option 7)
-│   ├── SettingsDialog.xaml      # Hộp thoại Cài đặt Kiểm tra
-│   ├── SettingsDialog.xaml.cs   # Logic hộp thoại cài đặt
-│   ├── AboutDialog.xaml[.cs]    # Hộp thoại Giới thiệu
-│   ├── InputDialog.xaml[.cs]    # Hộp thoại nhập Key
-│   ├── App.xaml[.cs]            # Điểm khởi động ứng dụng
-│   ├── app.manifest             # UAC + DPI manifest
-│   ├── winlic.ico               # Icon ứng dụng
-│   ├── winlic_256.png           # Icon 256px
-│   └── WinLicApp.csproj         # Định nghĩa dự án .NET Framework 4.8 WPF
+├── WinLicApp/                       # Ứng dụng GUI (.NET Framework 4.8 WPF)
+│   ├── MainWindow.xaml              # Giao diện chính
+│   ├── MainWindow.xaml.cs           # Logic chính, 7 tùy chọn
+│   ├── Localization.cs              # Bảng chuỗi EN/VIE
+│   ├── AppSettings.cs               # Quản lý settings.ini (Option 7)
+│   ├── SettingsDialog.xaml[.cs]     # Hộp thoại Cài đặt Kiểm tra
+│   ├── AboutDialog.xaml[.cs]        # Hộp thoại Giới thiệu
+│   ├── InputDialog.xaml[.cs]        # Hộp thoại nhập Key
+│   ├── App.xaml[.cs]                # Điểm khởi động ứng dụng
+│   ├── app.manifest                 # UAC + DPI manifest
+│   ├── winlic.ico                   # Icon ứng dụng
+│   ├── winlic_256.png               # Icon 256px
+│   └── WinLicApp.csproj             # Định nghĩa dự án .NET Framework 4.8 WPF
+├── WinLicPS/                        # Công cụ PowerShell (CLI)
+│   ├── WinLicManager.ps1            # Script chính -- gương 7 tùy chọn của GUI
+│   └── settings.ini.template        # Mẫu cấu hình cho tùy chọn 7 (có hướng dẫn)
 └── README.md
 ```
+
+---
+
+## Sử dụng PowerShell CLI
+
+Dành cho power user muốn dùng công cụ qua command line thay vì giao diện đồ họa.
+
+### Chạy script
+
+```powershell
+# Chạy trực tiếp (không cần admin -- tự nhắc khi cần)
+powershell -ExecutionPolicy Bypass -File .\WinLicPS\WinLicManager.ps1
+
+# Chạy với quyền Admin ngay từ đầu
+Start-Process powershell -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -File .\WinLicPS\WinLicManager.ps1"
+```
+
+### Tùy chỉnh quét Option 7 (settings.ini)
+
+```powershell
+# Sao chép mẫu và chỉnh sửa
+Copy-Item .\WinLicPS\settings.ini.template .\WinLicPS\settings.ini
+notepad .\WinLicPS\settings.ini
+```
+
+File `settings.ini` phải nằm cùng thư mục với `WinLicManager.ps1`. Mẫu cấu hình có hướng dẫn chi tiết cho từng mục.
 
 ---
 
