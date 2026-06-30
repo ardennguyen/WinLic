@@ -1255,7 +1255,66 @@ namespace WinLicApp
             }
             catch (Exception ex) { LogWarn($"SPP store check error: {ex.Message}"); }
 
+            // ── Layer 6: SPP Security Event Log ───────────────────────────
+            LogBlank();
+            LogSep();
+            LogDiag(L.Get("Fetch_SppEvents"));
+            LogBlank();
+            try
+            {
+                var sppLog = new System.Diagnostics.EventLog("System");
+                var sppIds = new System.Collections.Generic.HashSet<long> { 12288, 12289, 12290, 8198 };
+                bool IsPrivateIp(string ip) =>
+                    ip.StartsWith("10.") || ip.StartsWith("192.168.") ||
+                    System.Text.RegularExpressions.Regex.IsMatch(ip, @"^172\.(1[6-9]|2\d|3[01])\.") ||
+                    ip == "127.0.0.1" || ip == "::1" || ip == "0.0.0.0";
+
+                var sppEvents = new System.Collections.Generic.List<System.Diagnostics.EventLogEntry>();
+                foreach (System.Diagnostics.EventLogEntry ev in sppLog.Entries)
+                {
+                    if (sppIds.Contains(ev.InstanceId) &&
+                        (ev.Source?.Contains("Security-SPP") == true ||
+                         ev.Source?.Contains("SoftwareProtection") == true))
+                        sppEvents.Add(ev);
+                }
+
+                if (sppEvents.Count == 0)
+                {
+                    LogOk("No SPP activation security events found in System log.");
+                }
+                else
+                {
+                    LogInfo($"Found {sppEvents.Count} SPP security event(s) in System log.");
+                    bool externalKmsInEvent = false;
+                    foreach (var ev in sppEvents)
+                    {
+                        if (ev.InstanceId == 12290 && ev.Message != null)
+                        {
+                            var match = System.Text.RegularExpressions.Regex.Match(
+                                ev.Message,
+                                @"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|[a-zA-Z0-9\-]+\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?)");
+                            if (match.Success)
+                            {
+                                var addr = match.Value;
+                                if (!IsPrivateIp(addr) && addr != "localhost")
+                                {
+                                    LogError($"SPP event 12290: KMS request to external server: {addr}");
+                                    LogError("This confirms activation via an unauthorized public KMS service.");
+                                    criticalKms = true;
+                                    externalKmsInEvent = true;
+                                    suspiciousCount++;
+                                }
+                            }
+                        }
+                    }
+                    if (!externalKmsInEvent)
+                        LogOk("SPP events present — no external KMS server address detected in event data.");
+                }
+            }
+            catch (Exception ex) { LogWarn($"SPP event log check error: {ex.Message}"); }
+
             // ── Summary ────────────────────────────────────────────────────
+
             LogBlank();
             LogSep();
             LogLine($"  {L.Get("P7_SummaryHeader")}", ColAction, bold: true);

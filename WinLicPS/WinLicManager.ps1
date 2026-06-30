@@ -108,7 +108,7 @@ $DEFAULT_SERVICES = @('KMSpico','KMService','WinKSO','KMSELDI','KMS_VL_ALL',
 $DEFAULT_TASKS    = @('AutoKMS','KMSAuto','KMS_VL_ALL','KMSpico','KMSSS',
                        'KMSEmulator','KMService','WinKSO','vlmcsd','Activation-Renewal')
 $DEFAULT_PROCS    = @('KMSpico','KMSELDI','AutoKMS','KMSAuto','KMSguard',
-                       'WinKSO','KMService','vlmcsd','AAct','KMS_VL_ALL','gatherosstate')
+                       'WinKSO','KMService','vlmcsd','AAct','KMS_VL_ALL','gatherosstate','clipup')
 # Hardcoded KMS piracy domains -- mirrors [KmsPiracyDomains] in settings.default.ini
 $DEFAULT_KMS_DOMAINS = @(
     'msguides',       # km8.msguides.com, kms2.msguides.com, kms9.msguides.com
@@ -828,7 +828,13 @@ function Invoke-ActivationAudit {
         if (-not $kmsHost) {
             $kmsHost = (Get-ItemProperty `
                 "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform" `
-                -Name "KeyManagementServiceName").KeyManagementServiceName
+                -Name "KeyManagementServiceName" -ErrorAction SilentlyContinue).KeyManagementServiceName
+        }
+        if (-not $kmsHost) {
+            # WoW64 fallback (32-bit view on 64-bit OS)
+            $kmsHost = (Get-ItemProperty `
+                "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform" `
+                -Name "KeyManagementServiceName" -ErrorAction SilentlyContinue).KeyManagementServiceName
         }
     } catch {}
 
@@ -1192,10 +1198,22 @@ function Invoke-ActivationAudit {
     if (Test-Path $datPath) {
         $datMod = (Get-Item $datPath).LastWriteTime
         Write-Data "SPP store LastWriteTime:" ($datMod.ToString('yyyy-MM-dd HH:mm'))
+
+        # Compare against Windows Install Date from registry
+        try {
+            $installUnix = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' `
+                -Name 'InstallDate' -ErrorAction Stop).InstallDate
+            $installDate = (Get-Date '1970-01-01').AddSeconds($installUnix).ToLocalTime()
+            Write-Data "Windows InstallDate:" ($installDate.ToString('yyyy-MM-dd HH:mm'))
+            if ($datMod -lt $installDate) {
+                Write-Warn "[LOW CONFIDENCE] SPP store timestamp predates Windows install -- highly anomalous."
+                $suspiciousCount++
+            }
+        } catch {}
+
         # Check for nearby Windows Update event (Event ID 19)
         $hasNearbyUpdate = $false
         try {
-            $cutoff = $datMod.AddHours(-48)
             $events = Get-EventLog -LogName System -Source 'Microsoft-Windows-WindowsUpdateClient' `
                 -Newest 200 -ErrorAction SilentlyContinue |
                 Where-Object { $_.EventID -eq 19 -and [Math]::Abs(($_.TimeWritten - $datMod).TotalHours) -lt 48 }
@@ -1215,7 +1233,52 @@ function Invoke-ActivationAudit {
     Write-Blank
     Write-Sep2
 
+    # (10) SPP Security Event Log ---------------------------------------------
+    Write-Step "(10) Checking SPP Security activation event log..."
+    Write-Info "Queries System event log for Microsoft-Windows-Security-SPP events."
+    Write-Info "Event 12290 (KMS request) records the server address -- external = piracy indicator."
+    Write-Blank
+
+    try {
+        $sppIds  = @(12288, 12289, 12290, 8198)
+        $sppEvts = Get-EventLog -LogName System -Newest 500 -ErrorAction SilentlyContinue |
+            Where-Object { $sppIds -contains $_.EventID -and
+                ($_.Source -like '*Security-SPP*' -or $_.Source -like '*SoftwareProtection*') }
+
+        if (-not $sppEvts -or @($sppEvts).Count -eq 0) {
+            Write-OK "No SPP activation security events found in System log."
+        } else {
+            Write-Data "SPP events found:" "@($sppEvts).Count"
+            $extFound = $false
+            foreach ($ev in ($sppEvts | Where-Object { $_.EventID -eq 12290 })) {
+                # Extract server address from message
+                $addrMatch = [regex]::Match($ev.Message,
+                    '(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|[a-zA-Z0-9\-]+\.[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?)')
+                if ($addrMatch.Success) {
+                    $addr = $addrMatch.Value
+                    $isPrivate = $addr -match '^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|127\.|::1|localhost|0\.0\.0\.0)'
+                    if (-not $isPrivate) {
+                        Write-Fail "SPP event 12290: KMS request to external server: $addr"
+                        Write-Fail "  This confirms activation via an unauthorized public KMS service."
+                        $criticalKms = $true
+                        $extFound    = $true
+                        $suspiciousCount++
+                    }
+                }
+            }
+            if (-not $extFound) {
+                Write-OK "SPP events present -- no external KMS server address found in event data."
+            }
+        }
+    } catch {
+        Write-Warn "SPP event log check error: $_"
+    }
+
+    Write-Blank
+    Write-Sep2
+
     # Results -----------------------------------------------------------------
+
     Write-Blank
     Write-Host "  RESULTS" -ForegroundColor White
     Write-Blank

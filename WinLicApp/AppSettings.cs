@@ -59,7 +59,7 @@ namespace WinLicApp
         {
             "KMSpico", "KMSELDI", "AutoKMS", "KMSAuto", "KMSguard",
             "WinKSO",  "KMService", "vlmcsd", "AAct",   "KMS_VL_ALL",
-            "gatherosstate"
+            "gatherosstate", "clipup"
         };
         public static readonly string[] DefaultTaskKeywords =
         {
