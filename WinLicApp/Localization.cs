@@ -24,7 +24,7 @@ namespace WinLicApp
             // ── About dialog ─────────────────────────────────────────────────────
             ["About_Title"]         = ("About — WinLic Manager",
                                       "Giới thiệu — WinLic Manager"),
-            ["About_Version"]       = ("v1.0 (beta2)",              "v1.0 (beta2)"),
+            ["About_Version"]       = ("v1.3-beta1",              "v1.3-beta1"),
             ["About_Author"]        = ("Author",                    "Tác giả"),
             ["About_GitHub"]        = ("GitHub",                    "GitHub"),
             ["About_Repo"]          = ("Repository",                "Kho mã nguồn"),

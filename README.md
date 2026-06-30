@@ -6,7 +6,7 @@
 
 **Công cụ quản lý bản quyền Windows — GUI & PowerShell CLI**
 
-[![Version](https://img.shields.io/badge/phiên%20bản-1.0%20beta2-a78bfa?style=flat-square)](https://github.com/ardennguyen/WinLic/releases)
+[![Version](https://img.shields.io/badge/phiên%20bản-v1.3--beta1-a78bfa?style=flat-square)](https://github.com/ardennguyen/WinLic/releases)
 [![Platform](https://img.shields.io/badge/nền%20tảng-Windows%2010%2F11-7c3aed?style=flat-square)](https://github.com/ardennguyen/WinLic)
 [![Framework](https://img.shields.io/badge/.NET%20Framework-4.8-6d28d9?style=flat-square)](https://dotnet.microsoft.com/en-us/download/dotnet-framework/net48)
 [![License](https://img.shields.io/badge/giấy%20phép-MIT-6d28d9?style=flat-square)](LICENSE)
@@ -42,9 +42,11 @@ Tải phiên bản mới nhất từ trang [**Releases**](https://github.com/ard
 | File | Mô tả |
 |---|---|
 | `WinLicApp-<version>.zip` | **GUI App** — giải nén và chạy, không cần cài đặt |
+| `WinLicApp-<version>.exe.sha256` | Kiểm tra toàn vẹn của file EXE |
 | `WinLicApp-<version>.zip.sha256` | Kiểm tra toàn vẹn của file ZIP |
-| `WinLicApp-<version>.exe.sha256` | Kiểm tra toàn vẹn của file EXE bên trong ZIP |
-| `WinLicPS-<version>.zip` | **PowerShell CLI** — script + settings.ini |
+| `WinLicManager-<version>.ps1` | **PowerShell CLI** — script độc lập |
+| `WinLicManager-<version>.ps1.sha256` | Kiểm tra toàn vẹn của file PS1 |
+| `WinLicPS-<version>.zip` | **PowerShell CLI bundle** — script + settings.ini |
 | `WinLicPS-<version>.zip.sha256` | Kiểm tra toàn vẹn của bộ cài CLI |
 
 ### Kiểm tra toàn vẹn (tùy chọn)
@@ -77,31 +79,33 @@ Cả hai công cụ (GUI và CLI) đều cung cấp 7 tùy chọn giống nhau:
 | 4 | **Kiểm thử & Cài Key** — xác thực và cài key mới qua `slmgr /ipk`, phân tích lỗi chi tiết | **Admin** |
 | 5 | **Gỡ Key Bản Quyền** — xóa key hiện tại bằng `slmgr /upk` + `/cpky` | **Admin** |
 | 6 | **Đặt Lại Kích Hoạt (Rearm)** — reset đếm ngược kích hoạt với `slmgr /rearm` | **Admin** |
-| 7 | **Kiểm Tra Kích Hoạt Bên Thứ Ba** — quét 6 lớp dấu hiệu KMS giả lập; danh sách quét tùy chỉnh qua `settings.ini` | Không cần Admin |
+| 7 | **Kiểm Tra Kích Hoạt Bên Thứ Ba** — quét **9 lớp** dấu hiệu KMS, TSforge, KMS38; danh sách quét tùy chỉnh qua `settings.ini`; tự cập nhật từ GitHub | Không cần Admin |
 
 > ⚠️ Tùy chọn **4, 5, 6** thay đổi trạng thái bản quyền thật sự của Windows. Ứng dụng sẽ yêu cầu xác nhận trước khi thực hiện. Chỉ dùng khi bạn biết chính xác mình đang làm gì.
 
 ### Phát hiện kích hoạt bên thứ ba (Tùy chọn 7)
 
-Quét **6 lớp dấu hiệu** để phát hiện KMS giả lập và công cụ kích hoạt lậu:
+Quét **9 lớp dấu hiệu** để phát hiện các phương pháp kích hoạt không được phép:
 
 | Lớp | Kiểm tra | Phát hiện |
 |-----|----------|-----------|
-| 1 | Tên máy chủ KMS (Registry + WMI) | Trỏ `127.x.x.x` → KMS giả lập cục bộ |
-| 2 | Cổng KMS trên localhost (TCP probe) | Cổng mở = KMS đang lắng nghe |
-| 3 | Dịch vụ hệ thống | KMSpico, KMSELDI, vlmcsd... |
-| 4 | Tác vụ định kỳ | AutoKMS, KMSAuto, KMS_VL_ALL... |
-| 5 | Đường dẫn tập tin | `%ProgramFiles%\KMSpico`, `KMSELDI.exe`... |
-| 6 | Tiến trình đang chạy | KMSguard, AAct, vlmcsd... |
+| 1 | Key GVLK (WMI PartialProductKey) | 30 key Volume/Setup đã biết; GVLK vĩnh viễn = dấu hiệu vi phạm |
+| 2 | Thời gian ân hạn / hết hạn | Phân loại KMS38 (≥ 2037), TSforge (≥ 2100), Online KMS (165–195 ngày) |
+| 3 | Dấu vết Online KMS | Dịch vụ, tác vụ, tiến trình, IP giả `10.0.0.10`, registry WoW64 |
+| 4 | Dấu vết KMS38 | `GenuineTicket.xml`, `gatherosstate.exe`, `clipup.exe` |
+| 5 | Dấu thời gian TSforge | `data.dat` so với ngày cài Windows + Event ID 19 |
+| 6 | Nhật ký sự kiện SPP | Event 12290 — địa chỉ máy chủ KMS ngoài |
+| 7 | Thông báo pháp lý | Giới hạn đã biết và trường hợp dương tính giả |
 
 | Loại công cụ | Phát hiện | Lý do |
 |---|---|---|
 | KMSpico / KMSAuto (đang chạy) | ✅ | Để lại dịch vụ, tác vụ, tập tin |
 | vlmcsd / KMS_VL_ALL (đang chạy) | ✅ | Để lại dịch vụ, cổng KMS mở |
+| Online KMS (kích hoạt qua internet) | ✅ | Thời gian ân hạn 180 ngày, dấu vết task/service |
+| KMS38 (còn dấu vết) | ✅ | `GenuineTicket.xml`, gatherosstate, ngày hết hạn 2038 |
+| TSforge (còn dấu vết) | ⚠️ | `data.dat` bị sửa đổi — [LOW CONFIDENCE] |
 | **MAS HWID / HWIDGEN** | ❌ | Tạo Digital Entitlement thật qua API Microsoft |
 | Công cụ đã gỡ sạch | ❌ | Không còn dấu vết |
-| Windows Loader (SLIC cũ) | ❌ | Sửa đổi firmware BIOS |
-| KMS38 (đã dọn) | ⚠️ | Chỉ phát hiện nếu máy chủ KMS vẫn trỏ localhost |
 
 ---
 
@@ -158,10 +162,11 @@ Start-Process powershell -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -Fil
   1 -- OS Version & OEM BIOS Key
   2 -- License Channel & Type  (slmgr /dli)
   3 -- Inspect Keys & Activation Status
-  4 -- Test & Install Product Key         [!]   ← danger
-  5 -- Uninstall License Key              [!]   ← danger
-  6 -- Reset Activation (Rearm)           [!]   ← danger
+  4 -- Test & Install Product Key         [!]   ← nguy hiểm
+  5 -- Uninstall License Key              [!]   ← nguy hiểm
+  6 -- Reset Activation (Rearm)           [!]   ← nguy hiểm
   7 -- 3rd Party Activation Audit
+  U -- Update scan defaults from GitHub
   Q -- Quit
 ```
 
