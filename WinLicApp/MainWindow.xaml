@@ -116,7 +116,7 @@
                             <TextBlock x:Name="TxtTitle"
                                        FontFamily="Segoe UI Semibold" FontSize="16"
                                        Foreground="#4c1d95"/>
-                            <TextBlock Text="  v1.0 (beta)"
+                            <TextBlock x:Name="TxtAppVersion"
                                        FontFamily="Segoe UI" FontSize="11"
                                        Foreground="#a78bfa" VerticalAlignment="Bottom"
                                        Margin="0,0,0,1"/>

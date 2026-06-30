@@ -79,6 +79,10 @@ namespace WinLicApp
             InitializeComponent();
             RefreshLanguage();
 
+            // Restore log from the session before elevation (if any)
+            // Must come BEFORE the startup messages so restored output appears above them
+            RestoreSessionLog();
+
             if (_isAdmin)
             {
                 AdminStatusText.Text       = L.Get("AdminOk");
@@ -92,9 +96,6 @@ namespace WinLicApp
                 BtnElevate.Visibility      = Visibility.Visible;
                 LogWarn(L.Get("Startup_NoAdmin"));
             }
-
-            // Restore log from the session before elevation (if any)
-            RestoreSessionLog();
         }
 
         // =========================================================================
@@ -105,6 +106,7 @@ namespace WinLicApp
             Title                      = L.Get("AppTitle");
             AdminStatusText.Text       = _isAdmin ? L.Get("AdminOk") : L.Get("AdminWarn");
             AdminStatusText.Foreground = _isAdmin ? BrushOk : BrushWarn;
+            TxtAppVersion.Text         = "  " + L.Get("About_Version");
             BtnElevate.Content         = L.Get("BtnElevate");
             BtnAbout.Content           = L.Get("BtnAbout");
 
@@ -646,6 +648,7 @@ namespace WinLicApp
                     LogDiag(L.Get("O3_MismatchReason"));
                     LogDiag(L.Get("O3_ActivePartial") + partialKey);
                     { var rp = regKey.Split('-'); LogDiag(L.Get("O3_BackupEnds") + rp[rp.Length - 1]); }
+                    LogBlank();
 
                     if (_isAdmin)
                     {
