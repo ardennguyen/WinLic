@@ -10,7 +10,9 @@ using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Media;
 using Microsoft.Win32;
 
@@ -45,18 +47,11 @@ namespace WinLicApp
         private static readonly SolidColorBrush BrushOk   = new SolidColorBrush(Color.FromRgb(0x15, 0x80, 0x3d));
         private static readonly SolidColorBrush BrushWarn = new SolidColorBrush(Color.FromRgb(0xb4, 0x53, 0x09));
 
-        // ── Known generic placeholder keys ────────────────────────────────────────
-        private static readonly Dictionary<string, string> GenericKeys = new()
-        {
-            { "3V66T", "Windows 10/11 Pro  (VK7JG-NPHTM-C97JM-9MPGT-3V66T)" },
-            { "3TTL4", "Windows 10/11 Home  (YTMG3-N6KGA-8B33D-XXYF2-3TTL4)" },
-            { "WXCHW", "Windows 10/11 Home Single Language  (4CPRK-NM3K3-X6XXQ-RXX86-WXCHW)" },
-            { "PR4Y7", "Windows Pro Education  (8PTT6-RNW4C-X6V77-D23ST-PR4Y7)" },
-            { "2YV77", "Windows Pro Workstations  (DXG7C-N36C4-C4HTG-X4T3X-2YV77)" },
-            { "8DEC2", "Windows Enterprise  (XGVPP-NMH47-7TTHJ-W3FW7-8DEC2)" },
-            { "28UTV", "Windows Enterprise  (NPPR9-FWDCX-D2C8J-H8P65-28UTV)" },
-            { "7CFBY", "Windows Education  (YNMGQ-8RYV3-4PGQ3-C8XTP-7CFBY)" },
-        };
+        // Generic key detection is now driven by AppSettings.AllGenericKeySuffixes
+        // (loaded from settings.ini [GenericKeys] + [UserGenericKeys] + hardcoded fallback).
+        // The helper below looks up a display description from AllGenericKeyDescriptions.
+        private static string? GetGenericKeyDescription(string? partialKey)
+            => partialKey != null && AppSettings.AllGenericKeyDescriptions.TryGetValue(partialKey, out var d) ? d : null;
 
         private readonly bool _isAdmin;
         private bool _firstAction = true;
@@ -67,6 +62,48 @@ namespace WinLicApp
         // even for standard (non-admin) accounts.
         private static readonly string SessionLogPath =
             Path.Combine(Path.GetTempPath(), "winlic_session.log");
+        // Called once from the constructor — subscribes to KmsPanel size changes so the
+        // window always grows to fit, even as the preflight fills in text and shows sub-sections.
+        private void HookKmsPanelResize()
+        {
+            KmsPanel.SizeChanged += (_, e) =>
+            {
+                if (KmsPanel.Visibility != Visibility.Visible) return;
+
+                // Measure unconstrained to get the panel's true natural height.
+                // (InvalidateMeasure clears the parent-constrained cached measure.)
+                double availW = KmsPanel.ActualWidth > 1 ? KmsPanel.ActualWidth : 700;
+                KmsPanel.InvalidateMeasure();
+                KmsPanel.Measure(new System.Windows.Size(availW, double.PositiveInfinity));
+                double naturalH = KmsPanel.DesiredSize.Height;
+
+                // How much is the panel being clipped? Grow the window by exactly that + padding.
+                // This correctly accounts for header/statusbar rows consuming content-area space.
+                double deficit = naturalH - e.NewSize.Height;
+                if (deficit > 2)
+                    this.Height += deficit + 40;
+            };
+        }
+
+        // Legacy call sites kept as no-ops — the SizeChanged hook handles everything.
+        private void EnsurePanelFits(FrameworkElement _) { }
+
+        // Reusable resize hook for any overlay panel.
+        private void HookPanelResize(FrameworkElement panel)
+        {
+            panel.SizeChanged += (_, e) =>
+            {
+                if (panel.Visibility != Visibility.Visible) return;
+                double availW = panel.ActualWidth > 1 ? panel.ActualWidth : 700;
+                panel.InvalidateMeasure();
+                panel.Measure(new System.Windows.Size(availW, double.PositiveInfinity));
+                double naturalH = panel.DesiredSize.Height;
+                double deficit  = naturalH - e.NewSize.Height;
+                if (deficit > 2) this.Height += deficit + 40;
+            };
+        }
+
+
 
         // =========================================================================
         // Constructor
@@ -77,7 +114,14 @@ namespace WinLicApp
                            .IsInRole(WindowsBuiltInRole.Administrator);
             AppSettings.Load();
             InitializeComponent();
+            HookKmsPanelResize();       // KMS panel (uses dedicated hook with identical logic)
+            HookPanelResize(DlvPanel);             // new Option 1 /dlv panel
+            HookPanelResize(RearmPanel);           // new Option 4 danger panel
+            HookPanelResize(ChangeChannelPanel);   // new Option 6 panel
+            HookPanelResize(KmsSettingsPanel);     // new Option 7 panel
+
             RefreshLanguage();
+
 
             // Restore log from the session before elevation (if any)
             // Must come BEFORE the startup messages so restored output appears above them
@@ -87,7 +131,7 @@ namespace WinLicApp
             {
                 AdminStatusText.Text       = L.Get("AdminOk");
                 AdminStatusText.Foreground = BrushOk;
-                LogInfo(L.Get("Startup_Ready"));
+                LogInfo(string.Format(L.Get("Startup_Ready"), L.Get("About_Version")));
             }
             else
             {
@@ -111,21 +155,72 @@ namespace WinLicApp
             BtnAbout.Content           = L.Get("BtnAbout");
 
             BtnVersionInfo.Content     = L.Get("Btn1");
-            BtnSlmgrDli.Content        = L.Get("Btn2");
-            BtnInspectKeys.Content     = L.Get("Btn3");
-            BtnTestKey.Content         = L.Get("Btn4");
-            BtnRemoveLicense.Content   = L.Get("Btn5");
-            BtnResetActivation.Content = L.Get("Btn6");
-            BtnPiracyCheck.Content     = L.Get("Btn7");
+            BtnTestKey.Content         = L.Get("Btn2");
+            BtnRemoveLicense.Content   = L.Get("Btn3");
+            BtnResetActivation.Content = L.Get("Btn4");
+            BtnPiracyCheck.Content     = L.Get("Btn5");
+            BtnKmsActivate.Content     = L.Get("Btn8");
+            BtnChangeChannel.Content   = L.Get("Btn6");
+            BtnKmsSettings.Content     = L.Get("Btn7");
             BtnAuditSettings.Content   = L.Get("BtnAuditSettings");
             BtnClear.Content           = L.Get("BtnClear");
+            ChkShowFullKey.Content     = L.Get("ChkShowKey");
             StatusBar.Text             = L.Get("Ready");
+
+            // Key Entry Panel labels
+            KpTitle.Text          = L.Get("KP_Title");
+            KpInfo1.Text          = L.Get("KP_Info1");
+            KpInfo2.Text          = L.Get("KP_Info2");
+            KpWarn.Text           = L.Get("KP_Warn");
+            KpConfirmLabel.Text   = L.Get("KP_TypeOk");
+            KpHint.Text           = L.Get("KP_Hint");
+            BtnKeyCancel.Content  = L.Get("KP_Cancel");
+            BtnKeyInstall.Content = L.Get("KP_Install");
 
             BtnLangEN.Style  = (Style)(L.Current == Lang.EN
                 ? FindResource("LangBtnActive") : FindResource("LangBtn"));
             BtnLangVIE.Style = (Style)(L.Current == Lang.VIE
                 ? FindResource("LangBtnActive") : FindResource("LangBtn"));
+
+            // DLV panel static labels
+            DlvTitle.Text        = L.Get("DLV_PANEL_TITLE");
+            DlvDesc1.Text        = L.Get("DLV_DESC1");
+            DlvDesc2.Text        = L.Get("DLV_DESC2");
+            BtnDlvCancel.Content = L.Get("DLV_CANCEL");
+            BtnDlvRun.Content    = L.Get("DLV_RUN");
+
+            // Rearm panel static labels
+            RpTitle.Text              = L.Get("R4_PANEL_TITLE");
+            RpWarn1.Text              = L.Get("R4_WARN1");
+            RpWarn2.Text              = L.Get("R4_WARN2");
+            RpCountLabel.Text         = L.Get("R4_COUNT_LABEL");
+            RpConfirmLabel.Text       = L.Get("R4_CONFIRM_LABEL");
+            RpRestartCheck.Content    = L.Get("R4_RESTART_CHECK");
+            BtnRpCancel.Content       = L.Get("R4_CANCEL");
+            BtnRpConfirm.Content      = L.Get("R4_CONFIRM");
+            // Tab labels
+            TabWin.Content        = L.Get("TAB_WIN");
+            TabOffice.Content     = L.Get("TAB_OFFICE");
+            OfficeDevTitle.Text   = L.Get("TAB_OFFICE_TITLE");
+            OfficeDevDesc.Text    = L.Get("TAB_OFFICE_DESC");
         }
+
+        private void TabWin_Click(object sender, RoutedEventArgs e)
+        {
+            WinTabContent.Visibility     = Visibility.Visible;
+            OfficeTabContent.Visibility  = Visibility.Collapsed;
+            TabWin.Style    = (Style)FindResource("TabBtnActive");
+            TabOffice.Style = (Style)FindResource("TabBtnInactive");
+        }
+
+        private void TabOffice_Click(object sender, RoutedEventArgs e)
+        {
+            WinTabContent.Visibility     = Visibility.Collapsed;
+            OfficeTabContent.Visibility  = Visibility.Visible;
+            TabWin.Style    = (Style)FindResource("TabBtnInactive");
+            TabOffice.Style = (Style)FindResource("TabBtnActive");
+        }
+
 
         private void BtnLangEN_Click(object sender, RoutedEventArgs e)
         { L.Current = Lang.EN;  RefreshLanguage(); }
@@ -238,7 +333,7 @@ namespace WinLicApp
         private void LogCmd(string cmd)   => LogLine($"  $ {cmd}", ColCmd);
         private void LogFetch(string msg) => LogLine($"  … {msg}", ColFetch);
         private void LogInfo(string msg)  => LogLine($"  ℹ  {msg}", ColInfo);
-        private void LogOk(string msg)    => LogLine($"  ✔  {msg}", ColOk,    bold: true);
+        private void LogOk(string msg)    => LogLine($"  {msg}", ColOk,    bold: true);
         private void LogWarn(string msg)  => LogLine($"  ⚠  {msg}", ColWarn);
         private void LogError(string msg) => LogLine($"  ✘  {msg}", ColError, bold: true);
         private void LogKey(string msg)   => LogLine($"  🔑 {msg}", ColKey,   bold: true);
@@ -340,10 +435,8 @@ namespace WinLicApp
             6 => L.Get("LS_6"), _ => L.Get("LS_Unknown") + $" ({s})"
         };
 
-        private bool AskShowFullKey(string ctx)
-            => MessageBox.Show($"{ctx}\n\n{L.Get("ShowKey_Q")}",
-                   L.Get("ShowKey_Title"), MessageBoxButton.YesNo, MessageBoxImage.Question)
-               == MessageBoxResult.Yes;
+        /// <summary>Returns true when the "Show Full Keys" checkbox in the sidebar is checked.</summary>
+        private bool ShowFullKey => ChkShowFullKey.IsChecked == true;
 
         private bool AskConfirm(string msg)
             => MessageBox.Show(msg, L.Get("Confirm_Title"),
@@ -380,7 +473,9 @@ namespace WinLicApp
         private string? IdentifyKeyEdition(string fullKey)
         {
             var parts = fullKey.Split('-'); var last5 = parts[parts.Length - 1];
-            if (GenericKeys.TryGetValue(last5, out var generic)) return generic;
+            // Check AppSettings generic key descriptions first
+            var desc = GetGenericKeyDescription(last5);
+            if (desc != null) return desc;
 
             using var res = WmiQuery(
                 "SELECT Name, PartialProductKey FROM SoftwareLicensingProduct");
@@ -427,7 +522,7 @@ namespace WinLicApp
             }
 
             // Non-volume: RETAIL, OEM, or other — KMS is impossible here
-            if (partialKey != null && GenericKeys.ContainsKey(partialKey))
+            if (partialKey != null && AppSettings.AllGenericKeySuffixes.Contains(partialKey))
                 return ActivationMethod.DE;   // generic placeholder = confirmed DE
 
             // Real (non-generic) RETAIL key:
@@ -442,12 +537,13 @@ namespace WinLicApp
         }
 
         // =========================================================================
-        // Option 1 — Version & BIOS OEM Key
+        // Option 1 — Full System & License Info (merged: old Options 1 + 2 + 3)
         // =========================================================================
         private void BtnVersionInfo_Click(object sender, RoutedEventArgs e)
         {
             LogAction("Act1");
 
+            // ── OS information ────────────────────────────────────────────────
             LogFetch(L.Get("Fetch_OS"));
             using var osRes = WmiQuery(
                 "SELECT Caption,Version,BuildNumber,OSArchitecture FROM Win32_OperatingSystem");
@@ -460,60 +556,8 @@ namespace WinLicApp
                     LogData(L.Get("D_Arch"),        obj["OSArchitecture"]?.ToString() ?? "—");
                 }
 
+            // ── Registry backup key (read first for DE detection) ─────────────
             LogBlank();
-            LogFetch(L.Get("Fetch_BiosKey"));
-            using var svcRes = WmiQuery("SELECT OA3xOriginalProductKey FROM SoftwareLicensingService");
-            string? oemKey = null;
-            if (svcRes != null)
-                foreach (ManagementObject obj in svcRes)
-                    oemKey = obj["OA3xOriginalProductKey"]?.ToString();
-
-            if (!string.IsNullOrWhiteSpace(oemKey))
-            {
-                bool full = AskShowFullKey(L.Get("O1_BiosDetectedCtx"));
-                LogKey(L.Get("O1_BiosKey") + (full ? oemKey : MaskKey(oemKey)));
-
-                LogBlank();
-                LogFetch(L.Get("Fetch_OemEdition"));
-                var edition = IdentifyKeyEdition(oemKey);
-                if (!string.IsNullOrEmpty(edition))
-                    LogOk(L.Get("OemEd_Found") + "  " + edition);
-                else
-                {
-                    LogInfo(L.Get("OemEd_NoMatch"));
-                    LogDiag(L.Get("OemEd_Hint"));
-                }
-            }
-            else
-            {
-                LogInfo(L.Get("O1_BiosNone"));
-            }
-        }
-
-        // =========================================================================
-        // Option 2 — slmgr /dli
-        // =========================================================================
-        private void BtnSlmgrDli_Click(object sender, RoutedEventArgs e)
-        {
-            LogAction("Act2");
-            LogInfo(L.Get("O2_Note"));
-            LogBlank();
-            LogFetch("Running  slmgr /dli…  (slmgr: Software Licensing Manager)");
-            var output = RunSlmgr("/dli");
-            if (string.IsNullOrWhiteSpace(output))
-                LogWarn(L.Get("O2_NoOutput"));
-            else
-                LogSlmgrOutput(output);
-        }
-
-        // =========================================================================
-        // Option 3 — Inspect Active & Backup Keys
-        // =========================================================================
-        private void BtnInspectKeys_Click(object sender, RoutedEventArgs e)
-        {
-            LogAction("Act3");
-
-            // Read registry backup key FIRST — required for channel-first DE detection
             LogFetch(L.Get("Fetch_RegKey"));
             string? regKey = null;
             try
@@ -524,7 +568,7 @@ namespace WinLicApp
             }
             catch (Exception ex) { LogError(L.Get("O3_RegReadErr") + ex.Message); }
 
-            // Query active Windows license
+            // ── Active Windows license (WMI) ──────────────────────────────────
             LogFetch(L.Get("Fetch_License"));
             string? partialKey  = null;
             bool    foundActive = false;
@@ -563,7 +607,7 @@ namespace WinLicApp
             }
             if (!foundActive) LogWarn(L.Get("O3_NoLicense"));
 
-            // Activation method block
+            // ── Activation method block ───────────────────────────────────────
             LogBlank();
             switch (activationMethod)
             {
@@ -583,22 +627,20 @@ namespace WinLicApp
                         LogDiag(L.Get("DE_Verify"));
                     }
                     break;
-
                 case ActivationMethod.KMS:
                     LogOk(L.Get("KMS_Detected"));
                     if (!string.IsNullOrEmpty(kmsServer))
                         LogData(L.Get("KMS_Server"), kmsServer);
                     break;
-
                 case ActivationMethod.Standard:
                     if (isLicensed) LogOk(L.Get("MAK_Detected"));
                     else            LogWarn(L.Get("MAK_Detected"));
                     break;
             }
 
-            // BIOS OEM key
+            // ── BIOS OEM key ──────────────────────────────────────────────────
             LogBlank();
-            LogFetch(L.Get("Fetch_BiosKey2"));
+            LogFetch(L.Get("Fetch_BiosKey"));
             string? oemKey = null;
             using var svcRes = WmiQuery("SELECT OA3xOriginalProductKey FROM SoftwareLicensingService");
             if (svcRes != null)
@@ -606,9 +648,7 @@ namespace WinLicApp
                     oemKey = obj["OA3xOriginalProductKey"]?.ToString();
 
             bool hasOem = !string.IsNullOrWhiteSpace(oemKey);
-            LogData(L.Get("D_BiosOemKey"),
-                    hasOem ? L.Get("O3_BiosDetected") : L.Get("O3_BiosNone"));
-
+            LogData(L.Get("D_BiosOemKey"), hasOem ? L.Get("O3_BiosDetected") : L.Get("O3_BiosNone"));
             if (hasOem)
             {
                 LogFetch(L.Get("Fetch_OemEdition"));
@@ -617,31 +657,43 @@ namespace WinLicApp
                 else                           LogInfo(L.Get("OemEd_NoMatch"));
             }
 
-            // Registry backup key
+            // ── Registry backup key status ────────────────────────────────────
             bool hasReg = !string.IsNullOrWhiteSpace(regKey);
-            LogData(L.Get("D_RegBackupKey"),
-                    hasReg ? L.Get("O3_BiosDetected") : L.Get("O3_RegNone"));
+            LogData(L.Get("D_RegBackupKey"), hasReg ? L.Get("O3_BiosDetected") : L.Get("O3_RegNone"));
 
-            // Reveal keys
-            if (hasOem || hasReg)
+            // ── Installed Key (DigitalProductId decoder) ──────────────────────
+            LogFetch(L.Get("Fetch_InstalledKey"));
+            string? installedKey = null;
+            try
+            {
+                using var rk = Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+                if (rk?.GetValue("DigitalProductId") is byte[] dpId)
+                    installedKey = DecodeProductKeyWin8AndUp(dpId);
+            }
+            catch { }
+
+            bool hasInstalled = !string.IsNullOrWhiteSpace(installedKey);
+            LogData(L.Get("D_InstalledKey"),
+                    hasInstalled ? L.Get("O3_BiosDetected") : L.Get("O3_RegNone"));
+
+            // ── Key reveal (driven by sidebar checkbox) ───────────────────────
+            if (hasOem || hasReg || hasInstalled)
             {
                 LogBlank();
-                bool full = AskShowFullKey(L.Get("O3_KeysFoundCtx"));
-                if (hasOem) LogKey(L.Get("O3_KeyBios") + (full ? oemKey! : MaskKey(oemKey!)));
-                if (hasReg) LogKey(L.Get("O3_KeyReg")  + (full ? regKey! : MaskKey(regKey!)));
+                bool full = ShowFullKey;
+                if (hasInstalled) LogKey(L.Get("O3_KeyInstalled") + (full ? installedKey! : MaskKey(installedKey!)));
+                if (hasOem)       LogKey(L.Get("O3_KeyBios")      + (full ? oemKey!       : MaskKey(oemKey!)));
+                if (hasReg)       LogKey(L.Get("O3_KeyReg")       + (full ? regKey!       : MaskKey(regKey!)));
             }
 
-            // Mismatch report — DE systems always have a mismatch (expected behavior)
+            // ── Mismatch detection ────────────────────────────────────────────
             if (hasReg && !string.IsNullOrEmpty(partialKey))
             {
                 LogBlank();
                 bool match = regKey!.EndsWith(partialKey, StringComparison.OrdinalIgnoreCase);
-
                 if (!match && activationMethod == ActivationMethod.DE)
-                {
-                    // For DE: mismatch is expected — cloud key assignment differs from original
                     LogInfo(L.Get("DE_KeyMismatch"));
-                }
                 else if (!match)
                 {
                     LogWarn(L.Get("O3_Mismatch"));
@@ -649,7 +701,6 @@ namespace WinLicApp
                     LogDiag(L.Get("O3_ActivePartial") + partialKey);
                     { var rp = regKey.Split('-'); LogDiag(L.Get("O3_BackupEnds") + rp[rp.Length - 1]); }
                     LogBlank();
-
                     if (_isAdmin)
                     {
                         if (AskConfirm(L.Get("O3_ConfirmRemove")))
@@ -666,45 +717,212 @@ namespace WinLicApp
                         }
                     }
                     else
-                    {
                         LogWarn(L.Get("O3_NeedAdmin"));
-                    }
                 }
                 else { LogOk(L.Get("O3_KeyMatch")); }
             }
 
-            // Optional /dlv
-            if (MessageBox.Show(L.Get("O3_DlvQ"), L.Get("O3_DlvTitle"),
-                    MessageBoxButton.YesNo, MessageBoxImage.Question)
-                == MessageBoxResult.Yes)
-            {
-                LogBlank();
-                LogSlmgrOutput(RunSlmgr("/dlv"));
-            }
+            // ── slmgr /dli — License Channel info ────────────────────────────
+            LogBlank();
+            LogSep();
+            LogFetch(L.Get("Act1_DliHeader"));
+            LogInfo(L.Get("O2_Note"));
+            LogBlank();
+            var dliOutput = RunSlmgr("/dli");
+            if (string.IsNullOrWhiteSpace(dliOutput))
+                LogWarn(L.Get("O2_NoOutput"));
+            else
+                LogSlmgrOutput(dliOutput);
+
+            // ── Extended info: slmgr /dlv — show panel instead of MessageBox ────
+            DlvTitle.Text  = L.Get("DLV_PANEL_TITLE");
+            DlvDesc1.Text  = L.Get("DLV_DESC1");
+            DlvDesc2.Text  = L.Get("DLV_DESC2");
+            BtnDlvCancel.Content = L.Get("DLV_CANCEL");
+            BtnDlvRun.Content    = L.Get("DLV_RUN");
+            DlvPanel.Visibility  = Visibility.Visible;
+            EnsurePanelFits(DlvPanel);
         }
 
+
+        private void BtnDlvCancel_Click(object sender, RoutedEventArgs e)
+            => DlvPanel.Visibility = Visibility.Collapsed;
+
+        private void BtnDlvRun_Click(object sender, RoutedEventArgs e)
+        {
+            DlvPanel.Visibility = Visibility.Collapsed;
+            LogBlank();
+            LogSlmgrOutput(RunSlmgr("/dlv"));
+        }
+
+
+        // Old BtnSlmgrDli_Click and BtnInspectKeys_Click removed — merged into BtnVersionInfo_Click above.
+
+
         // =========================================================================
-        // Option 4 — Test & Apply Key
+        // Option 2 — Test & Install New Product Key  (was Option 4)
+        // Key entry uses inline segmented panel instead of InputDialog
         // =========================================================================
         private void BtnTestKey_Click(object sender, RoutedEventArgs e)
         {
-            LogAction("Act4");
             if (!RequireAdmin()) return;
 
+            // Log the action header and pre-arm info to output FIRST
+            LogAction("Act2");
             LogInfo(L.Get("O4_Info1"));
             LogInfo(L.Get("O4_Info2"));
+            LogWarn(L.Get("KP_Warn"));
+
+            // Channel awareness — warn if VOLUME_KMSCLIENT, VOLUME_KMS, or Subscription
+            try
+            {
+                using var licRes = WmiQuery(
+                    "SELECT Description FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL");
+                if (licRes != null)
+                    foreach (ManagementObject obj in licRes)
+                    {
+                        var desc = (obj["Description"]?.ToString() ?? "").ToUpperInvariant();
+                        if (!desc.Contains("WINDOWS") && !obj["Description"]!.ToString()!.ToUpperInvariant().StartsWith("WINDOWS")) { }
+                        if (desc.Contains("VOLUME_KMSCLIENT"))  { LogWarn(L.Get("O2_WARN_CHAN_KMS")); break; }
+                        if (desc.Contains("VOLUME_KMS") && !desc.Contains("KMSCLIENT")) { LogWarn(L.Get("O2_WARN_CHAN_KMSHOST")); break; }
+                        if (desc.Contains("SUBSCRIPTION"))      { LogWarn(L.Get("O2_WARN_CHAN_SUB")); break; }
+                        break;
+                    }
+            }
+            catch { /* non-fatal */ }
+
             LogBlank();
 
-            var key = PromptInput(L.Get("O4_Prompt"), L.Get("O4_PromptTitle"));
-            if (string.IsNullOrWhiteSpace(key)) { LogInfo(L.Get("O4_Cancelled")); return; }
+            // Populate panel (also kept in sync by RefreshLanguage on lang switch)
+            KpInfo1.Text        = L.Get("KP_Info1");
+            KpInfo2.Text        = L.Get("KP_Info2");
+            KpWarn.Text         = L.Get("KP_Warn");
+            KpConfirmLabel.Text = L.Get("KP_TypeOk");
 
-            key = key.Trim().ToUpperInvariant();
+            // Clear boxes and show the panel
+            KBox1.Text = KBox2.Text = KBox3.Text = KBox4.Text = KBox5.Text = "";
+            KpOkBox.Text = string.Empty;
+            KeyEntryPanel.Visibility = Visibility.Visible;
+            EnsurePanelFits(KeyEntryPanel);
+            KBox1.Focus();
+        }
+
+        // ── Keyboard navigation for segmented key boxes ───────────────────────
+        private TextBox[] KeyBoxes => new[] { KBox1, KBox2, KBox3, KBox4, KBox5 };
+
+        private void KeyBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (sender is not TextBox tb) return;
+            int idx = int.Parse((string)tb.Tag) - 1;  // 0-based index
+
+            switch (e.Key)
+            {
+                case Key.Back:
+                    // If box is empty jump to previous; otherwise let WPF delete normally
+                    if (tb.Text.Length == 0 && idx > 0)
+                    {
+                        var prev = KeyBoxes[idx - 1];
+                        prev.Focus();
+                        prev.CaretIndex = prev.Text.Length;
+                        e.Handled = true;
+                    }
+                    break;
+
+                case Key.Delete:
+                    // Delete key must NOT move out of the current block — WPF default is fine
+                    // (it only deletes at the caret), just make sure we don't jump.
+                    // Nothing extra needed; this case is here to explicitly document the intent.
+                    break;
+
+                case Key.Tab when Keyboard.Modifiers == ModifierKeys.Shift:
+                    if (idx > 0) { KeyBoxes[idx - 1].Focus(); e.Handled = true; }
+                    break;
+
+                case Key.Tab:
+                    if (idx < 4) { KeyBoxes[idx + 1].Focus(); e.Handled = true; }
+                    break;
+
+                case Key.Enter:
+                    e.Handled = true;
+                    // If on last box, move focus to OK box; otherwise submit
+                    if (idx == 4) KpOkBox.Focus();
+                    else InstallKeyFromPanel();
+                    break;
+
+                case Key.Escape:
+                    e.Handled = true;
+                    CancelKeyPanel();
+                    break;
+            }
+        }
+
+        private void KeyBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (sender is not TextBox tb) return;
+            int idx = int.Parse((string)tb.Tag) - 1;  // 0-based index
+
+            // Strip non-alphanumeric chars that bypassed CharacterCasing
+            var clean = new string(tb.Text.ToUpperInvariant()
+                .Where(c => char.IsLetterOrDigit(c)).ToArray());
+            if (clean != tb.Text)
+            {
+                tb.Text = clean;
+                tb.CaretIndex = clean.Length;
+            }
+
+            // Auto-jump to next box when this one is full (5 chars)
+            if (tb.Text.Length == 5 && idx < 4)
+                KeyBoxes[idx + 1].Focus();
+        }
+
+        private void BtnKeyInstall_Click(object sender, RoutedEventArgs e)
+            => InstallKeyFromPanel();
+
+        private void BtnKeyCancel_Click(object sender, RoutedEventArgs e)
+            => CancelKeyPanel();
+
+        private void CancelKeyPanel()
+        {
+            KeyEntryPanel.Visibility = Visibility.Collapsed;
+            LogInfo(L.Get("O4_Cancelled"));
+        }
+
+        private void KpOkBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)  { e.Handled = true; InstallKeyFromPanel(); }
+            if (e.Key == Key.Escape) { e.Handled = true; CancelKeyPanel(); }
+        }
+
+        private void InstallKeyFromPanel()
+        {
+            var key = string.Join("-",
+                KBox1.Text.Trim(), KBox2.Text.Trim(),
+                KBox3.Text.Trim(), KBox4.Text.Trim(), KBox5.Text.Trim())
+                .ToUpperInvariant();
+
+            // Validate key format
             if (!Regex.IsMatch(key,
                 @"^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$"))
-            { LogError(L.Get("O4_BadFormat")); return; }
+            {
+                LogError(L.Get("O4_BadFormat"));
+                KBox1.Focus();
+                return;
+            }
 
-            bool showFull = AskShowFullKey(L.Get("O4_ShowKeyCtx"));
-            LogInfo(L.Get("O4_Installing") + (showFull ? key : MaskKey(key)));
+            // Validate OK confirmation
+            if (!KpOkBox.Text.Trim().Equals("OK", StringComparison.OrdinalIgnoreCase))
+            {
+                LogError(L.Get("KP_BadInput"));
+                KpOkBox.SelectAll();
+                KpOkBox.Focus();
+                return;
+            }
+
+            // Hide the panel before running slmgr (which may take a moment)
+            KeyEntryPanel.Visibility = Visibility.Collapsed;
+
+            bool full = ShowFullKey;
+            LogInfo(L.Get("O4_Installing") + (full ? key : MaskKey(key)));
             LogBlank();
 
             var output = RunSlmgr($"/ipk {key}");
@@ -716,6 +934,31 @@ namespace WinLicApp
             {
                 LogOk(L.Get("O4_Success1"));
                 LogInfo(L.Get("O4_Success2"));
+
+                // ── Auto online activation (/ato) ─────────────────────────────
+                LogBlank();
+                LogInfo(L.Get("O2_ATO_AUTO"));
+                var atoOut = RunSlmgr("/ato");
+                LogSlmgrOutput(atoOut);
+                LogBlank();
+                bool atoFail = atoOut.Contains("Error") || atoOut.Contains("0x");
+                if (!atoFail)
+                {
+                    LogOk(L.Get("O2_ATO_SUCCESS"));
+                }
+                else
+                {
+                    LogError(L.Get("O2_ATO_FAIL") + " " + atoOut.Trim());
+                    if      (atoOut.Contains("0x80070490")) LogDiag(L.Get("O2_DIAG_DIDNTWORK"));
+                    else if (atoOut.Contains("0xC004C001")) LogDiag(L.Get("O2_DIAG_SERVER_INVALID"));
+                    else if (atoOut.Contains("0xC004C020") || atoOut.Contains("0xC004C021"))
+                                                            LogDiag(L.Get("O2_DIAG_MAK_LIMIT"));
+                    else if (atoOut.Contains("0xC004B100")) LogDiag(L.Get("O2_DIAG_SERVER_NOACT"));
+                    else if (atoOut.Contains("0xC004F009")) LogDiag(L.Get("O2_DIAG_GRACE"));
+                    else if (atoOut.Contains("0x8004FE21")) LogDiag(L.Get("O2_DIAG_NOTGENUINE"));
+                    LogBlank();
+                    LogHelp(L.Get("O8KMS_REF_URL"));
+                }
             }
             else
             {
@@ -731,15 +974,60 @@ namespace WinLicApp
         }
 
         // =========================================================================
-        // Option 5 — Uninstall Key
+        // Option 3 — Remove Activation  (inline confirm panel, mirrors Option 2 style)
         // =========================================================================
         private void BtnRemoveLicense_Click(object sender, RoutedEventArgs e)
         {
-            LogAction("Act5");
             if (!RequireAdmin()) return;
 
-            if (!AskConfirm(L.Get("O5_Confirm")))
-            { LogInfo(L.Get("O5_Cancelled")); return; }
+            // Log the action header and pre-arm warnings to output FIRST
+            LogAction("Act3");
+            LogWarn(L.Get("O3_Remove_Warn1"));
+            LogWarn(L.Get("O3_Remove_Warn2"));
+            LogBlank();
+
+            // Populate panel text (localized)
+            RcpTitle.Text        = L.Get("O3_Remove_Title");
+            RcpWarn1.Text        = L.Get("O3_Remove_Warn1");
+            RcpWarn2.Text        = L.Get("O3_Remove_Warn2");
+            RcpConfirmLabel.Text = L.Get("O3_Remove_TypeOk");
+            RcpHint.Text         = L.Get("O3_Remove_Hint");
+            BtnRemoveCancel.Content  = L.Get("O3_Remove_Cancel");
+            BtnRemoveConfirm.Content = L.Get("O3_Remove_Confirm");
+
+            // Clear input and show panel
+            RcpOkBox.Text = string.Empty;
+            RemoveConfirmPanel.Visibility = Visibility.Visible;
+            EnsurePanelFits(RemoveConfirmPanel);
+            RcpOkBox.Focus();
+        }
+
+        private void BtnRemoveCancel_Click(object sender, RoutedEventArgs e)
+        {
+            RemoveConfirmPanel.Visibility = Visibility.Collapsed;
+            LogInfo(L.Get("O3_Cancelled"));
+        }
+
+        private void BtnRemoveConfirm_Click(object sender, RoutedEventArgs e)
+            => ExecuteRemove();
+
+        private void RcpOkBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)  { e.Handled = true; ExecuteRemove(); }
+            if (e.Key == Key.Escape) { e.Handled = true; BtnRemoveCancel_Click(sender, e); }
+        }
+
+        private void ExecuteRemove()
+        {
+            if (!RcpOkBox.Text.Trim().Equals("OK", StringComparison.OrdinalIgnoreCase))
+            {
+                LogError(L.Get("O3_Remove_BadInput"));
+                RcpOkBox.SelectAll();
+                RcpOkBox.Focus();
+                return;
+            }
+
+            RemoveConfirmPanel.Visibility = Visibility.Collapsed;
 
             LogBlank();
             LogInfo(L.Get("O5_Uninstalling"));
@@ -754,16 +1042,76 @@ namespace WinLicApp
         }
 
         // =========================================================================
-        // Option 6 — Reset / Rearm
+        // Option 4 — Reset Activation / Rearm  (was Option 6)
         // =========================================================================
         private void BtnResetActivation_Click(object sender, RoutedEventArgs e)
         {
-            LogAction("Act6");
             if (!RequireAdmin()) return;
 
-            if (!AskConfirm(L.Get("O6_Confirm")))
-            { LogInfo(L.Get("O6_Cancelled")); return; }
+            // WMI always has the live count; registry key only appears after first rearm
+            int rearmCount = -1;
+            try
+            {
+                using var svcRes = WmiQuery(
+                    "SELECT RemainingWindowsRearmCount FROM SoftwareLicensingService");
+                if (svcRes != null)
+                    foreach (ManagementObject obj in svcRes)
+                    {
+                        var v = obj["RemainingWindowsRearmCount"];
+                        if (v != null) { rearmCount = Convert.ToInt32(v); break; }
+                    }
+            }
+            catch { }
 
+            // Registry fallback (present only after first rearm on some builds)
+            if (rearmCount < 0)
+            {
+                try
+                {
+                    using var rk = Registry.LocalMachine.OpenSubKey(
+                        @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform");
+                    var v = rk?.GetValue("RemainingWindowsRearmCount");
+                    if (v != null) rearmCount = Convert.ToInt32(v);
+                }
+                catch { }
+            }
+
+
+            // Populate and show RearmPanel
+            RpTitle.Text         = L.Get("R4_PANEL_TITLE");
+            RpWarn1.Text         = L.Get("R4_WARN1");
+            RpWarn2.Text         = L.Get("R4_WARN2");
+            RpCountLabel.Text    = L.Get("R4_COUNT_LABEL");
+            RpCountValue.Text    = rearmCount >= 0 ? rearmCount.ToString() : "?";
+            RpConfirmLabel.Text  = L.Get("R4_CONFIRM_LABEL");
+            RpRestartCheck.Content = L.Get("R4_RESTART_CHECK");
+            RpRestartCheck.IsChecked = false;
+            BtnRpCancel.Content  = L.Get("R4_CANCEL");
+            BtnRpConfirm.Content = L.Get("R4_CONFIRM");
+            RpOkBox.Text         = string.Empty;
+
+            RearmPanel.Visibility = Visibility.Visible;
+            EnsurePanelFits(RearmPanel);
+        }
+
+        private void BtnRpCancel_Click(object sender, RoutedEventArgs e)
+        {
+            RearmPanel.Visibility = Visibility.Collapsed;
+            LogInfo(L.Get("R4_CANCELLED"));
+        }
+
+        private void BtnRpConfirm_Click(object sender, RoutedEventArgs e)
+        {
+            if (!RpOkBox.Text.Trim().Equals("OK", StringComparison.OrdinalIgnoreCase))
+            {
+                RpOkBox.BorderBrush = new SolidColorBrush(Colors.Red);
+                return;
+            }
+
+            bool doRestart = RpRestartCheck.IsChecked == true;
+            RearmPanel.Visibility = Visibility.Collapsed;
+
+            LogAction("Act4");
             LogBlank();
             LogInfo(L.Get("O6_Rearming"));
             LogSlmgrOutput(RunSlmgr("/rearm"));
@@ -771,19 +1119,20 @@ namespace WinLicApp
             LogBlank();
             LogOk(L.Get("O6_Done"));
 
-            if (AskConfirm(L.Get("O6_RestartQ")))
+            if (doRestart)
             {
                 LogInfo(L.Get("O6_Restarting"));
                 Process.Start("shutdown.exe", "/r /t 5 /c \"WinLicManager rearm restart\"");
             }
         }
 
+
         // =========================================================================
-        // Option 7 — 3rd-party activation audit
+        // Option 5 — 3rd-Party Activation Audit  (was Option 7)
         // =========================================================================
         private void BtnPiracyCheck_Click(object sender, RoutedEventArgs e)
         {
-            LogAction("Act7");
+            LogAction("Act5");
 
             // ── Verbose preamble: what this scan covers ────────────────────────
             LogLine($"  {L.Get("P7_Header")}", ColAction, bold: true);
@@ -793,6 +1142,9 @@ namespace WinLicApp
             LogDiag(L.Get("P7_CanDetect4"));
             LogDiag(L.Get("P7_CanDetect5"));
             LogDiag(L.Get("P7_CanDetect6"));
+            LogDiag(L.Get("P7_CanDetect7"));
+            LogDiag(L.Get("P7_CanDetect8"));
+            LogDiag(L.Get("P7_CanDetect9"));
             LogBlank();
             LogLine($"  {L.Get("P7_LimitHeader")}", ColWarn, bold: true);
             LogDiag(L.Get("P7_Limit1"));
@@ -1094,7 +1446,7 @@ namespace WinLicApp
             {
                 using var licSearch = WmiQuery(
                     "SELECT PartialProductKey, LicenseStatus, Description, GracePeriodRemaining " +
-                    "FROM Win32_SoftwareLicensingProduct " +
+                    "FROM SoftwareLicensingProduct " +
                     "WHERE ApplicationID = '55c92734-d682-4d71-983e-d6ec3f16059f'");
                 bool foundAnyKey = false;
                 if (licSearch != null)
@@ -1111,10 +1463,17 @@ namespace WinLicApp
                         try { graceMins = Convert.ToUInt32(mo["GracePeriodRemaining"]); } catch { }
                         string desc = mo["Description"]?.ToString() ?? "";
 
-                        bool isLicensed  = licStatus == 1;
-                        bool isPermanent = graceMins == 0 && isLicensed;
-                        bool isGvlk      = AppSettings.AllGvlkSuffixes.Contains(ppk);
-                        bool isPhone     = desc.IndexOf("phone", StringComparison.OrdinalIgnoreCase) >= 0;
+                        bool isLicensed     = licStatus == 1;
+                        bool isPermanent    = graceMins == 0 && isLicensed;
+                        bool isGvlk         = AppSettings.AllGvlkSuffixes.Contains(ppk);
+                        bool isPhone        = desc.IndexOf("phone", StringComparison.OrdinalIgnoreCase) >= 0;
+                        // Channel check: VOLUME_KMSCLIENT = KMS (corporate or pirate), RETAIL/OEM_DM = DE
+                        bool isVolumeKms    = desc.IndexOf("VOLUME_KMSCLIENT", StringComparison.OrdinalIgnoreCase) >= 0;
+                        // Also check the ProductKeyChannel property if present (more reliable)
+                        string? pkChannel = mo.Properties.Cast<PropertyData>()
+                            .FirstOrDefault(p => p.Name.Equals("ProductKeyChannel", StringComparison.OrdinalIgnoreCase))?.Value?.ToString() ?? "";
+                        if (pkChannel?.IndexOf("VOLUME_KMSCLIENT", StringComparison.OrdinalIgnoreCase) >= 0)
+                            isVolumeKms = true;
 
                         // 7a. Phone activation anomaly (TSforge ZeroCID indicator)
                         if (isPhone && isLicensed)
@@ -1124,12 +1483,22 @@ namespace WinLicApp
                             suspiciousCount++;
                         }
 
-                        // 7b. GVLK + permanent = piracy (legitimate KMS always has 180-day countdown)
-                        if (isGvlk && isPermanent)
+                        // 7b. GVLK + permanent check — must distinguish channel:
+                        //   VOLUME_KMSCLIENT + permanent = KMS38 / TSforge / piracy (real KMS always has 180d countdown)
+                        //   RETAIL / OEM_DM  + permanent = legitimate Digital Entitlement (HWID)
+                        if (isGvlk && isPermanent && isVolumeKms)
                         {
-                            LogError(string.Format(L.Get("P7_GvlkPermanent"), ppk));
+                            LogError(string.Format(L.Get("P7_GvlkPermanentVolume"), ppk));
                             criticalKms = true;
                             suspiciousCount++;
+                        }
+                        else if (isGvlk && isPermanent && !isVolumeKms)
+                        {
+                            // RETAIL / OEM_DM channel + permanent = Digital Entitlement (HWID)
+                            // This is indistinguishable from genuine DE — do NOT flag.
+                            LogOk(string.Format(L.Get("P7_GvlkDeActivation"), ppk, 
+                                desc.IndexOf("OEM_DM", StringComparison.OrdinalIgnoreCase) >= 0 ? "OEM_DM" :
+                                desc.IndexOf("RETAIL", StringComparison.OrdinalIgnoreCase) >= 0 ? "RETAIL" : "non-VOLUME"));
                         }
                         else if (isGvlk)
                         {
@@ -1166,7 +1535,7 @@ namespace WinLicApp
                         // ── 8. Expiry / grace period analysis
                         LogBlank();
                         LogSep();
-                        LogFetch("\u2467 Analyzing activation expiry (WMI)…");
+                        LogFetch(L.Get("Fetch_ActExpiry"));
                         LogDiag(L.Get("P7_ExpiryExplain"));
 
                         if (graceMins == 0 && isLicensed)
@@ -1207,9 +1576,9 @@ namespace WinLicApp
                     }
                 }
                 if (!foundAnyKey)
-                    LogInfo("No licensed Windows product key found via WMI.");
+                    LogInfo(L.Get("P7_NoKeyWmi"));
             }
-            catch (Exception ex) { LogWarn($"WMI activation channel error: {ex.Message}"); }
+            catch (Exception ex) { LogWarn(string.Format(L.Get("P7_WmiErr"), ex.Message)); }
 
             // ── 9. TSforge SPP store file timestamp (LOW CONFIDENCE) ───────
             LogBlank();
@@ -1239,6 +1608,7 @@ namespace WinLicApp
                     catch { }
 
                     // Check for nearby Windows Update event (ID 19 = successful update installed)
+                    // Iterate all System log entries — no source filter to catch all WU events.
                     bool hasNearbyUpdate = false;
                     try
                     {
@@ -1251,9 +1621,12 @@ namespace WinLicApp
                     }
                     catch { }
 
+                    // Only warn if data.dat is significantly newer than install date AND
+                    // there is no correlated Windows Update event.
+                    // (data.dat predating install date is not a reliable indicator — skip that check.)
                     if (hasNearbyUpdate)
                         LogOk(L.Get("P7_SppStoreOk"));
-                    else if (datMod > installDate.AddDays(2))
+                    else if (installDate > DateTime.MinValue && datMod > installDate.AddDays(2))
                     {
                         LogWarn(string.Format(L.Get("P7_SppStoreModified"),
                             datMod.ToString("yyyy-MM-dd HH:mm")));
@@ -1263,7 +1636,7 @@ namespace WinLicApp
                         LogOk(L.Get("P7_SppStoreOk"));
                 }
             }
-            catch (Exception ex) { LogWarn($"SPP store check error: {ex.Message}"); }
+            catch (Exception ex) { LogWarn(string.Format(L.Get("P7_SppStoreErr"), ex.Message)); }
 
             // ── Layer 6: SPP Security Event Log ───────────────────────────
             LogBlank();
@@ -1290,11 +1663,11 @@ namespace WinLicApp
 
                 if (sppEvents.Count == 0)
                 {
-                    LogOk("No SPP activation security events found in System log.");
+                    LogOk(L.Get("P7_SppEventsNone"));
                 }
                 else
                 {
-                    LogInfo($"Found {sppEvents.Count} SPP security event(s) in System log.");
+                    LogInfo(string.Format(L.Get("P7_SppEventsFound"), sppEvents.Count));
                     bool externalKmsInEvent = false;
                     foreach (var ev in sppEvents)
                     {
@@ -1308,8 +1681,8 @@ namespace WinLicApp
                                 var addr = match.Value;
                                 if (!IsPrivateIp(addr) && addr != "localhost")
                                 {
-                                    LogError($"SPP event 12290: KMS request to external server: {addr}");
-                                    LogError("This confirms activation via an unauthorized public KMS service.");
+                                    LogError(string.Format(L.Get("P7_SppEventsExt"), addr));
+                                    LogError(L.Get("P7_SppEventsConf"));
                                     criticalKms = true;
                                     externalKmsInEvent = true;
                                     suspiciousCount++;
@@ -1318,10 +1691,10 @@ namespace WinLicApp
                         }
                     }
                     if (!externalKmsInEvent)
-                        LogOk("SPP events present — no external KMS server address detected in event data.");
+                        LogOk(L.Get("P7_SppEventsOk"));
                 }
             }
-            catch (Exception ex) { LogWarn($"SPP event log check error: {ex.Message}"); }
+            catch (Exception ex) { LogWarn(string.Format(L.Get("P7_SppEventsErr"), ex.Message)); }
 
             // ── Summary ────────────────────────────────────────────────────
 
@@ -1333,12 +1706,12 @@ namespace WinLicApp
             {
                 LogError(L.Get("P7_Critical"));
                 if (suspiciousCount > 1)
-                    LogError($"  Total indicators flagged: {suspiciousCount}");
+                    LogError(string.Format(L.Get("P7_IndicatorCount"), suspiciousCount));
             }
             else if (suspiciousCount > 0)
             {
                 LogWarn(L.Get("P7_Suspicious"));
-                LogWarn($"  Total indicators flagged: {suspiciousCount}");
+                LogWarn(string.Format(L.Get("P7_IndicatorCount"), suspiciousCount));
             }
             else
                 LogOk(L.Get("P7_Clean"));
@@ -1408,6 +1781,714 @@ namespace WinLicApp
             LogDocument.Blocks.Clear();
             _firstAction   = true;
             StatusBar.Text = L.Get("LogCleared");
+        }
+
+        // =========================================================================
+        // Installed Key Decoder
+        // =========================================================================
+        private static string? DecodeProductKeyWin8AndUp(byte[] digitalProductId)
+        {
+            if (digitalProductId == null || digitalProductId.Length < 67)
+                return null;
+
+            var key = new byte[15];
+            Array.Copy(digitalProductId, 52, key, 0, 15);
+            var isWin8 = (byte)((key[14] / 6) & 1);
+            key[14] = (byte)((key[14] & 0xf7) | ((isWin8 & 2) * 4));
+
+            const string chars = "BCDFGHJKMPQRTVWXY2346789";
+            var decodedChars = new char[25];
+            
+            int last = 0;
+            for (var i = 24; i >= 0; i--)
+            {
+                int current = 0;
+                for (var j = 14; j >= 0; j--)
+                {
+                    current = (current * 256) ^ key[j];
+                    key[j] = (byte)(current / 24);
+                    current %= 24;
+                }
+                decodedChars[i] = chars[current];
+                last = current;
+            }
+
+            var decodedKey = new string(decodedChars);
+            
+            if (isWin8 == 1)
+            {
+                string keypart1 = decodedKey.Substring(1, last);
+                string keypart2 = decodedKey.Substring(1 + last);
+                decodedKey = keypart1 + "N" + keypart2;
+            }
+
+            for (var i = 5; i < decodedKey.Length; i += 6)
+                decodedKey = decodedKey.Insert(i, "-");
+
+            return decodedKey;
+        }
+        // =========================================================================
+        // Option 6 — KMS Activation
+        // =========================================================================
+
+        // GVLK table: edition name pattern → full GVLK key
+        private static readonly (string Pattern, string Edition, string Key)[] GvlkTable = new[]
+        {
+            ("Pro N",                  "Windows 10/11 Pro N",                   "MH37W-N47XK-V7XM9-C7227-GCQG9"),
+            ("Pro Education N",        "Windows 10/11 Pro Education N",         "YVWGF-BXNMC-HTQYQ-CPQ99-66QFC"),
+            ("Pro Education",          "Windows 10/11 Pro Education",           "6TP4R-GNPTD-KYYHQ-7B7DP-J447Y"),
+            ("Pro",                    "Windows 10/11 Pro",                     "W269N-WFGWX-YVC9B-4J6C9-T83GX"),
+            ("Education N",            "Windows 10/11 Education N",             "2WH4N-8QGBV-H22JP-CT43Q-MDWWJ"),
+            ("Education",              "Windows 10/11 Education",               "NW6C2-QMPVW-D7KKK-3GKT6-VCFB2"),
+            ("Enterprise G N",         "Windows 10/11 Enterprise G N",          "44RPN-FTY23-9VTTB-MP9BX-T84FV"),
+            ("Enterprise G",           "Windows 10/11 Enterprise G",            "YYVX9-NTFWV-6MDM3-9PT4T-4M68B"),
+            ("Enterprise N",           "Windows 10/11 Enterprise N",            "DPH2V-TTNVB-4X9Q3-TJR4H-KHJW4"),
+            ("Enterprise LTSC 2021",   "Windows 10 Enterprise LTSC 2021",       "M7XTQ-FN8P6-TTKYV-9D4CC-J462D"),
+            ("Enterprise LTSC 2019",   "Windows 10 Enterprise LTSC 2019",       "M7XTQ-FN8P6-TTKYV-9D4CC-J462D"),
+            ("Enterprise LTSC 2016",   "Windows 10 Enterprise LTSC 2016",       "DCPHK-NFMTC-H88MJ-PFHPY-QJ4BJ"),
+            ("Enterprise",             "Windows 10/11 Enterprise",              "NPPR9-FWDCX-D2C8J-H872K-2YT43"),
+            ("Server 2022 Datacenter", "Windows Server 2022 Datacenter",        "WX4NM-KYWYW-QJJR4-XV3QB-6VM33"),
+            ("Server 2022 Standard",   "Windows Server 2022 Standard",          "VDYBN-27WPP-V4HQT-9VMD4-VMK7H"),
+            ("Server 2019 Datacenter", "Windows Server 2019 Datacenter",        "WMDGN-G9PQG-XVVXX-R3X43-63DFG"),
+            ("Server 2019 Standard",   "Windows Server 2019 Standard",          "N69G4-B89J2-4G8F4-WWYCC-J464C"),
+            ("Server 2016 Datacenter", "Windows Server 2016 Datacenter",        "CB7KF-BWN84-R7R2Y-793K2-8XDDG"),
+            ("Server 2016 Standard",   "Windows Server 2016 Standard",          "WC2BQ-8NRM3-FDDYY-2BFGV-KHKQY"),
+            ("Server 2012 R2 Datacenter","Windows Server 2012 R2 Datacenter",   "W3GGN-FT8W3-Y4M27-J84CP-Q3VJ9"),
+            ("Server 2012 R2 Standard","Windows Server 2012 R2 Standard",       "D2N9P-3P6X9-2R39C-7RTCD-MDVJX"),
+        };
+
+        private string? _kmsResolvedHost = null;   // set during preflight, consumed by Proceed
+        private bool    _kmsGvlkNeeded   = false;  // true when GVLK install required first
+        private string? _kmsGvlkKey      = null;   // GVLK to install if needed
+        private bool    _kmsManualNeeded = false;  // true when DNS failed, manual host required
+        private bool    _kmsPort1688Ok   = false;  // true when TCP 1688 test passed
+
+        private void BtnKmsActivate_Click(object sender, RoutedEventArgs e)
+        {
+            if (!RequireAdmin()) return;
+
+            // Log pre-arm to main output
+            LogAction("Act8");
+            LogInfo(L.Get("O8KMS_DESC1"));
+            LogInfo(L.Get("O8KMS_DESC2"));
+            LogInfo(L.Get("O8KMS_DESC3"));
+            LogBlank();
+
+            // Reset state
+            _kmsResolvedHost = null;
+            _kmsGvlkNeeded   = false;
+            _kmsGvlkKey      = null;
+            _kmsManualNeeded = false;
+            _kmsPort1688Ok   = false;
+
+            // Populate panel labels
+            KmsPanelTitle.Text       = L.Get("O8KMS_PANEL_TITLE");
+            KmsDesc1.Text            = L.Get("O8KMS_DESC1");
+            KmsDesc2.Text            = L.Get("O8KMS_DESC2");
+            KmsDesc3.Text            = L.Get("O8KMS_DESC3");
+            KmsGvlkConfirmLabel.Text = L.Get("O8KMS_GVLK_CONFIRM");
+            KmsManualLabel.Text      = L.Get("O8KMS_MANUAL_LABEL");
+            KmsManualHint.Text       = L.Get("O8KMS_MANUAL_HINT");
+            BtnKmsCancel.Content     = L.Get("O8KMS_CANCEL");
+            BtnKmsProceed.Content    = L.Get("O8KMS_PROCEED");
+            BtnKmsProceed.IsEnabled  = false;
+
+            // Clear step labels
+            KmsStep1.Text = L.Get("O8KMS_CHK_CHANNEL");
+            KmsStep2.Text = L.Get("O8KMS_CHK_GVLK");
+            KmsStep3.Text = L.Get("O8KMS_CHK_DNS");
+            KmsStep4.Text = L.Get("O8KMS_CHK_PORT");
+            KmsStep5.Text = L.Get("O8KMS_CHK_CLOCK");
+            KmsStep6.Text = L.Get("O8KMS_CHK_ACTIVATE");
+            KmsGvlkSection.Visibility   = Visibility.Collapsed;
+            KmsManualSection.Visibility = Visibility.Collapsed;
+            KmsHostBox.Text             = string.Empty;
+            KmsGvlkOkBox.Text           = string.Empty;
+
+            KmsPanel.Visibility = Visibility.Visible;
+            EnsurePanelFits(KmsPanel);
+
+            // Run preflight asynchronously to keep UI responsive
+            _ = RunKmsPreflightAsync();
+        }
+
+        private async System.Threading.Tasks.Task RunKmsPreflightAsync()
+        {
+            // ── Step 1: Channel check ────────────────────────────────────────────
+            string channelDesc = "(unknown)";
+            string? partialKey = null;
+            string? activeName = null;
+            try
+            {
+                using var licRes = WmiQuery(
+                    "SELECT Name,Description,PartialProductKey,ProductKeyChannel " +
+                    "FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL");
+                if (licRes != null)
+                    foreach (ManagementObject obj in licRes)
+                    {
+                        var n = obj["Name"]?.ToString() ?? "";
+                        if (!n.StartsWith("Windows", StringComparison.OrdinalIgnoreCase)) continue;
+                        channelDesc = obj["Description"]?.ToString() ?? "(unknown)";
+                        partialKey  = obj["PartialProductKey"]?.ToString();
+                        activeName  = n;
+                        break;
+                    }
+            }
+            catch { }
+
+            bool isKmsClient = channelDesc.ToUpperInvariant().Contains("VOLUME_KMSCLIENT");
+            bool isKmsHost   = channelDesc.ToUpperInvariant().Contains("VOLUME_KMS") && !isKmsClient;
+
+            KmsStep1.Text = $"✔ {L.Get("O8KMS_CHK_CHANNEL")}  {channelDesc}";
+            if (isKmsHost)      { LogWarn(L.Get("O8KMS_WARN_KMSHOST")); }
+            if (!isKmsClient)   LogWarn(L.Get("O8KMS_WARN_NOTVOLUME"));
+
+            await System.Threading.Tasks.Task.Delay(100);
+
+            // ── Step 2: GVLK check ───────────────────────────────────────────────
+            // VOLUME_KMSCLIENT channel means a GVLK is already installed (the definitive indicator).
+            // Fallback: check the partial key suffix against our GVLK table.
+            var gvlkSuffixes = new System.Collections.Generic.HashSet<string>(
+                GvlkTable.Select(t => t.Key.Substring(t.Key.Length - 5)),
+                StringComparer.OrdinalIgnoreCase);
+            bool isGvlk = isKmsClient ||
+                          (partialKey != null && gvlkSuffixes.Contains(partialKey));
+            if (isGvlk)
+            {
+                KmsStep2.Text = $"✔ {L.Get("O8KMS_GVLK_OK")}{partialKey}";
+                KmsGvlkSection.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                KmsStep2.Text = $"⚠ {L.Get("O8KMS_GVLK_MISSING")}";
+                // Try to find GVLK for this edition
+                string gvlkKey = "";
+                string gvlkEdition = "";
+                if (activeName != null)
+                    foreach (var (pat, ed, k) in GvlkTable)
+                        if (activeName.IndexOf(pat, StringComparison.OrdinalIgnoreCase) >= 0)
+                        { gvlkKey = k; gvlkEdition = ed; break; }
+
+                if (!string.IsNullOrEmpty(gvlkKey))
+                {
+                    _kmsGvlkNeeded = true;
+                    _kmsGvlkKey    = gvlkKey;
+                    KmsGvlkLabel.Text = L.Get("O8KMS_GVLK_FOUND_KEY") + "  " + gvlkEdition;
+                    KmsGvlkKey.Text   = gvlkKey;
+                    KmsGvlkSection.Visibility = Visibility.Visible;
+                    EnsurePanelFits(KmsPanel);
+                }
+                else
+                {
+                    KmsGvlkLabel.Text = L.Get("O8KMS_GVLK_NOMAP");
+                    KmsGvlkSection.Visibility = Visibility.Visible;
+                    EnsurePanelFits(KmsPanel);
+                    // Cannot proceed without GVLK — leave proceed disabled
+                    return;
+                }
+            }
+
+            await System.Threading.Tasks.Task.Delay(100);
+
+            // ── Step 3: DNS SRV lookup ───────────────────────────────────────────
+            string? dnsHost = null;
+            try
+            {
+                var psi = new System.Diagnostics.ProcessStartInfo("nslookup")
+                {
+                    Arguments = "-type=SRV _VLMCS._TCP",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    UseShellExecute = false,
+                    CreateNoWindow  = true,
+                };
+                using var proc = System.Diagnostics.Process.Start(psi);
+                string nsOut = await System.Threading.Tasks.Task.Run(() =>
+                {
+                    string o = proc!.StandardOutput.ReadToEnd();
+                    proc.WaitForExit();
+                    return o;
+                });
+                // Parse svr hostname from nslookup output: line containing "svr hostname = <host>"
+                var m = System.Text.RegularExpressions.Regex.Match(
+                    nsOut, @"svr hostname\s*=\s*(\S+)",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (m.Success) dnsHost = m.Groups[1].Value.TrimEnd('.');
+            }
+            catch { }
+
+            if (!string.IsNullOrEmpty(dnsHost))
+            {
+                _kmsResolvedHost = dnsHost;
+                KmsStep3.Text = $"✔ {L.Get("O8KMS_DNS_FOUND")}{dnsHost}";
+                KmsManualSection.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                KmsStep3.Text = $"⚠ {L.Get("O8KMS_DNS_FAIL")}";
+                _kmsManualNeeded = true;
+                KmsManualSection.Visibility = Visibility.Visible;
+                EnsurePanelFits(KmsPanel);
+                // Enable proceed so user can supply host manually; port/clock steps will run on proceed
+                BtnKmsProceed.IsEnabled = true;
+                return;
+            }
+
+            await System.Threading.Tasks.Task.Delay(50);
+
+            // ── Step 4: TCP 1688 test ────────────────────────────────────────────
+            await RunKmsPortCheckAsync(_kmsResolvedHost!);
+
+            await System.Threading.Tasks.Task.Delay(50);
+
+            // ── Step 5: Clock advisory ───────────────────────────────────────────
+            KmsStep5.Text = $"ℹ {L.Get("O8KMS_CLOCK_WARN")}";
+
+            BtnKmsProceed.IsEnabled = true;
+        }
+
+        private async System.Threading.Tasks.Task RunKmsPortCheckAsync(string host)
+        {
+            bool connected = await System.Threading.Tasks.Task.Run(() =>
+            {
+                try
+                {
+                    using var tcp = new System.Net.Sockets.TcpClient();
+                    tcp.Connect(host, 1688);   // synchronous; 20 s OS default timeout
+                    return true;
+                }
+                catch { return false; }
+            });
+            if (connected)
+            {
+                _kmsPort1688Ok = true;
+                KmsStep4.Text = $"\u2714 {L.Get("O8KMS_PORT_OK")}{host}:1688";
+            }
+            else
+            {
+                _kmsPort1688Ok = false;
+                KmsStep4.Text = $"\u26a0 {L.Get("O8KMS_PORT_FAIL")}{host}:1688";
+            }
+        }
+
+
+        private async void BtnKmsProceed_Click(object sender, RoutedEventArgs e)
+        {
+            BtnKmsProceed.IsEnabled = false;
+            BtnKmsCancel.IsEnabled  = false;
+
+            // If DNS failed, read manual host from textbox
+            if (_kmsManualNeeded)
+            {
+                var manualHost = KmsHostBox.Text.Trim();
+                if (string.IsNullOrEmpty(manualHost))
+                {
+                    LogWarn(L.Get("O8KMS_CANCELED"));
+                    KmsPanel.Visibility = Visibility.Collapsed;
+                    return;
+                }
+                _kmsResolvedHost = manualHost;
+                KmsStep3.Text = $"→ Manual host: {manualHost}";
+
+                // Test port 1688 on manual host
+                await RunKmsPortCheckAsync(manualHost);
+                KmsStep5.Text = $"ℹ {L.Get("O8KMS_CLOCK_WARN")}";
+            }
+
+            KmsPanel.Visibility = Visibility.Collapsed;
+
+            // ── GVLK install if needed ───────────────────────────────────────────
+            if (_kmsGvlkNeeded && !string.IsNullOrEmpty(_kmsGvlkKey))
+            {
+                // User must have typed OK in KmsGvlkOkBox
+                if (!KmsGvlkOkBox.Text.Trim().Equals("OK", StringComparison.OrdinalIgnoreCase))
+                {
+                    LogWarn(L.Get("O8KMS_GVLK_CANCELED"));
+                    return;
+                }
+                LogInfo(L.Get("O8KMS_GVLK_INSTALLING"));
+                var ipkOut = RunSlmgr($"/ipk {_kmsGvlkKey}");
+                LogSlmgrOutput(ipkOut);
+                if (ipkOut.Contains("Error") || ipkOut.Contains("0x"))
+                {
+                    LogError(L.Get("O8KMS_FAIL"));
+                    LogHelp(L.Get("O8KMS_REF_URL"));
+                    return;
+                }
+                LogOk(L.Get("O8KMS_GVLK_DONE"));
+                LogBlank();
+            }
+
+            // ── /skms — persist only if port 1688 reachable ──────────────────────
+            if (!string.IsNullOrEmpty(_kmsResolvedHost))
+            {
+                if (_kmsPort1688Ok)
+                {
+                    LogInfo(L.Get("O8KMS_SKMS_PERSIST"));
+                    var skmsOut = RunSlmgr($"/skms {_kmsResolvedHost}");
+                    LogSlmgrOutput(skmsOut);
+                }
+                else
+                {
+                    LogWarn(L.Get("O8KMS_SKMS_NOPERSIST"));
+                }
+                LogBlank();
+            }
+
+            // ── Step 6: slmgr /ato ───────────────────────────────────────────────
+            KmsStep6.Text = $"→ {L.Get("O8KMS_CHK_ACTIVATE")}";
+            LogInfo(L.Get("O8KMS_CHK_ACTIVATE"));
+            var atoOut = RunSlmgr("/ato");
+            LogSlmgrOutput(atoOut);
+
+            bool atoFail = atoOut.Contains("Error") || atoOut.Contains("0x");
+            LogBlank();
+            if (!atoFail)
+            {
+                LogOk(L.Get("O8KMS_SUCCESS"));
+                LogInfo(L.Get("O8KMS_SUCCESS2"));
+            }
+            else
+            {
+                LogError(L.Get("O8KMS_FAIL"));
+                if      (atoOut.Contains("0xC004F038")) LogDiag(L.Get("O8KMS_DIAG_COUNT"));
+                else if (atoOut.Contains("0xC004F039")) LogDiag(L.Get("O8KMS_DIAG_NOTENABLED"));
+                else if (atoOut.Contains("0xC004F041")) LogDiag(L.Get("O8KMS_DIAG_HOSTNACT"));
+                else if (atoOut.Contains("0xC004F042")) LogDiag(L.Get("O8KMS_DIAG_WRONGHOST"));
+                else if (atoOut.Contains("0xC004F06C")) LogDiag(L.Get("O8KMS_DIAG_CLOCK"));
+                else if (atoOut.Contains("0xC004F074")) LogDiag(L.Get("O8KMS_DIAG_NOCONTACT"));
+                else if (atoOut.Contains("0x8007007B") || atoOut.Contains("0x8007232B") ||
+                         atoOut.Contains("0x8007251D") || atoOut.Contains("0x80092328"))
+                                                         LogDiag(L.Get("O8KMS_DIAG_DNS"));
+                else if (atoOut.Contains("0xC004F035")) LogDiag(L.Get("O8KMS_DIAG_VOLK"));
+                LogBlank();
+                LogHelp(L.Get("O8KMS_REF_URL"));
+            }
+        }
+
+        private void BtnKmsCancel_Click(object sender, RoutedEventArgs e)
+        {
+            KmsPanel.Visibility = Visibility.Collapsed;
+            LogInfo(L.Get("O8KMS_CANCELED"));
+        }
+
+        // =====================================================================
+        // Option 6 — Change Activation Channel
+        // =====================================================================
+        private string? _chTargetIsKms = null;   // "KMS" or "RETAIL"
+        private string? _chGvlkKey     = null;
+
+        private void BtnChangeChannel_Click(object sender, RoutedEventArgs e)
+        {
+            if (!RequireAdmin()) return;
+
+            LogAction("Act6");
+            LogInfo(L.Get("O6CH_DESC"));
+            LogBlank();
+
+            // Detect current channel via WMI
+            string channel = "(unknown)", edition = "(unknown)", partKey = "?????";
+            try
+            {
+                using var res = WmiQuery(
+                    "SELECT Name, Description, PartialProductKey FROM SoftwareLicensingProduct " +
+                    "WHERE PartialProductKey IS NOT NULL");
+                if (res != null)
+                    foreach (System.Management.ManagementObject mo in res)
+                    {
+                        string n = mo["Name"]?.ToString() ?? "";
+                        if (!n.StartsWith("Windows", StringComparison.OrdinalIgnoreCase)) continue;
+                        channel = mo["Description"]?.ToString() ?? channel;
+                        partKey = mo["PartialProductKey"]?.ToString() ?? partKey;
+                        edition = n;
+                        break;
+                    }
+            }
+            catch { }
+
+            // Populate info labels
+            ChPanelTitle.Text  = L.Get("O6CH_PANEL_TITLE");
+            ChDesc.Text        = L.Get("O6CH_DESC");
+            ChLblChannel.Text  = L.Get("O6CH_CURRENT_CHANNEL");
+            ChValChannel.Text  = channel;
+            ChLblEdition.Text  = L.Get("O6CH_CURRENT_EDITION");
+            ChValEdition.Text  = edition;
+            ChLblKey.Text      = L.Get("O6CH_CURRENT_KEY");
+            ChValKey.Text      = partKey;
+
+            BtnChToKms.Content    = L.Get("O6CH_TO_KMS");
+            BtnChToRetail.Content = L.Get("O6CH_TO_RETAIL");
+            BtnChCancel.Content   = L.Get("O6CH_CANCEL");
+            BtnChProceed.Content  = L.Get("O6CH_PROCEED");
+
+            // Disable buttons that don't apply
+            bool isKmsClient = channel.ToUpperInvariant().Contains("VOLUME_KMSCLIENT");
+            bool isKmsHost   = channel.ToUpperInvariant().Contains("VOLUME_KMS") && !isKmsClient;
+            BtnChToKms.IsEnabled    = !isKmsClient && !isKmsHost;
+            BtnChToRetail.IsEnabled = !isKmsHost;
+
+            ChGvlkSection.Visibility  = Visibility.Collapsed;
+            ChRetailSection.Visibility = Visibility.Collapsed;
+            BtnChProceed.IsEnabled    = false;
+            ChGvlkOkBox.Text          = string.Empty;
+            _chTargetIsKms            = null;
+            _chGvlkKey                = null;
+
+            if (isKmsHost)
+            {
+                ChDesc.Text = L.Get("O6CH_HOST_WARN");
+                LogWarn(L.Get("O6CH_HOST_WARN"));
+            }
+
+            ChangeChannelPanel.Visibility = Visibility.Visible;
+            EnsurePanelFits(ChangeChannelPanel);
+        }
+
+        private void BtnChToKms_Click(object sender, RoutedEventArgs e)
+        {
+            _chTargetIsKms     = "KMS";
+            ChRetailSection.Visibility = Visibility.Collapsed;
+
+            // Look up GVLK for current edition
+            string editionName = ChValEdition.Text;
+            _chGvlkKey = null;
+            string gvlkEdition = "";
+            foreach (var entry in GvlkTable)
+            {
+                if (editionName.IndexOf(entry.Pattern, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    _chGvlkKey  = entry.Key;
+                    gvlkEdition = entry.Edition;
+                    break;
+                }
+            }
+
+            if (_chGvlkKey != null)
+            {
+                ChGvlkLabel.Text        = L.Get("O6CH_GVLK_LABEL") + "  " + gvlkEdition;
+                ChGvlkKey.Text          = _chGvlkKey;
+                ChGvlkConfirmLabel.Text = L.Get("O6CH_GVLK_CONFIRM");
+                ChGvlkSection.Visibility = Visibility.Visible;
+                BtnChProceed.IsEnabled   = true;
+                EnsurePanelFits(ChangeChannelPanel);
+            }
+            else
+            {
+                ChGvlkLabel.Text         = L.Get("O6CH_GVLK_NOMAP");
+                ChGvlkKey.Text           = string.Empty;
+                ChGvlkSection.Visibility  = Visibility.Visible;
+                BtnChProceed.IsEnabled    = false;
+                LogWarn(L.Get("O6CH_GVLK_NOMAP"));
+            }
+        }
+
+        private void BtnChToRetail_Click(object sender, RoutedEventArgs e)
+        {
+            _chTargetIsKms    = "RETAIL";
+            ChGvlkSection.Visibility  = Visibility.Collapsed;
+            ChRetailMsg.Text          = L.Get("O6CH_RETAIL_MSG");
+            ChRetailSection.Visibility = Visibility.Visible;
+            BtnChProceed.IsEnabled    = true;
+            EnsurePanelFits(ChangeChannelPanel);
+        }
+
+        private void BtnChCancel_Click(object sender, RoutedEventArgs e)
+        {
+            ChangeChannelPanel.Visibility = Visibility.Collapsed;
+            LogInfo(L.Get("O6CH_CANCELLED"));
+        }
+
+        private async void BtnChProceed_Click(object sender, RoutedEventArgs e)
+        {
+            BtnChProceed.IsEnabled = false;
+            BtnChCancel.IsEnabled  = false;
+
+            if (_chTargetIsKms == "RETAIL")
+            {
+                // Redirect to Option 2
+                LogInfo(L.Get("O6CH_REDIRECT_OPT2"));
+                ChangeChannelPanel.Visibility = Visibility.Collapsed;
+                BtnChCancel.IsEnabled = true;
+                await System.Threading.Tasks.Task.Delay(300);
+                BtnTestKey_Click(BtnTestKey, new RoutedEventArgs());
+                return;
+            }
+
+            if (_chTargetIsKms == "KMS" && _chGvlkKey != null)
+            {
+                // Validate OK
+                if (!ChGvlkOkBox.Text.Trim().Equals("OK", StringComparison.OrdinalIgnoreCase))
+                {
+                    LogWarn(L.Get("O8KMS_GVLK_CANCELED"));
+                    BtnChProceed.IsEnabled = true;
+                    BtnChCancel.IsEnabled  = true;
+                    return;
+                }
+
+                // Install GVLK
+                LogInfo(L.Get("O6CH_GVLK_INSTALLING"));
+                var ipkOut = RunSlmgr($"/ipk {_chGvlkKey}");
+                LogSlmgrOutput(ipkOut);
+
+                if (ipkOut.Contains("Error") || ipkOut.Contains("0x"))
+                {
+                    LogError(L.Get("O8KMS_FAIL"));
+                    ChangeChannelPanel.Visibility = Visibility.Collapsed;
+                    BtnChCancel.IsEnabled = true;
+                    return;
+                }
+
+                LogOk(L.Get("O6CH_GVLK_DONE"));
+                LogBlank();
+
+                // Redirect to Option 8 (KMS Activation)
+                LogInfo(L.Get("O6CH_REDIRECT_OPT8"));
+                ChangeChannelPanel.Visibility = Visibility.Collapsed;
+                BtnChCancel.IsEnabled = true;
+                await System.Threading.Tasks.Task.Delay(500);
+                BtnKmsActivate_Click(BtnKmsActivate, new RoutedEventArgs());
+                return;
+            }
+
+            BtnChProceed.IsEnabled = true;
+            BtnChCancel.IsEnabled  = true;
+        }
+
+        // =====================================================================
+        // Option 7 — Check & Remove KMS Settings
+        // =====================================================================
+
+        private void BtnKmsSettings_Click(object sender, RoutedEventArgs e)
+        {
+            LogAction("Act7");
+            LogInfo(L.Get("O7KMS_DESC"));
+            LogBlank();
+
+            // Read registry
+            string regHost = L.Get("O7KMS_NOT_SET");
+            string regPort = L.Get("O7KMS_DEFAULT_PORT");
+            try
+            {
+                using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareLicensingService");
+                if (key != null)
+                {
+                    var h = key.GetValue("KeyManagementServiceMachine") as string;
+                    var p = key.GetValue("KeyManagementServicePort") as string;
+                    if (!string.IsNullOrWhiteSpace(h)) regHost = h;
+                    if (!string.IsNullOrWhiteSpace(p)) regPort = p;
+                }
+            }
+            catch { }
+
+            // Read slmgr /dlv for KMS host
+            string dlvHost = L.Get("O7KMS_NOT_SET");
+            try
+            {
+                var psi = new System.Diagnostics.ProcessStartInfo("cscript")
+                {
+                    Arguments              = "//NoLogo %windir%\\System32\\slmgr.vbs /dlv",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    UseShellExecute        = false,
+                    CreateNoWindow         = true,
+                };
+                using var proc = System.Diagnostics.Process.Start(psi);
+                string dlvOut = proc!.StandardOutput.ReadToEnd();
+                proc.WaitForExit();
+                var m = System.Text.RegularExpressions.Regex.Match(
+                    dlvOut, @"KMS machine name[^:]*:\s*(.+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (m.Success) dlvHost = m.Groups[1].Value.Trim();
+            }
+            catch { }
+
+            // Populate labels
+            Ks7PanelTitle.Text  = L.Get("O7KMS_PANEL_TITLE");
+            Ks7Desc.Text        = L.Get("O7KMS_DESC");
+            Ks7LblRegHost.Text  = L.Get("O7KMS_REG_HOST");
+            Ks7ValRegHost.Text  = regHost;
+            Ks7LblRegPort.Text  = L.Get("O7KMS_REG_PORT");
+            Ks7ValRegPort.Text  = regPort;
+            Ks7LblDlvHost.Text  = L.Get("O7KMS_DLV_HOST");
+            Ks7ValDlvHost.Text  = dlvHost;
+            BtnKs7Close.Content = L.Get("O7KMS_CLOSE");
+            BtnKs7Clear.Content = L.Get("O7KMS_CLEAR_BTN");
+            Ks7OkBox.Text       = string.Empty;
+
+            bool hasCustomHost = regHost != L.Get("O7KMS_NOT_SET");
+            if (hasCustomHost)
+            {
+                Ks7StatusLabel.Text       = L.Get("O7KMS_CUSTOM_ACTIVE");
+                Ks7StatusLabel.Foreground = new System.Windows.Media.SolidColorBrush(
+                    (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#b45309"));
+                Ks7ClearLabel.Text        = L.Get("O7KMS_CLEAR_LABEL");
+                Ks7ConfirmLabel.Text      = L.Get("O7KMS_CLEAR_CONFIRM");
+                Ks7ClearSection.Visibility  = Visibility.Visible;
+                Ks7SuggestSection.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                Ks7StatusLabel.Text       = L.Get("O7KMS_NONE_ACTIVE");
+                Ks7StatusLabel.Foreground = new System.Windows.Media.SolidColorBrush(
+                    (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#15803d"));
+                Ks7ClearSection.Visibility   = Visibility.Collapsed;
+                Ks7SuggestSection.Visibility = Visibility.Collapsed;
+            }
+
+            // Log findings
+            LogInfo(L.Get("O7KMS_REG_HOST")  + " " + regHost);
+            LogInfo(L.Get("O7KMS_REG_PORT")  + " " + regPort);
+            LogInfo(L.Get("O7KMS_DLV_HOST")  + " " + dlvHost);
+
+            KmsSettingsPanel.Visibility = Visibility.Visible;
+            EnsurePanelFits(KmsSettingsPanel);
+        }
+
+        private void BtnKs7Clear_Click(object sender, RoutedEventArgs e)
+        {
+            if (!RequireAdmin()) return;
+            if (!Ks7OkBox.Text.Trim().Equals("OK", StringComparison.OrdinalIgnoreCase))
+            {
+                LogWarn(L.Get("O7KMS_CLEAR_CONFIRM"));
+                return;
+            }
+
+            BtnKs7Clear.IsEnabled = false;
+            LogInfo(L.Get("O7KMS_CLEARING"));
+
+            var ckmsOut = RunSlmgr("/ckms");
+            LogSlmgrOutput(ckmsOut);
+
+            bool failed = ckmsOut.Contains("Error") || ckmsOut.Contains("0x");
+            if (failed)
+            {
+                LogError(L.Get("O7KMS_CLEAR_FAILED"));
+            }
+            else
+            {
+                LogOk(L.Get("O7KMS_CLEARED"));
+                Ks7ValRegHost.Text = L.Get("O7KMS_NOT_SET");
+                Ks7ValRegPort.Text = L.Get("O7KMS_DEFAULT_PORT");
+                Ks7StatusLabel.Text = L.Get("O7KMS_CLEARED");
+                Ks7StatusLabel.Foreground = new System.Windows.Media.SolidColorBrush(
+                    (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#15803d"));
+                Ks7ClearSection.Visibility = Visibility.Collapsed;
+
+                // Show next-step suggestions
+                Ks7Suggest1.Text = L.Get("O7KMS_NEXT_OPT8");
+                Ks7Suggest2.Text = L.Get("O7KMS_NEXT_OPT6");
+                Ks7Suggest3.Text = L.Get("O7KMS_NEXT_DNS");
+                Ks7SuggestSection.Visibility = Visibility.Visible;
+                LogBlank();
+                LogInfo(L.Get("O7KMS_NEXT_OPT8"));
+                LogInfo(L.Get("O7KMS_NEXT_OPT6"));
+                LogInfo(L.Get("O7KMS_NEXT_DNS"));
+            }
+        }
+
+        private void BtnKs7Close_Click(object sender, RoutedEventArgs e)
+        {
+            KmsSettingsPanel.Visibility = Visibility.Collapsed;
         }
     }
 }

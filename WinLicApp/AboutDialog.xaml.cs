@@ -12,7 +12,7 @@ namespace WinLicApp
     {
         // Current version tag — must match the GitHub release tag format (e.g. "v1.0-beta2")
         // Keep in sync with About_Version in Localization.cs.
-        private const string CurrentVersion = "v1.3-beta2";
+        private const string CurrentVersion = "v1.3-beta3";
         private const string ReleasesUrl    = "https://github.com/ardennguyen/WinLic/releases";
         private const string LatestApiUrl   = "https://api.github.com/repos/ardennguyen/WinLic/releases/latest";
 

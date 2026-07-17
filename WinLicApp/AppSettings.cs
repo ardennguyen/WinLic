@@ -129,10 +129,62 @@ namespace WinLicApp
             "8DEC2", // Enterprise
         };
 
+        // Hardcoded GVLK key suffix → description for display (mirrors HardcodedGvlkSuffixes).
+        public static readonly Dictionary<string, string> HardcodedGvlkKeyDescriptions =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            // Windows 11 / 10 Semi-Annual Channel
+            { "T83GX", "Windows 10/11 Pro  (W269N-WFGWX-YVC9B-4J6C9-T83GX)" },
+            { "GCQG9", "Windows 10/11 Pro N  (MH37W-N47XK-V7XM9-C7227-GCQG9)" },
+            { "6Q84J", "Windows 10/11 Pro for Workstations  (NRG8B-VKK3Q-CXVCJ-9G2XF-6Q84J)" },
+            { "6XYWF", "Windows 10/11 Pro for Workstations N  (9FNHH-K3HBT-3W4TD-6383H-6XYWF)" },
+            { "J447Y", "Windows 10/11 Pro Education  (6TP4R-GNPTD-KYYHQ-7B7DP-J447Y)" },
+            { "66QFC", "Windows 10/11 Pro Education N  (YVWGF-BXNMC-HTQYQ-CPQ99-66QFC)" },
+            { "VCFB2", "Windows 10/11 Education (also Win11 Pro Education DE)  (NW6C2-QMPVW-D7KKK-3GKT6-VCFB2)" },
+            { "MDWWJ", "Windows 10/11 Education N  (2WH4N-8QGBV-H22JP-CT43Q-MDWWJ)" },
+            { "2YT43", "Windows 10/11 Enterprise  (NPPR9-FWDCX-D2C8J-H872K-2YT43)" },
+            { "KHJW4", "Windows 10/11 Enterprise N  (DPH2V-TTNVB-4X9Q3-TJR4H-KHJW4)" },
+            { "4M68B", "Windows 10 Enterprise G  (YYVX9-NTFWV-6MDM3-9PT4T-4M68B)" },
+            { "T84FV", "Windows 10 Enterprise G N  (44RPN-FTY23-9VTTB-MP9BX-T84FV)" },
+            // LTSC / IoT / LTSB
+            { "J462D", "Windows 11 LTSC 2024 / 10 LTSC 2021 / 2019  (M7XTQ-FN8P6-TTKYV-9D4CC-J462D)" },
+            { "7CG2H", "Windows 10/11 Enterprise N LTSC  (92NFX-8DJQP-P6BBQ-THF9C-7CG2H)" },
+            { "PDQGT", "Windows IoT Enterprise LTSC 2024/2021  (KBN8V-HFGQ4-MGXVD-347P6-PDQGT)" },
+            { "QJ4BJ", "Windows 10 Enterprise LTSB 2016  (DCPHK-NFMTC-H88MJ-PFHPY-QJ4BJ)" },
+            { "8B639", "Windows 10 Enterprise N LTSB 2016  (QFFDN-GRT3P-VKWWX-X7T3R-8B639)" },
+            { "76DF9", "Windows 10 Enterprise LTSB 2015  (WNMTR-4C88C-JK8YV-HQ7T2-76DF9)" },
+            { "D69TJ", "Windows 10 Enterprise N LTSB 2015  (2F77B-TNFGY-69QQF-B8YKP-D69TJ)" },
+            // Windows 8.1
+            { "9D6T9", "Windows 8.1 Pro  (GCRJD-8NW9H-F2CDX-CCM8D-9D6T9)" },
+            { "B4FXY", "Windows 8.1 Pro N  (HMCNV-VVBFX-7HMBH-CTY9B-B4FXY)" },
+            { "MKKG7", "Windows 8.1 Enterprise  (MHF9N-XY6XB-WVXMC-BTDCT-MKKG7)" },
+            { "JFFXW", "Windows 8.1 Enterprise N  (TT4HM-HN7YT-62K67-RGRQJ-JFFXW)" },
+        };
+
+        // Hardcoded HWID/DE generic placeholder key fallback.
+        // Maps last-5-char suffix → human-readable description.
+        // Ref: https://learn.microsoft.com/en-us/windows-server/get-started/kms-client-activation-keys
+        public static readonly Dictionary<string, string> HardcodedGenericKeys =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "3V66T", "Windows 10/11 Pro  (VK7JG-NPHTM-C97JM-9MPGT-3V66T)" },
+            { "8HVX7", "Windows 10/11 Home  (YTMG3-N6DKC-DKB77-7M9GH-8HVX7)" },
+            { "H8Q99", "Windows 10 Home  (TX9XD-98N7V-6WMQ6-BX7FG-H8Q99)" },
+            { "WXCHW", "Windows 10/11 Home Single Language  (4CPRK-NM3K3-X6XXQ-RXX86-WXCHW)" },
+            { "WGGBY", "Windows 10 Pro Education  (8PTT6-RNW57-N3YKV-MJNWM-WGGBY)" },
+            { "2YV77", "Windows 10/11 Pro for Workstations  (DXG7C-N36C4-C4HTG-X4T3X-2YV77)" },
+            { "8DEC2", "Windows 10 Enterprise  (XGVPP-NMH47-7TTHJ-W3FW7-8DEC2)" },
+            { "VCFB2", "Windows 11 Pro Education  (BW6C2-QMPVW-D7KKK-3GKT6-VCFB2)" },
+        };
+
 
         // ── Loaded from settings.ini DEFAULT block ─────────────────────────────
         /// <summary>Last-5-char suffixes from [GvlkKeys] in the default block.</summary>
         public static HashSet<string> DefaultGvlkSuffixes { get; private set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Suffix → description from [GvlkKeys] lines in the default block.</summary>
+        public static Dictionary<string, string> DefaultGvlkKeyDescriptions { get; private set; }
+            = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Piracy domains from [KmsPiracyDomains] in the default block.</summary>
         public static List<string> DefaultIniKmsPiracyDomains { get; private set; } = new List<string>();
@@ -160,6 +212,27 @@ namespace WinLicApp
         public static List<string> ExtraFilePaths        { get; set; } = new List<string>();
         public static List<string> ExtraKmsPiracyDomains { get; set; } = new List<string>();
         public static List<string> UserGvlkSuffixes      { get; set; } = new List<string>();
+
+        // ── Generic placeholder keys (from [GenericKeys] / [UserGenericKeys]) ──
+        /// <summary>Key-suffix → description loaded from [GenericKeys] in the default settings block.</summary>
+        public static Dictionary<string, string> DefaultGenericKeyDescriptions { get; private set; }
+            = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Key-suffix → description loaded from [UserGenericKeys].</summary>
+        public static Dictionary<string, string> UserGenericKeyDescriptions { get; set; }
+            = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Merged generic key suffix → description: hardcoded + ini default + user additions.</summary>
+        public static Dictionary<string, string> AllGenericKeyDescriptions =>
+            HardcodedGenericKeys
+                .Concat(DefaultGenericKeyDescriptions)
+                .Concat(UserGenericKeyDescriptions)
+                .GroupBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First().Value, StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>All generic key suffixes (last 5 chars). Used for DE activation detection.</summary>
+        public static HashSet<string> AllGenericKeySuffixes =>
+            new HashSet<string>(AllGenericKeyDescriptions.Keys, StringComparer.OrdinalIgnoreCase);
 
         // ── Merged views (defaults + ini defaults + user additions) ────────────
         public static int[] AllPorts =>
@@ -193,6 +266,33 @@ namespace WinLicApp
             new HashSet<string>(
                 HardcodedGvlkSuffixes.Concat(DefaultGvlkSuffixes).Concat(UserGvlkSuffixes),
                 StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>All GVLK suffix → description: hardcoded + ini defaults. Used in settings display.</summary>
+        public static Dictionary<string, string> AllGvlkKeyDescriptions =>
+            HardcodedGvlkKeyDescriptions
+                .Concat(DefaultGvlkKeyDescriptions)
+                .GroupBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.Last().Value, StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Combined GVLK + Generic key descriptions for the Settings dialog display.
+        /// GVLK entries first (labeled [KMS GVLK]), then HWID/DE placeholder entries ([HWID/DE]).
+        /// INI-loaded entries override hardcoded ones; user additions are merged last.
+        /// </summary>
+        public static Dictionary<string, string> AllKeyDescriptionsForDisplay
+        {
+            get
+            {
+                var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                // GVLK keys first
+                foreach (var kv in AllGvlkKeyDescriptions)
+                    result[kv.Key] = "[KMS/GVLK] " + kv.Value;
+                // Generic / HWID-DE keys (may overlap suffixes — generic wins for the display label)
+                foreach (var kv in AllGenericKeyDescriptions)
+                    result[kv.Key] = "[HWID/DE] " + kv.Value;
+                return result;
+            }
+        }
 
         /// <summary>Full piracy-domain list: hardcoded + ini defaults + user additions.</summary>
         public static string[] AllKmsPiracyDomains =>
@@ -234,6 +334,7 @@ namespace WinLicApp
         {
             // Reset all loaded lists
             DefaultGvlkSuffixes.Clear();
+            DefaultGvlkKeyDescriptions.Clear();
             DefaultIniKmsPiracyDomains.Clear();
             DefaultIniServices.Clear();
             DefaultIniTaskKeywords.Clear();
@@ -245,6 +346,8 @@ namespace WinLicApp
             ExtraProcesses.Clear(); ExtraTaskKeywords.Clear();
             ExtraFilePaths.Clear(); ExtraKmsPiracyDomains.Clear();
             UserGvlkSuffixes.Clear();
+            DefaultGenericKeyDescriptions.Clear();
+            UserGenericKeyDescriptions.Clear();
 
             if (!File.Exists(SettingsPath)) return;
             try
@@ -271,7 +374,19 @@ namespace WinLicApp
                         case "GVLKKEYS":
                         {
                             var suffix = ExtractKeySuffix(value);
-                            if (suffix != null) DefaultGvlkSuffixes.Add(suffix);
+                            if (suffix != null)
+                            {
+                                DefaultGvlkSuffixes.Add(suffix);
+                                var desc = value.Contains('=') ? value.Substring(value.IndexOf('=') + 1).Trim() : suffix;
+                                DefaultGvlkKeyDescriptions[suffix] = desc;
+                            }
+                            break;
+                        }
+                        case "GENERICKEYS":
+                        {
+                            var suffix = ExtractKeySuffix(value);
+                            var desc   = value.Contains('=') ? value.Substring(value.IndexOf('=') + 1).Trim() : value.Trim();
+                            if (suffix != null) DefaultGenericKeyDescriptions[suffix] = desc;
                             break;
                         }
                         case "KMSPIRACYDOMAINS":
@@ -297,6 +412,13 @@ namespace WinLicApp
                         }
                         case "USERKMSPIRACYDOMAINS":
                             ExtraKmsPiracyDomains.Add(value); break;
+                        case "USERGENERICKEYS":
+                        {
+                            var suffix = ExtractKeySuffix(value);
+                            var desc   = value.Contains('=') ? value.Substring(value.IndexOf('=') + 1).Trim() : value.Trim();
+                            if (suffix != null) UserGenericKeyDescriptions[suffix] = desc;
+                            break;
+                        }
 
                         // Legacy / user extra sections (backward compatible)
                         case "EXTRAPORTS":
@@ -369,6 +491,12 @@ namespace WinLicApp
             w.WriteLine("; Add custom GVLK/suspicious keys here: FULL-KEY = Description");
             foreach (var s in UserGvlkSuffixes)
                 w.WriteLine("; (stored suffix) " + s);
+            w.WriteLine();
+
+            w.WriteLine("[UserGenericKeys]");
+            w.WriteLine("; Add custom HWID/DE placeholder key suffixes: KEY-SUFFIX = Description");
+            foreach (var kv in UserGenericKeyDescriptions)
+                w.WriteLine(kv.Key + " = " + kv.Value);
             w.WriteLine();
 
             w.WriteLine("[UserKmsPiracyDomains]");
