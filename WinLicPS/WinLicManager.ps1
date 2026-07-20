@@ -311,6 +311,8 @@ $Str = @{
                                 '[!] Máy này có vẻ là KMS HOST (kênh VOLUME_KMS). Dùng Tùy chọn 6 để kích hoạt KMS client.')
     'O2_WARN_CHAN_SUB'  = @('[!] Subscription-based activation is not managed by this option.',
                              '[!] Kích hoạt theo đăng ký không được quản lý bởi tùy chọn này.')
+    'O2_SAVE_KEY_WARN'  = @('[!] This appears to be a unique Retail / MAK / OEM key. Save it now before installing a new key -- you will NOT be able to recover it afterwards.',
+                             '[!] Đây có vẻ là key Retail / MAK / OEM riêng. Hãy lưu lại trước khi cài key mới -- bạn sẽ KHÔNG thể khôi phục sau này.')
 
     # -- Option 2 -- auto /ato results --
     'O2_ATO_AUTO'          = @('Attempting online activation automatically (slmgr /ato)...',
@@ -1244,21 +1246,18 @@ function Get-LicenseStatusText {
 }
 
 # =============================================================================
-# OPTION 1 -- Full System & License Info
-# (Merged: OS Version, License Channel /dli, Keys & Activation Status, optional /dlv)
+# Show-SystemInfo  -- shared OS / license / key info block
+# Used by both Get-VersionInfo (Option 1) and Test-ProductKey (Option 2).
+# -WarnBeforeReplace : when set (Option 2), skips the interactive mismatch-
+#                      removal prompt and shows the save-key advisory for
+#                      unique Retail/MAK/OEM keys.
 # =============================================================================
-function Get-VersionInfo {
-    Write-Blank
-    Write-Host ("  " + (T 'O1_OPT_HDR')) -ForegroundColor Magenta
-    Write-Sep
-    Write-Diag (T 'O1_OPT_DESC1')
-    Write-Diag (T 'O1_OPT_DESC2')
-    Write-Sep
-    Write-Blank
+function Show-SystemInfo {
+    param([switch]$WarnBeforeReplace)
 
-    # ── 1a. OS Version ─────────────────────────────────────────────────────
+    # -- 1a. OS Version -------------------------------------------------------
     Write-Step (T 'O1_STEP_OS')
-    Write-Cmd  "Get-CimInstance Win32_OperatingSystem"
+    Write-Cmd  'Get-CimInstance Win32_OperatingSystem'
     try {
         $os = Get-CimInstance Win32_OperatingSystem
         Write-Blank
@@ -1268,16 +1267,15 @@ function Get-VersionInfo {
         Write-Data (T 'O1_LBL_ARCH')  $os.OSArchitecture
     } catch {
         Write-Fail ((T 'O1_WMI_FAIL') + $_)
-        Start-Process "winver"
         return
     }
 
     Write-Blank
     Write-Sep
 
-    # ── 1b. BIOS OEM Key ───────────────────────────────────────────────────
+    # -- 1b. BIOS OEM Key -----------------------------------------------------
     Write-Step (T 'O1_STEP_BIOS')
-    Write-Cmd  "Get-CimInstance SoftwareLicensingService | Select OA3xOriginalProductKey"
+    Write-Cmd  'Get-CimInstance SoftwareLicensingService | Select OA3xOriginalProductKey'
     $oemKey = (Get-CimInstance -ClassName SoftwareLicensingService).OA3xOriginalProductKey
     Write-Blank
 
@@ -1288,7 +1286,7 @@ function Get-VersionInfo {
         $last5 = $oemKey.Substring($oemKey.Length - 5)
         if ($genericKeys.ContainsKey($last5)) {
             Write-Blank
-            Write-OK ((T 'O1_ED_MATCH') + "  " + $genericKeys[$last5])
+            Write-OK ((T 'O1_ED_MATCH') + '  ' + $genericKeys[$last5])
         }
     } else {
         Write-Warn (T 'O1_BIOS_NONE')
@@ -1298,15 +1296,16 @@ function Get-VersionInfo {
     Write-Blank
     Write-Sep
 
-    # ── 1c. Active License (WMI) ───────────────────────────────────────────
+    # -- 1c. Active License (WMI) ---------------------------------------------
     Write-Step (T 'O1_STEP_LIC')
-    Write-Cmd  "Get-CimInstance SoftwareLicensingProduct | Where PartialProductKey and Name like Windows*"
+    Write-Cmd  'Get-CimInstance SoftwareLicensingProduct | Where PartialProductKey and Name like Windows*'
     Write-Blank
 
-    $regKeyPath   = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform"
+    $regKeyPath    = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform'
     $activeProduct = Get-CimInstance -ClassName SoftwareLicensingProduct |
-                     Where-Object { $_.PartialProductKey -and $_.Name -like "Windows*" }
-    $partialKey   = $null
+                     Where-Object { $_.PartialProductKey -and $_.Name -like 'Windows*' }
+    $partialKey    = $null
+    $isVolume      = $false
 
     if ($activeProduct) {
         $partialKey = $activeProduct.PartialProductKey
@@ -1323,7 +1322,7 @@ function Get-VersionInfo {
         $isVolume = $activeProduct.Description -match 'VOLUME_KMSCLIENT'
         if ($genericKeys.ContainsKey($partialKey) -and $activeProduct.LicenseStatus -eq 1 -and -not $isVolume) {
             Write-DE   (T 'O1_DE_OK')
-            Write-Diag ("Channel: " + $activeProduct.Description)
+            Write-Diag ('Channel: ' + $activeProduct.Description)
             Write-Diag (T 'O1_DE_1')
             Write-Diag (T 'O1_DE_2')
             Write-Diag (T 'O1_DE_3')
@@ -1335,6 +1334,14 @@ function Get-VersionInfo {
         } else {
             Write-OK  (T 'O1_MAK_OK')
         }
+
+        # -- Channel warnings (Option 2 context) ------------------------------
+        if ($WarnBeforeReplace) {
+            $chanDesc = ($activeProduct.Description + '').ToUpperInvariant()
+            if     ($chanDesc -match 'VOLUME_KMSCLIENT')                          { Write-Warn (T 'O2_WARN_CHAN_KMS') }
+            elseif ($chanDesc -match 'VOLUME_KMS' -and $chanDesc -notmatch 'KMSCLIENT') { Write-Warn (T 'O2_WARN_CHAN_KMSHOST') }
+            elseif ($chanDesc -match 'SUBSCRIPTION')                              { Write-Warn (T 'O2_WARN_CHAN_SUB') }
+        }
     } else {
         Write-Warn (T 'O1_NOACT')
     }
@@ -1342,21 +1349,21 @@ function Get-VersionInfo {
     Write-Blank
     Write-Sep
 
-    # ── 1d. Registry & Installed Key ──────────────────────────────────────
+    # -- 1d. Registry & Installed Key -----------------------------------------
     Write-Step (T 'O1_STEP_REG')
-    $regKey = (Get-ItemProperty -Path $regKeyPath -Name "BackupProductKeyDefault" -ErrorAction SilentlyContinue).BackupProductKeyDefault
+    $regKey = (Get-ItemProperty -Path $regKeyPath -Name 'BackupProductKeyDefault' -ErrorAction SilentlyContinue).BackupProductKeyDefault
     if ($regKey) { Write-OK (T 'O1_REG_DETECT') } else { Write-Warn (T 'O1_REG_NONE') }
 
     Write-Step (T 'O1_STEP_INST')
     $installedKey = Get-InstalledProductKey
     if ($installedKey) { Write-OK (T 'O1_INST_OK') } else { Write-Warn (T 'O1_INST_NO') }
 
-    # Display key values (optional)
+    # Display key values (with full/partial choice)
     if ($oemKey -or $regKey -or $installedKey) {
         Write-Blank
         $showFull = Ask-YesNo (T 'O1_SHOWFULL')
         Write-Blank
-        Write-Host ("  " + (T 'O1_KEYS_HDR')) -ForegroundColor Cyan
+        Write-Host ('  ' + (T 'O1_KEYS_HDR')) -ForegroundColor Cyan
         if ($installedKey) {
             $val = if ($showFull) { $installedKey } else { Mask-Key $installedKey }
             Write-Key ((T 'O1_KEY_INST') + $val)
@@ -1368,6 +1375,16 @@ function Get-VersionInfo {
         if ($regKey) {
             $val = if ($showFull) { $regKey } else { Mask-Key $regKey }
             Write-Key ((T 'O1_KEY_REG') + $val)
+        }
+
+        # Save-key advisory: warn if installed key is not a known generic/VL key
+        if ($WarnBeforeReplace -and $installedKey) {
+            $last5inst = $installedKey.Substring($installedKey.Length - 5)
+            $isGeneric  = $genericKeys.ContainsKey($last5inst)
+            $isKmsClient = $isVolume
+            if (-not $isGeneric -and -not $isKmsClient) {
+                Write-Warn (T 'O2_SAVE_KEY_WARN')
+            }
         }
     }
 
@@ -1384,13 +1401,16 @@ function Get-VersionInfo {
         if ($isDE) { Write-Diag (T 'O1_DE_MISMATCH_REG') }
         Write-Diag (T 'O1_ACTIVE_SAFE')
         Write-Blank
-        if ($isAdmin) {
+        # Only offer removal prompt in Option 1 (interactive admin context)
+        if (-not $WarnBeforeReplace -and $isAdmin) {
             if (Ask-YesNo (T 'O1_REMOVE_ASK')) {
                 try {
-                    Remove-ItemProperty -Path $regKeyPath -Name "BackupProductKeyDefault" -Force
+                    Remove-ItemProperty -Path $regKeyPath -Name 'BackupProductKeyDefault' -Force
                     Write-OK (T 'O1_REMOVE_OK')
                 } catch { Write-Fail ((T 'O1_REMOVE_FAIL') + $_) }
             } else { Write-Warn (T 'O1_REMOVE_KEPT') }
+        } elseif ($WarnBeforeReplace) {
+            Write-Diag (T 'O1_NEED_ADMIN')
         } else {
             Write-Warn (T 'O1_NEED_ADMIN')
         }
@@ -1400,8 +1420,26 @@ function Get-VersionInfo {
 
     Write-Blank
     Write-Sep
+}
 
-    # ── 1e. License Channel /dli ───────────────────────────────────────────
+# =============================================================================
+# OPTION 1 -- Full System & License Info
+# (Merged: OS Version, License Channel /dli, Keys & Activation Status, optional /dlv)
+# =============================================================================
+function Get-VersionInfo {
+    Write-Blank
+    Write-Host ('  ' + (T 'O1_OPT_HDR')) -ForegroundColor Magenta
+    Write-Sep
+    Write-Diag (T 'O1_OPT_DESC1')
+    Write-Diag (T 'O1_OPT_DESC2')
+    Write-Sep
+    Write-Blank
+
+    # Shared system info block (OS, BIOS key, license, installed key, mismatch)
+    Show-SystemInfo
+
+
+    # -- 1e. License Channel /dli ─────────────────────────────────────────────
     Write-Blank
     Write-Host ("  " + (T 'O1_DLI_HDR')) -ForegroundColor Cyan
     Write-Diag (T 'O1_DLI_NOTE')
@@ -1659,36 +1697,13 @@ function Test-ProductKey {
     Write-Sep
     Write-Blank
 
-    # Show current active key for reference
-    Write-Step (T 'O2_READ_LIC')
-    $activeProduct = Get-CimInstance -ClassName SoftwareLicensingProduct |
-                     Where-Object { $_.PartialProductKey -and $_.Name -like "Windows*" }
-    if ($activeProduct) {
-        Write-Data (T 'O2_CUR_ED')     $activeProduct.Name
-        Write-Data (T 'O2_CUR_KEY')    $activeProduct.PartialProductKey 'Cyan'
-        $statusText  = Get-LicenseStatusText $activeProduct.LicenseStatus
-        $statusColor = if ($activeProduct.LicenseStatus -eq 1) { 'Green' } else { 'Yellow' }
-        Write-Data (T 'O2_CUR_STATUS') $statusText $statusColor
-    } else {
-        Write-Warn (T 'O2_NO_LIC')
-    }
-    Write-Blank
-    Write-Sep
-    Write-Blank
+    # Full system info -- same output as Option 1 (minus /dli and /dlv)
+    Show-SystemInfo -WarnBeforeReplace
 
     Write-Info (T 'O2_INFO1')
     Write-Info (T 'O2_INFO2')
     Write-Warn (T 'O2_WARN_OVERWRITE')
-
     Write-Info (T 'O2_NET_NOTICE')
-
-    # Channel awareness -- warn if VOLUME_KMSCLIENT, VOLUME_KMS, or Subscription
-    if ($activeProduct) {
-        $chanDesc = ($activeProduct.Description + '').ToUpperInvariant()
-        if     ($chanDesc -match 'VOLUME_KMSCLIENT')                       { Write-Warn (T 'O2_WARN_CHAN_KMS') }
-        elseif ($chanDesc -match 'VOLUME_KMS' -and $chanDesc -notmatch 'KMSCLIENT') { Write-Warn (T 'O2_WARN_CHAN_KMSHOST') }
-        elseif ($chanDesc -match 'SUBSCRIPTION')                           { Write-Warn (T 'O2_WARN_CHAN_SUB') }
-    }
     Write-Blank
 
     $rawKey = Read-Host (T 'O2_PROMPT')
