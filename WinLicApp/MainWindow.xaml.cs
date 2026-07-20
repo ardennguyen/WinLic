@@ -116,10 +116,11 @@ namespace WinLicApp
             AppSettings.Load();
             InitializeComponent();
             HookKmsPanelResize();       // KMS panel (uses dedicated hook with identical logic)
-            HookPanelResize(DlvPanel);             // new Option 1 /dlv panel
-            HookPanelResize(RearmPanel);           // new Option 4 danger panel
-            HookPanelResize(ChangeChannelPanel);   // new Option 6 panel
-            HookPanelResize(KmsSettingsPanel);     // new Option 7 panel
+            HookPanelResize(DlvPanel);             // Option 1 /dlv panel
+            HookPanelResize(KeyEntryPanel);        // Option 2 key entry panel (PidBanner grows)
+            HookPanelResize(RearmPanel);           // Option 4 danger panel
+            HookPanelResize(ChangeChannelPanel);   // Option 6 panel
+            HookPanelResize(KmsSettingsPanel);     // Option 7 panel
 
             RefreshLanguage();
 
@@ -647,19 +648,29 @@ namespace WinLicApp
             switch (activationMethod)
             {
                 case ActivationMethod.DE:
-                    if (isLicensed)
+                    if (warnBeforeReplace)
                     {
-                        LogDE(L.Get("DE_Confirmed"));
-                        LogDiag(L.Get("DE_Explain1"));
-                        LogDiag(L.Get("DE_Explain2"));
-                        LogDiag(L.Get("DE_Explain3"));
-                        LogDiag(L.Get("DE_KeyMismatch"));
-                        LogDiag(L.Get("DE_Verify"));
+                        // Option 2 context: brief note only — generic key = fine to replace
+                        if (isLicensed) LogDE(L.Get("DE_Confirmed"));
+                        else            LogWarn(L.Get("DE_NotActivated"));
                     }
                     else
                     {
-                        LogWarn(L.Get("DE_NotActivated"));
-                        LogDiag(L.Get("DE_Verify"));
+                        // Option 1 context: full DE educational block
+                        if (isLicensed)
+                        {
+                            LogDE(L.Get("DE_Confirmed"));
+                            LogDiag(L.Get("DE_Explain1"));
+                            LogDiag(L.Get("DE_Explain2"));
+                            LogDiag(L.Get("DE_Explain3"));
+                            LogDiag(L.Get("DE_KeyMismatch"));
+                            LogDiag(L.Get("DE_Verify"));
+                        }
+                        else
+                        {
+                            LogWarn(L.Get("DE_NotActivated"));
+                            LogDiag(L.Get("DE_Verify"));
+                        }
                     }
                     break;
                 case ActivationMethod.KMS:
@@ -713,6 +724,7 @@ namespace WinLicApp
                     hasInstalled ? L.Get("O3_BiosDetected") : L.Get("O3_RegNone"));
 
             // ── Key reveal (driven by sidebar checkbox) ─────────────────────────────────────
+            bool saveKeyWarnNeeded = false;
             if (hasOem || hasReg || hasInstalled)
             {
                 LogBlank();
@@ -721,16 +733,23 @@ namespace WinLicApp
                 if (hasOem)       LogKey(L.Get("O3_KeyBios")      + (full ? oemKey!       : MaskKey(oemKey!)));
                 if (hasReg)       LogKey(L.Get("O3_KeyReg")       + (full ? regKey!       : MaskKey(regKey!)));
 
-                // ── Option 2 context: warn if key looks like unique Retail/MAK/OEM ──
-                if (warnBeforeReplace)
+                // Determine if save-key advisory is needed (non-generic, non-KMS installed key)
+                if (warnBeforeReplace && hasInstalled)
                 {
-                    bool isGeneric   = !string.IsNullOrEmpty(installedKey) &&
+                    bool isGeneric   = activationMethod == ActivationMethod.DE ||
                                        !string.IsNullOrEmpty(IdentifyKeyEdition(installedKey!));
                     bool isKmsClient = activationMethod == ActivationMethod.KMS;
-                    if (hasInstalled && !isGeneric && !isKmsClient)
-                        LogWarn(L.Get("O2_SAVE_KEY_WARN"));
+                    saveKeyWarnNeeded = !isGeneric && !isKmsClient;
                 }
             }
+
+            // ── Save-key advisory: emitted right after key display ────────────────
+            if (saveKeyWarnNeeded)
+                LogWarn(L.Get("O2_SAVE_KEY_WARN"));
+
+            // Return whether the advisory is needed (for caller to show in dialog)
+            // Stored in a field so BtnTestKey_Click can pick it up
+            _saveKeyWarnNeeded = saveKeyWarnNeeded;
 
             // ── Mismatch detection ────────────────────────────────────────────
             if (hasReg && !string.IsNullOrEmpty(partialKey))
@@ -887,6 +906,7 @@ namespace WinLicApp
         private (bool Valid, string Channel, string Edition, string PartNumber, string WinVersion) _lastPidResult
             = (false, "", "", "", "");
         private string _lastBannerKey = "";
+        private bool   _saveKeyWarnNeeded = false;
 
         /// <summary>
         /// Decodes a PidGenX part number prefix to a human-readable Windows release string.
@@ -1009,6 +1029,12 @@ namespace WinLicApp
 
             // Read and log current system state — full parity with Option 1 output
             ShowSystemInfo(warnBeforeReplace: true);
+
+            // Show save-key advisory in dialog if needed (set by ShowSystemInfo)
+            if (_saveKeyWarnNeeded)
+                KpWarn.Text = L.Get("O2_SAVE_KEY_WARN") + "\n\n" + L.Get("KP_Warn");
+            else
+                KpWarn.Text = L.Get("KP_Warn");
 
             LogBlank();
             LogInfo(L.Get("O2_NET_NOTICE"));
@@ -1259,6 +1285,35 @@ namespace WinLicApp
                 KpOkBox.SelectAll();
                 KpOkBox.Focus();
                 return;
+            }
+
+            // ── Phase 1 gate: pidgenx must have validated this key ────────────────────
+            // _lastPidResult.Valid is false for Win8 keys, wrong-gen keys, or unrecognized keys.
+            // Block install with a warning dialog; user must explicitly choose to override.
+            if (!_lastPidResult.Valid)
+            {
+                // Show rejection warning in the banner
+                PidBanner.Background  = new SolidColorBrush(Color.FromRgb(0xfe, 0xf2, 0xf2));
+                PidBanner.BorderBrush = new SolidColorBrush(Color.FromRgb(0xfc, 0xa5, 0xa5));
+                PidBannerIcon.Text      = "⛔";
+                PidBannerIcon.Foreground = new SolidColorBrush(Color.FromRgb(0xb9, 0x1c, 0x1c));
+                PidBannerText.Foreground = new SolidColorBrush(Color.FromRgb(0x99, 0x1b, 0x1b));
+                PidBannerText.Text = L.Get("KP_PIDGX_REJECT_WARN");
+                PidBanner.Visibility = Visibility.Visible;
+
+                // Log the warning
+                LogBlank();
+                LogWarn(L.Get("KP_PIDGX_REJECT_WARN"));
+
+                // Ask user whether to override
+                bool proceed = AskConfirm(L.Get("KP_PIDGX_REJECT_TITLE") +
+                    "\n\n" + L.Get("KP_PIDGX_REJECT_WARN"));
+                if (!proceed)
+                {
+                    LogWarn(L.Get("KP_PIDGX_REJECT_ABORTED"));
+                    return;   // stay in panel — user can fix the key or cancel
+                }
+                LogWarn(L.Get("KP_PIDGX_REJECT_OVERRIDE"));
             }
 
             // Hide the panel before running slmgr (which may take a moment)
