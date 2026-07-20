@@ -597,6 +597,8 @@ namespace WinLicApp
                                   "(chỉ kiểm tra cấu trúc ngoại tuyến)"),
             ["KP_PidEdition"]  = ("  Edition  : ", "  Ấn bản   : "),
             ["KP_PidChannel"]  = ("  Channel  : ", "  Kênh     : "),
+            ["KP_PidPartNo"]   = ("  Part No. : ", "  Mã SP    : "),
+            ["KP_PidWinVer"]   = ("  Win Ver. : ", "  Phiên bản: "),
 
             // ── Option 2 — Phase 1 PidGenX strings ───────────────────────────────
             ["O2_PIDGX_ABOUT"]       = ("Phase 1 — Offline Key Analysis (instant, no network, no registry change): " +
@@ -614,16 +616,32 @@ namespace WinLicApp
                                         "Định dạng: THẤT BẠI — key bị pidgenx.dll từ chối (sai độ dài, ký tự không hợp lệ, hoặc không trong pkeyconfig)"),
             ["O2_PIDGX_SRC_PIDGENX"] = ("Source   : pidgenx.dll + pkeyconfig.xrm-ms (real key group lookup)",
                                         "Nguồn    : pidgenx.dll + pkeyconfig.xrm-ms (tra cứu key group thực sự)"),
-            ["O2_PIDGX_EDITION"]     = ("Edition  : ",
-                                        "Ấn bản   : "),
-            ["O2_PIDGX_PARTNO"]      = ("Part No. : ",
-                                        "Mã sản phẩm: "),
-            ["O2_PIDGX_WINVER"]      = ("Win Ver. : ",
-                                        "Phiên bản Windows: "),
+            ["O2_PIDGX_EDITION"]     = ("  Edition  : ",
+                                         "  Ấn bản   : "),
+            ["O2_PIDGX_PARTNO"]      = ("  Part No. : ",
+                                         "  Mã SP    : "),
+            ["O2_PIDGX_WINVER"]      = ("  Win Ver. : ",
+                                         "  Phiên bản: "),
             ["O2_PIDGX_SRC_CHK"]     = ("Source   : format check only (pidgenx.dll unavailable or key not in pkeyconfig)",
                                         "Nguồn    : chỉ kiểm tra định dạng (pidgenx.dll không khả dụng hoặc key không trong pkeyconfig)"),
             ["O2_PHASE2_HDR"]        = ("── Phase 2: Installing key via slmgr /ipk ──────────────────────────",
                                         "── Giai đoạn 2: Cài đặt key qua slmgr /ipk ──────────────────────"),
+
+            // ── Option 2 — pidgenx-rejected warning dialog ──────────────────
+            ["KP_PIDGX_REJECT_TITLE"]   = ("Key Not Recognized — Possible Wrong Windows Version",
+                                           "Key Không Được Nhận Diện — Sai Phiên Bản Windows?"),
+            ["KP_PIDGX_REJECT_WARN"]    = ("Phase 1 WARNING: This key was NOT found in pkeyconfig.xrm-ms on this system.\n\n" +
+                                           "This usually means the key belongs to a different Windows generation (e.g. Windows 7 or 8) " +
+                                           "and cannot be installed on Windows 10/11 via slmgr /ipk.\n\n" +
+                                           "Do you want to attempt the install anyway? (It will likely fail with 0xC004E016)",
+                                           "Cảnh báo Giai đoạn 1: Key KHÔNG tìm thấy trong pkeyconfig.xrm-ms trên hệ thống này.\n\n" +
+                                           "Điều này thường có nghĩa key thuộc phiên bản Windows khác (ví dụ Windows 7 hoặc 8) " +
+                                           "và không thể cài trên Windows 10/11 qua slmgr /ipk.\n\n" +
+                                           "Bạn vẫn muốn thử cài đặt không? (Có thể sẽ thất bại với lỗi 0xC004E016)"),
+            ["KP_PIDGX_REJECT_ABORTED"] = ("Install aborted — key not recognized in pkeyconfig for this Windows version.",
+                                           "Đã hủy cài đặt — key không được nhận diện trong pkeyconfig cho phiên bản Windows này."),
+            ["KP_PIDGX_REJECT_OVERRIDE"]= ("Proceeding at user's request — key was not recognized by pidgenx for this Windows version.",
+                                           "Tiếp tục theo yêu cầu người dùng — key không được nhận diện bởi pidgenx cho phiên bản Windows này."),
 
             // ── Option 2 — channel warnings (shown in pre-arm) ───────────────────
             ["O2_WARN_CHAN_KMS"]    = ("⚠  Current channel is VOLUME_KMSCLIENT — this option is for Retail/OEM/MAK keys. For KMS activation use Option 6.",
@@ -632,6 +650,14 @@ namespace WinLicApp
                                         "⚠  Máy này có vẻ là KMS HOST (kênh VOLUME_KMS). Dùng Tùy chọn 6 chỉ để kích hoạt KMS client."),
             ["O2_WARN_CHAN_SUB"]    = ("⚠  Subscription-based activation is not managed by this option.",
                                        "⚠  Kích hoạt theo đăng ký không được quản lý bởi tùy chọn này."),
+
+            // ── Option 2 — save-key advisory for non-generic Retail/MAK/OEM keys ──
+            ["O2_SAVE_KEY_WARN"] = ("⚠  This appears to be a unique Retail / MAK / OEM key. " +
+                                    "Save it now before installing a new key — " +
+                                    "you will NOT be able to recover it afterwards.",
+                                    "⚠  Đây có vẻ là key Retail / MAK / OEM riêng. " +
+                                    "Hãy lưu lại trước khi cài key mới — " +
+                                    "bạn sẽ KHÔNG thể khôi phục sau này."),
 
             // ── Option 2 — auto /ato after successful /ipk ───────────────────────
             ["O2_ATO_AUTO"]          = ("Attempting online activation automatically (slmgr /ato)...",

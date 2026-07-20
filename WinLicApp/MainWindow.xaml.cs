@@ -543,8 +543,42 @@ namespace WinLicApp
         private void BtnVersionInfo_Click(object sender, RoutedEventArgs e)
         {
             LogAction("Act1");
+            ShowSystemInfo();
 
-            // ── OS information ────────────────────────────────────────────────
+            // ── slmgr /dli — License Channel info ────────────────
+            LogBlank();
+            LogSep();
+            LogFetch(L.Get("Act1_DliHeader"));
+            LogInfo(L.Get("O2_Note"));
+            LogBlank();
+            var dliOutput = RunSlmgr("/dli");
+            if (string.IsNullOrWhiteSpace(dliOutput))
+                LogWarn(L.Get("O2_NoOutput"));
+            else
+                LogSlmgrOutput(dliOutput);
+
+            // ── Extended info: slmgr /dlv — show panel instead of MessageBox ────
+            DlvTitle.Text  = L.Get("DLV_PANEL_TITLE");
+            DlvDesc1.Text  = L.Get("DLV_DESC1");
+            DlvDesc2.Text  = L.Get("DLV_DESC2");
+            BtnDlvCancel.Content = L.Get("DLV_CANCEL");
+            BtnDlvRun.Content    = L.Get("DLV_RUN");
+            DlvPanel.Visibility  = Visibility.Visible;
+            EnsurePanelFits(DlvPanel);
+        }
+
+        /// <summary>
+        /// Shared system info block used by both Option 1 and Option 2 pre-run.
+        /// Shows: OS, active license, activation method, BIOS OEM key,
+        /// registry backup key, installed key, mismatch detection.
+        /// </summary>
+        /// <param name="warnBeforeReplace">
+        /// When true (Option 2 context): after displaying current keys, emits
+        /// O2_SAVE_KEY_WARN if the key appears to be a unique Retail/MAK/OEM key.
+        /// </param>
+        private void ShowSystemInfo(bool warnBeforeReplace = false)
+        {
+            // ── OS information ──────────────────────────────────────────────────
             LogFetch(L.Get("Fetch_OS"));
             using var osRes = WmiQuery(
                 "SELECT Caption,Version,BuildNumber,OSArchitecture FROM Win32_OperatingSystem");
@@ -557,7 +591,7 @@ namespace WinLicApp
                     LogData(L.Get("D_Arch"),        obj["OSArchitecture"]?.ToString() ?? "—");
                 }
 
-            // ── Registry backup key (read first for DE detection) ─────────────
+            // ── Registry backup key (read first for DE detection) ─────────
             LogBlank();
             LogFetch(L.Get("Fetch_RegKey"));
             string? regKey = null;
@@ -569,7 +603,7 @@ namespace WinLicApp
             }
             catch (Exception ex) { LogError(L.Get("O3_RegReadErr") + ex.Message); }
 
-            // ── Active Windows license (WMI) ──────────────────────────────────
+            // ── Active Windows license (WMI) ───────────────────
             LogFetch(L.Get("Fetch_License"));
             string? partialKey  = null;
             bool    foundActive = false;
@@ -608,7 +642,7 @@ namespace WinLicApp
             }
             if (!foundActive) LogWarn(L.Get("O3_NoLicense"));
 
-            // ── Activation method block ───────────────────────────────────────
+            // ── Activation method block ─────────────────────────────
             LogBlank();
             switch (activationMethod)
             {
@@ -639,7 +673,7 @@ namespace WinLicApp
                     break;
             }
 
-            // ── BIOS OEM key ──────────────────────────────────────────────────
+            // ── BIOS OEM key ──────────────────────────────────────────────────────────
             LogBlank();
             LogFetch(L.Get("Fetch_BiosKey"));
             string? oemKey = null;
@@ -658,11 +692,11 @@ namespace WinLicApp
                 else                           LogInfo(L.Get("OemEd_NoMatch"));
             }
 
-            // ── Registry backup key status ────────────────────────────────────
+            // ── Registry backup key status ────────────────────────────────────────
             bool hasReg = !string.IsNullOrWhiteSpace(regKey);
             LogData(L.Get("D_RegBackupKey"), hasReg ? L.Get("O3_BiosDetected") : L.Get("O3_RegNone"));
 
-            // ── Installed Key (DigitalProductId decoder) ──────────────────────
+            // ── Installed Key (DigitalProductId decoder) ──────────────────
             LogFetch(L.Get("Fetch_InstalledKey"));
             string? installedKey = null;
             try
@@ -678,7 +712,7 @@ namespace WinLicApp
             LogData(L.Get("D_InstalledKey"),
                     hasInstalled ? L.Get("O3_BiosDetected") : L.Get("O3_RegNone"));
 
-            // ── Key reveal (driven by sidebar checkbox) ───────────────────────
+            // ── Key reveal (driven by sidebar checkbox) ─────────────────────────────────────
             if (hasOem || hasReg || hasInstalled)
             {
                 LogBlank();
@@ -686,6 +720,16 @@ namespace WinLicApp
                 if (hasInstalled) LogKey(L.Get("O3_KeyInstalled") + (full ? installedKey! : MaskKey(installedKey!)));
                 if (hasOem)       LogKey(L.Get("O3_KeyBios")      + (full ? oemKey!       : MaskKey(oemKey!)));
                 if (hasReg)       LogKey(L.Get("O3_KeyReg")       + (full ? regKey!       : MaskKey(regKey!)));
+
+                // ── Option 2 context: warn if key looks like unique Retail/MAK/OEM ──
+                if (warnBeforeReplace)
+                {
+                    bool isGeneric   = !string.IsNullOrEmpty(installedKey) &&
+                                       !string.IsNullOrEmpty(IdentifyKeyEdition(installedKey!));
+                    bool isKmsClient = activationMethod == ActivationMethod.KMS;
+                    if (hasInstalled && !isGeneric && !isKmsClient)
+                        LogWarn(L.Get("O2_SAVE_KEY_WARN"));
+                }
             }
 
             // ── Mismatch detection ────────────────────────────────────────────
@@ -722,27 +766,6 @@ namespace WinLicApp
                 }
                 else { LogOk(L.Get("O3_KeyMatch")); }
             }
-
-            // ── slmgr /dli — License Channel info ────────────────────────────
-            LogBlank();
-            LogSep();
-            LogFetch(L.Get("Act1_DliHeader"));
-            LogInfo(L.Get("O2_Note"));
-            LogBlank();
-            var dliOutput = RunSlmgr("/dli");
-            if (string.IsNullOrWhiteSpace(dliOutput))
-                LogWarn(L.Get("O2_NoOutput"));
-            else
-                LogSlmgrOutput(dliOutput);
-
-            // ── Extended info: slmgr /dlv — show panel instead of MessageBox ────
-            DlvTitle.Text  = L.Get("DLV_PANEL_TITLE");
-            DlvDesc1.Text  = L.Get("DLV_DESC1");
-            DlvDesc2.Text  = L.Get("DLV_DESC2");
-            BtnDlvCancel.Content = L.Get("DLV_CANCEL");
-            BtnDlvRun.Content    = L.Get("DLV_RUN");
-            DlvPanel.Visibility  = Visibility.Visible;
-            EnsurePanelFits(DlvPanel);
         }
 
 
@@ -937,7 +960,7 @@ namespace WinLicApp
         /// Show or update the PidBanner element in the key entry panel.
         /// Call after CheckKeyChecksum completes.
         /// </summary>
-        private void ShowPidBanner(bool valid, string detailLine)
+        private void ShowPidBanner(bool valid, string channel, string edition, string partNum, string winVer)
         {
             if (valid)
             {
@@ -946,9 +969,17 @@ namespace WinLicApp
                 PidBannerIcon.Text     = "✔";
                 PidBannerIcon.Foreground = new SolidColorBrush(Color.FromRgb(0x15, 0x80, 0x3d));
                 PidBannerText.Foreground = new SolidColorBrush(Color.FromRgb(0x16, 0x65, 0x34));
-                PidBannerText.Text     = string.IsNullOrEmpty(detailLine)
-                    ? L.Get("KP_PidValid")
-                    : L.Get("KP_PidValid") + "  |  " + detailLine;
+
+                var sb = new System.Text.StringBuilder(L.Get("KP_PidValid"));
+                if (!string.IsNullOrEmpty(channel))
+                    sb.AppendLine().Append(L.Get("KP_PidChannel") + channel);
+                if (!string.IsNullOrEmpty(edition))
+                    sb.AppendLine().Append(L.Get("KP_PidEdition") + edition);
+                if (!string.IsNullOrEmpty(partNum))
+                    sb.AppendLine().Append(L.Get("KP_PidPartNo") + partNum);
+                if (!string.IsNullOrEmpty(winVer))
+                    sb.AppendLine().Append(L.Get("KP_PidWinVer") + winVer);
+                PidBannerText.Text = sb.ToString();
             }
             else
             {
@@ -976,48 +1007,17 @@ namespace WinLicApp
             LogInfo(L.Get("O4_Info2"));
             LogWarn(L.Get("KP_Warn"));
 
-
-            // Read and log current active license — same block as CLI Option 2
-            LogFetch(L.Get("O2_READ_LIC"));
-            try
-            {
-                using var lr = WmiQuery(
-                    "SELECT Name,Description,PartialProductKey,LicenseStatus " +
-                    "FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL");
-                bool found = false;
-                if (lr != null)
-                    foreach (ManagementObject obj in lr)
-                    {
-                        var name    = obj["Name"]?.ToString() ?? "";
-                        if (!name.StartsWith("Windows", StringComparison.OrdinalIgnoreCase)) continue;
-                        var partial = obj["PartialProductKey"]?.ToString() ?? "";
-                        uint raw    = obj["LicenseStatus"] is uint u ? u : 0;
-                        var desc    = obj["Description"]?.ToString() ?? "";
-                        var status  = LicenseStatusText(raw);
-                        LogData(L.Get("O2_CUR_ED"),  name);
-                        LogData(L.Get("O2_CUR_KEY"), partial);
-                        if (raw == 1) LogOk(L.Get("O2_CUR_STATUS") + status);
-                        else          LogWarn(L.Get("O2_CUR_STATUS") + status);
-                        // Channel warning
-                        var descUp = desc.ToUpperInvariant();
-                        if (descUp.Contains("VOLUME_KMSCLIENT"))                               LogWarn(L.Get("O2_WARN_CHAN_KMS"));
-                        else if (descUp.Contains("VOLUME_KMS") && !descUp.Contains("KMSCLIENT")) LogWarn(L.Get("O2_WARN_CHAN_KMSHOST"));
-                        else if (descUp.Contains("SUBSCRIPTION"))                              LogWarn(L.Get("O2_WARN_CHAN_SUB"));
-                        found = true;
-                        break;
-                    }
-                if (!found) LogWarn(L.Get("O2_NO_LIC"));
-            }
-            catch { LogWarn(L.Get("O2_NO_LIC")); }
+            // Read and log current system state — full parity with Option 1 output
+            ShowSystemInfo(warnBeforeReplace: true);
 
             LogBlank();
             LogInfo(L.Get("O2_NET_NOTICE"));
-
             LogBlank();
 
             // Log ABOUT note so user knows what Phase 1 will do
             LogInfo(L.Get("O2_PIDGX_ABOUT"));
             LogBlank();
+
 
             // Populate panel (also kept in sync by RefreshLanguage on lang switch)
             KpInfo1.Text        = L.Get("KP_Info1");
@@ -1133,7 +1133,7 @@ namespace WinLicApp
                 var bannerDetail = (valid && !string.IsNullOrEmpty(channel))
                     ? L.Get("KP_PidChannel") + channel
                     : "";
-                ShowPidBanner(valid, bannerDetail);
+                ShowPidBanner(valid, channel, edition, partNum, winVer);
 
                 // Write Phase 1 analysis to log only once per unique full key
                 if (fullKey != _lastBannerKey)
