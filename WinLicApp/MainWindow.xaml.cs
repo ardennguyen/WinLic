@@ -833,7 +833,12 @@ namespace WinLicApp
                         key, PkcPath, PkcPath, null,
                         pPid, pDpid, pDpid4);
 
-                    if (hr != 0) return (false, ""); // key not in pkeyconfig
+                    if (hr != 0)
+                    {
+                        // pidgenx couldn't match the key in pkeyconfig (may be a valid
+                        // key for a different SKU/edition). Fall back to format-only.
+                        return (true, "");
+                    }
 
                     // Scan DigPid4 buffer for recognisable channel token
                     var bytes = new byte[Buf];
@@ -900,26 +905,41 @@ namespace WinLicApp
             LogInfo(L.Get("O4_Info2"));
             LogWarn(L.Get("KP_Warn"));
 
-            // Channel awareness — warn if VOLUME_KMSCLIENT, VOLUME_KMS, or Subscription
+
+            // Read and log current active license — same block as CLI Option 2
+            LogFetch(L.Get("O2_READ_LIC"));
             try
             {
-                using var licRes = WmiQuery(
-                    "SELECT Description FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL");
-                if (licRes != null)
-                    foreach (ManagementObject obj in licRes)
+                using var lr = WmiQuery(
+                    "SELECT Name,Description,PartialProductKey,LicenseStatus " +
+                    "FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL");
+                bool found = false;
+                if (lr != null)
+                    foreach (ManagementObject obj in lr)
                     {
-                        var desc = (obj["Description"]?.ToString() ?? "").ToUpperInvariant();
-                        if (!desc.Contains("WINDOWS") && !obj["Description"]!.ToString()!.ToUpperInvariant().StartsWith("WINDOWS")) { }
-                        if (desc.Contains("VOLUME_KMSCLIENT"))  { LogWarn(L.Get("O2_WARN_CHAN_KMS")); break; }
-                        if (desc.Contains("VOLUME_KMS") && !desc.Contains("KMSCLIENT")) { LogWarn(L.Get("O2_WARN_CHAN_KMSHOST")); break; }
-                        if (desc.Contains("SUBSCRIPTION"))      { LogWarn(L.Get("O2_WARN_CHAN_SUB")); break; }
+                        var name    = obj["Name"]?.ToString() ?? "";
+                        if (!name.StartsWith("Windows", StringComparison.OrdinalIgnoreCase)) continue;
+                        var partial = obj["PartialProductKey"]?.ToString() ?? "";
+                        uint raw    = obj["LicenseStatus"] is uint u ? u : 0;
+                        var desc    = obj["Description"]?.ToString() ?? "";
+                        var status  = LicenseStatusText(raw);
+                        LogData(L.Get("O2_CUR_ED"),  name);
+                        LogData(L.Get("O2_CUR_KEY"), partial);
+                        if (raw == 1) LogOk(L.Get("O2_CUR_STATUS") + status);
+                        else          LogWarn(L.Get("O2_CUR_STATUS") + status);
+                        // Channel warning
+                        var descUp = desc.ToUpperInvariant();
+                        if (descUp.Contains("VOLUME_KMSCLIENT"))                               LogWarn(L.Get("O2_WARN_CHAN_KMS"));
+                        else if (descUp.Contains("VOLUME_KMS") && !descUp.Contains("KMSCLIENT")) LogWarn(L.Get("O2_WARN_CHAN_KMSHOST"));
+                        else if (descUp.Contains("SUBSCRIPTION"))                              LogWarn(L.Get("O2_WARN_CHAN_SUB"));
+                        found = true;
                         break;
                     }
+                if (!found) LogWarn(L.Get("O2_NO_LIC"));
             }
-            catch { /* non-fatal */ }
+            catch { LogWarn(L.Get("O2_NO_LIC")); }
 
-
-            // Internet requirement notice
+            LogBlank();
             LogInfo(L.Get("O2_NET_NOTICE"));
 
             LogBlank();

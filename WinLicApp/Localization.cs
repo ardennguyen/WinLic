@@ -169,6 +169,11 @@ namespace WinLicApp
             ["O2_NoOutput"]        = ("No output received from slmgr /dli.",
                                       "Không nhận được kết quả từ slmgr /dli."),
             ["O2_LicenseStatus"]   = ("License Status:  ", "Trạng thái bản quyền:  "),
+            ["O2_READ_LIC"]        = ("Reading current active license...", "Đang đọc bản quyền đang hoạt động..."),
+            ["O2_CUR_ED"]          = ("  Current edition:     ", "  Ấn bản hiện tại:     "),
+            ["O2_CUR_KEY"]         = ("  Current partial key: ", "  Key một phần hiện tại: "),
+            ["O2_CUR_STATUS"]      = ("  Current status:      ", "  Trạng thái hiện tại: "),
+            ["O2_NO_LIC"]          = ("  No active license detected.", "  Không phát hiện bản quyền đang hoạt động."),
 
             // ── Option 3 ──────────────────────────────────────────────────────────
             ["O3_DigitalLic"]      = ("Digital License detected — key is a generic setup key:",

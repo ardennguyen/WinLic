@@ -1574,8 +1574,10 @@ function Invoke-PidGenXCheck {
                 $result.SourceNote = 'pidgenx'
                 # result.Valid is already true from Tier 1
             } else {
-                # pidgenx.dll ran but rejected the key (wrong key group / invalid)
-                $result.Valid      = $false
+                # pidgenx.dll ran but key not matched in pkeyconfig.
+                # This does NOT mean the key is invalid -- it may be a valid
+                # Retail/OEM/MAK key for a different SKU. slmgr /ipk is the
+                # real arbiter. Keep Valid=true from Tier 1 and note the source.
                 $result.SourceNote = 'pidgenx-rejected'
             }
         } catch {
@@ -1679,7 +1681,7 @@ function Test-ProductKey {
     }
     switch ($pidResult.SourceNote) {
         'pidgenx'          { Write-Info (T 'O2_PIDGX_SRC_PIDGENX') }
-        'pidgenx-rejected' { Write-Info (T 'O2_PIDGX_SRC_PIDGENX') }
+        'pidgenx-rejected' { Write-Info (T 'O2_PIDGX_SRC_CHK') }
         default            { Write-Info (T 'O2_PIDGX_SRC_CHK') }
     }
     Write-Sep
