@@ -568,15 +568,6 @@ namespace WinLicApp
             EnsurePanelFits(DlvPanel);
         }
 
-        /// <summary>
-        /// Shared system info block used by both Option 1 and Option 2 pre-run.
-        /// Shows: OS, active license, activation method, BIOS OEM key,
-        /// registry backup key, installed key, mismatch detection.
-        /// </summary>
-        /// <param name="warnBeforeReplace">
-        /// When true (Option 2 context): after displaying current keys, emits
-        /// O2_SAVE_KEY_WARN if the key appears to be a unique Retail/MAK/OEM key.
-        /// </param>
         private void ShowSystemInfo(bool warnBeforeReplace = false)
         {
             // ── OS information ──────────────────────────────────────────────────
@@ -650,13 +641,11 @@ namespace WinLicApp
                 case ActivationMethod.DE:
                     if (warnBeforeReplace)
                     {
-                        // Option 2 context: brief note only — generic key = fine to replace
                         if (isLicensed) LogDE(L.Get("DE_Confirmed"));
                         else            LogWarn(L.Get("DE_NotActivated"));
                     }
                     else
                     {
-                        // Option 1 context: full DE educational block
                         if (isLicensed)
                         {
                             LogDE(L.Get("DE_Confirmed"));
@@ -684,7 +673,9 @@ namespace WinLicApp
                     break;
             }
 
-            // ── BIOS OEM key ──────────────────────────────────────────────────────────
+            bool showFull = ShowFullKey;
+
+            // ── BIOS OEM key (inline display + pidgenx analysis) ───────────────────
             LogBlank();
             LogFetch(L.Get("Fetch_BiosKey"));
             string? oemKey = null;
@@ -697,17 +688,43 @@ namespace WinLicApp
             LogData(L.Get("D_BiosOemKey"), hasOem ? L.Get("O3_BiosDetected") : L.Get("O3_BiosNone"));
             if (hasOem)
             {
-                LogFetch(L.Get("Fetch_OemEdition"));
-                var ed = IdentifyKeyEdition(oemKey!);
-                if (!string.IsNullOrEmpty(ed)) LogOk(L.Get("OemEd_Found") + "  " + ed);
-                else                           LogInfo(L.Get("OemEd_NoMatch"));
+                // Show key inline immediately after detection
+                LogKey(L.Get("O3_KeyBios") + (showFull ? oemKey! : MaskKey(oemKey!)));
+
+                // Run pidgenx Phase 1 analysis on OEM key (same CheckKeyChecksum as Option 2)
+                LogFetch(L.Get("Fetch_OemPidGenX"));
+                var (oemValid, oemChannel, oemEdition, _, oemWinVer) = CheckKeyChecksum(oemKey!);
+                bool pkcPresent = System.IO.File.Exists(PkcPath);
+                if (oemValid && !string.IsNullOrEmpty(oemChannel))
+                {
+                    // pidgenx recognized the key — show channel/edition/winver
+                    LogInfo(L.Get("OemPid_Channel") + oemChannel);
+                    if (!string.IsNullOrEmpty(oemEdition)) LogInfo(L.Get("OemPid_Edition") + oemEdition);
+                    if (!string.IsNullOrEmpty(oemWinVer))  LogInfo(L.Get("OemPid_WinVer")  + oemWinVer);
+                    LogInfo(L.Get("O2_PIDGX_SRC_PIDGENX"));
+                }
+                else if (!oemValid && pkcPresent)
+                {
+                    // pkeyconfig present but pidgenx rejected (pre-Win10 OEM key)
+                    LogWarn(L.Get("OemPid_Rejected"));
+                    LogInfo(L.Get("O2_PIDGX_SRC_PIDGENX"));
+                }
+                else
+                {
+                    // pkeyconfig absent — format check only, no gate
+                    LogInfo(L.Get("OemPid_FormatOnly"));
+                }
             }
 
-            // ── Registry backup key status ────────────────────────────────────────
+            // ── Registry backup key (inline display) ──────────────────────────────
+            LogBlank();
             bool hasReg = !string.IsNullOrWhiteSpace(regKey);
             LogData(L.Get("D_RegBackupKey"), hasReg ? L.Get("O3_BiosDetected") : L.Get("O3_RegNone"));
+            if (hasReg)
+                LogKey(L.Get("O3_KeyReg") + (showFull ? regKey! : MaskKey(regKey!)));
 
-            // ── Installed Key (DigitalProductId decoder) ──────────────────
+            // ── Installed Key (DigitalProductId decoder, inline display) ──────────
+            LogBlank();
             LogFetch(L.Get("Fetch_InstalledKey"));
             string? installedKey = null;
             try
@@ -722,36 +739,25 @@ namespace WinLicApp
             bool hasInstalled = !string.IsNullOrWhiteSpace(installedKey);
             LogData(L.Get("D_InstalledKey"),
                     hasInstalled ? L.Get("O3_BiosDetected") : L.Get("O3_RegNone"));
+            if (hasInstalled)
+                LogKey(L.Get("O3_KeyInstalled") + (showFull ? installedKey! : MaskKey(installedKey!)));
 
-            // ── Key reveal (driven by sidebar checkbox) ─────────────────────────────────────
+            // ── Save-key advisory (inline, right after installed key display) ──────
+            // Suppress only for DE (generic placeholder) and KMS (volume key).
+            // Do NOT suppress based on GVLK table match alone — a user may have a GVLK
+            // placeholder installed on a Standard-activated system and still need to save it.
             bool saveKeyWarnNeeded = false;
-            if (hasOem || hasReg || hasInstalled)
+            if (warnBeforeReplace && hasInstalled)
             {
-                LogBlank();
-                bool full = ShowFullKey;
-                if (hasInstalled) LogKey(L.Get("O3_KeyInstalled") + (full ? installedKey! : MaskKey(installedKey!)));
-                if (hasOem)       LogKey(L.Get("O3_KeyBios")      + (full ? oemKey!       : MaskKey(oemKey!)));
-                if (hasReg)       LogKey(L.Get("O3_KeyReg")       + (full ? regKey!       : MaskKey(regKey!)));
-
-                // Determine if save-key advisory is needed (non-generic, non-KMS installed key)
-                if (warnBeforeReplace && hasInstalled)
-                {
-                    bool isGeneric   = activationMethod == ActivationMethod.DE ||
-                                       !string.IsNullOrEmpty(IdentifyKeyEdition(installedKey!));
-                    bool isKmsClient = activationMethod == ActivationMethod.KMS;
-                    saveKeyWarnNeeded = !isGeneric && !isKmsClient;
-                }
+                bool isDE  = activationMethod == ActivationMethod.DE;
+                bool isKms = activationMethod == ActivationMethod.KMS;
+                saveKeyWarnNeeded = !isDE && !isKms;
             }
-
-            // ── Save-key advisory: emitted right after key display ────────────────
             if (saveKeyWarnNeeded)
                 LogWarn(L.Get("O2_SAVE_KEY_WARN"));
-
-            // Return whether the advisory is needed (for caller to show in dialog)
-            // Stored in a field so BtnTestKey_Click can pick it up
             _saveKeyWarnNeeded = saveKeyWarnNeeded;
 
-            // ── Mismatch detection ────────────────────────────────────────────
+            // ── Mismatch detection ────────────────────────────────────────────────
             if (hasReg && !string.IsNullOrEmpty(partialKey))
             {
                 LogBlank();

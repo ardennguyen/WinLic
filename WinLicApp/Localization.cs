@@ -118,10 +118,21 @@ namespace WinLicApp
             ["D_PartialKey"]     = ("Partial Key:",          "Key một phần:"),
             ["D_BiosOemKey"]     = ("BIOS OEM Key:",         "Key Bản Quyền OEM BIOS:"),
             ["D_RegBackupKey"]   = ("Registry Backup Key:",  "Key Dự phòng (Registry):"),
-            ["D_InstalledKey"]   = ("Installed Key:",        "Key Đã Cài đặt:"),
+            ["D_InstalledKey"]   = ("Installed Key:",        "Key Đã cài đặt:"),
             ["Fetch_InstalledKey"] = ("Decoding installed key from registry…",
                                       "Đang giải mã Key Bản Quyền từ Registry…"),
             ["D_Activation"]     = ("Activation:",           "Kích hoạt:"),
+
+            // ── BIOS OEM key inline pidgenx analysis ──────────────────────────────────────
+            ["Fetch_OemPidGenX"]    = ("Running Phase 1 analysis on BIOS OEM key…",
+                                      "Đang phân tích Giai đoạn 1 trên Key OEM BIOS…"),
+            ["OemPid_Channel"]      = ("  Channel  : ",   "  Kênh     : "),
+            ["OemPid_Edition"]      = ("  Edition  : ",   "  Ấn bản   : "),
+            ["OemPid_WinVer"]       = ("  Win Ver. : ",   "  Phiên bản: "),
+            ["OemPid_Rejected"]     = ("  PidGenX  : Key not found in pkeyconfig.xrm-ms (possibly a pre-Windows 10 OEM key)",
+                                      "  PidGenX  : Key không tìm thấy trong pkeyconfig.xrm-ms (có thể là key OEM trước Windows 10)"),
+            ["OemPid_FormatOnly"]   = ("  Source   : format check only (pkeyconfig.xrm-ms not found)",
+                                      "  Nguồn    : chỉ kiểm tra định dạng (không tìm thấy pkeyconfig.xrm-ms)"),
 
             // ── License status texts ──────────────────────────────────────────────
             ["LS_0"]             = ("Unlicensed",                     "Chưa được cấp phép"),
@@ -133,14 +144,6 @@ namespace WinLicApp
             ["LS_6"]             = ("Extended Grace Period",          "Thời gian ân hạn mở rộng"),
             ["LS_Unknown"]       = ("Unknown",                        "Không xác định"),
 
-            // ── BIOS OEM key edition detection ─────────────────────────────────────
-            ["Fetch_OemEdition"]    = ("Identifying edition from BIOS OEM key…",
-                                      "Đang xác định ấn bản từ Key Bản Quyền OEM BIOS…"),
-            ["OemEd_Found"]         = ("Edition match found:",         "Phát hiện ấn bản tương ứng:"),
-            ["OemEd_NoMatch"]       = ("Edition could not be determined from key alone.",
-                                      "Không thể xác định ấn bản chỉ từ Key Bản Quyền."),
-            ["OemEd_Hint"]          = ("Tip: install the key (Option 4) to let Windows confirm the edition.",
-                                      "Gợi ý: cài đặt Key (Tùy chọn 4) để Windows xác nhận ấn bản."),
 
             // ── Digital Entitlement detection ────────────────────────────────────
             ["DE_Confirmed"]        = ("Activation method:  Digital Entitlement (HWID / DE)",
@@ -220,10 +223,10 @@ namespace WinLicApp
                                       "Không phát hiện Key Bản Quyền OEM trên firmware BIOS/UEFI."),
 
             // ── Option 4 ──────────────────────────────────────────────────────────
-            ["O4_Info1"]           = ("Phase 1 (offline, instant): Key structure is checked as you type — no network, no registry changes.",
-                                      "Giai đoạn 1 (ngoại tuyến, tức thì): Cấu trúc key được kiểm tra ngay khi nhập — không mạng, không thay đổi registry."),
-            ["O4_Info2"]           = ("Phase 2 (online): slmgr /ipk runs only after you type OK and click Install — this is the real key install.",
-                                      "Giai đoạn 2 (trực tuyến): slmgr /ipk chỉ chạy sau khi bạn nhập OK và nhấn Cài đặt — đây mới là thao tác cài key thực sự."),
+            ["O4_Info1"]           = ("Phase 1 (offline, instant): Key structure is checked immediately — no network, no registry changes.",
+                                      "Giai đoạn 1 (ngoại tuyến, tức thì): Cấu trúc key được kiểm tra ngay — không mạng, không thay đổi registry."),
+            ["O4_Info2"]           = ("Phase 2 (online): slmgr /ipk runs only after you confirm — this is the real key install.",
+                                      "Giai đoạn 2 (trực tuyến): slmgr /ipk chỉ chạy sau khi bạn xác nhận — đây mới là thao tác cài key thực sự."),
             ["O4_Prompt"]          = ("Enter the 25-character product key:\n\nFormat:  XXXXX-XXXXX-XXXXX-XXXXX-XXXXX",
                                       "Nhập Key Bản Quyền gồm 25 ký tự:\n\nĐịnh dạng:  XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"),
             ["O4_PromptTitle"]     = ("Enter Product Key",  "Nhập Key Bản Quyền"),

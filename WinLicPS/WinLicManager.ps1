@@ -138,11 +138,16 @@ $Str = @{
                         'Hiển thị bản dựng HĐH, Key OEM BIOS, bản quyền đang hoạt động qua WMI, key dự phòng registry,')
     'O1_OPT_DESC2' = @('installed key (from DigitalProductId), and optionally the full slmgr /dlv report.',
                         'key đã cài đặt (từ DigitalProductId) và tùy chọn báo cáo đầy đủ slmgr /dlv.')
-    'O1_STEP_OS'   = @('Querying OS information...', 'Đang truy vấn thông tin hệ điều hành...')
-    'O1_STEP_REG'  = @('Checking Registry Backup Key...', 'Đang kiểm tra Key Dự phòng Registry...')
-    'O1_STEP_LIC'  = @('Querying active Windows license (WMI)...', 'Đang truy vấn bản quyền Windows đang hoạt động (WMI)...')
-    'O1_STEP_BIOS' = @('Checking BIOS/UEFI OEM key...', 'Đang kiểm tra Key OEM BIOS/UEFI...')
-    'O1_STEP_INST' = @('Decoding installed key from registry...', 'Đang giải mã Key đã cài đặt từ Registry...')
+    'O1_STEP_OS'        = @('Querying OS information...', 'Đang truy vấn thông tin hệ điều hành...')
+    'O1_STEP_REG'       = @('Checking Registry Backup Key...', 'Đang kiểm tra Key Dự phòng Registry...')
+    'O1_STEP_LIC'       = @('Querying active Windows license (WMI)...', 'Đang truy vấn bản quyền Windows đang hoạt động (WMI)...')
+    'O1_STEP_BIOS'      = @('Checking BIOS/UEFI OEM key...', 'Đang kiểm tra Key OEM BIOS/UEFI...')
+    'O1_STEP_INST'      = @('Decoding installed key from registry...', 'Đang giải mã Key đã cài đặt từ Registry...')
+    'O1_STEP_OEM_PID'   = @('Running Phase 1 analysis on BIOS OEM key...', 'Đang phân tích Giai đoạn 1 trên Key OEM BIOS...')
+    'O1_OEM_PID_REJECTED' = @('  PidGenX  : Key not found in pkeyconfig.xrm-ms (possibly a pre-Windows 10 OEM key)',
+                              '  PidGenX  : Key không tìm thấy trong pkeyconfig.xrm-ms (có thể là key OEM trước Windows 10)')
+    'O1_OEM_PID_FMTONLY'  = @('  Source   : format check only (pkeyconfig.xrm-ms not found)',
+                              '  Nguồn    : chỉ kiểm tra định dạng (không tìm thấy pkeyconfig.xrm-ms)')
     # Data labels (mirror GUI D_* keys)
     'O1_LBL_OS'    = @('OS Edition:', 'Phiên bản Windows:')
     'O1_LBL_VER'   = @('Version:', 'Số phiên bản:')
@@ -1279,30 +1284,7 @@ function Show-SystemInfo {
     Write-Blank
     Write-Sep
 
-    # -- 1b. BIOS OEM Key -----------------------------------------------------
-    Write-Step (T 'O1_STEP_BIOS')
-    Write-Cmd  'Get-CimInstance SoftwareLicensingService | Select OA3xOriginalProductKey'
-    $oemKey = (Get-CimInstance -ClassName SoftwareLicensingService).OA3xOriginalProductKey
-    Write-Blank
-
-    if ($oemKey) {
-        Write-OK (T 'O1_BIOS_DETECT')
-        $display = if (Ask-YesNo (T 'O1_SHOWBIOS')) { $oemKey } else { Mask-Key $oemKey }
-        Write-Data (T 'O1_LBL_BIOS') $display 'Cyan'
-        $last5 = $oemKey.Substring($oemKey.Length - 5)
-        if ($genericKeys.ContainsKey($last5)) {
-            Write-Blank
-            Write-OK ((T 'O1_ED_MATCH') + '  ' + $genericKeys[$last5])
-        }
-    } else {
-        Write-Warn (T 'O1_BIOS_NONE')
-        Write-Diag (T 'O1_NOACT_NOTE')
-    }
-
-    Write-Blank
-    Write-Sep
-
-    # -- 1c. Active License (WMI) ---------------------------------------------
+    # -- 1b. Active License (WMI) ---------------------------------------------
     Write-Step (T 'O1_STEP_LIC')
     Write-Cmd  'Get-CimInstance SoftwareLicensingProduct | Where PartialProductKey and Name like Windows*'
     Write-Blank
@@ -1315,7 +1297,6 @@ function Show-SystemInfo {
 
     if ($activeProduct) {
         $partialKey = $activeProduct.PartialProductKey
-        try { Write-Data (T 'O1_LBL_OS') (Get-CimInstance Win32_OperatingSystem).Caption } catch {}
         Write-Data (T 'O1_LBL_NAME')    $activeProduct.Name
         Write-Data (T 'O1_LBL_CHAN')    $activeProduct.Description
         Write-Data (T 'O1_LBL_PARTIAL') $partialKey 'Cyan'
@@ -1355,42 +1336,78 @@ function Show-SystemInfo {
     Write-Blank
     Write-Sep
 
-    # -- 1d. Registry & Installed Key -----------------------------------------
+    # -- Determine display mode (ask once, apply to all three keys) -----------
+    # In Option 1: ask user. In Option 2 (WarnBeforeReplace): always show partial only.
+    if ($WarnBeforeReplace) {
+        $showFull = $false
+    } else {
+        $showFull = Ask-YesNo (T 'O1_SHOWFULL')
+    }
+
+    # -- 1c. BIOS OEM Key (inline display + pidgenx analysis) -----------------
+    Write-Blank
+    Write-Sep
+    Write-Step (T 'O1_STEP_BIOS')
+    Write-Cmd  'Get-CimInstance SoftwareLicensingService | Select OA3xOriginalProductKey'
+    $oemKey = (Get-CimInstance -ClassName SoftwareLicensingService).OA3xOriginalProductKey
+    Write-Blank
+
+    if ($oemKey) {
+        Write-OK (T 'O1_BIOS_DETECT')
+        $display = if ($showFull) { $oemKey } else { Mask-Key $oemKey }
+        Write-Key ((T 'O1_KEY_BIOS') + $display)
+
+        # PidGenX analysis on BIOS OEM key (reuses Invoke-PidGenXCheck from Option 2)
+        Write-Step (T 'O1_STEP_OEM_PID')
+        $oemPid = Invoke-PidGenXCheck -Key $oemKey
+        if ($oemPid.SourceNote -eq 'pidgenx') {
+            if ($oemPid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $oemPid.Channel) }
+            if ($oemPid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $oemPid.Edition) }
+            if ($oemPid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $oemPid.WinVersion) }
+            Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
+        } elseif ($oemPid.SourceNote -eq 'pidgenx-rejected') {
+            Write-Warn (T 'O1_OEM_PID_REJECTED')
+            Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
+        } else {
+            Write-Info (T 'O1_OEM_PID_FMTONLY')
+        }
+    } else {
+        Write-Warn (T 'O1_BIOS_NONE')
+        Write-Diag (T 'O1_NOACT_NOTE')
+    }
+
+    Write-Blank
+    Write-Sep
+
+    # -- 1d. Registry Backup Key (inline display) -----------------------------
     Write-Step (T 'O1_STEP_REG')
     $regKey = (Get-ItemProperty -Path $regKeyPath -Name 'BackupProductKeyDefault' -ErrorAction SilentlyContinue).BackupProductKeyDefault
-    if ($regKey) { Write-OK (T 'O1_REG_DETECT') } else { Write-Warn (T 'O1_REG_NONE') }
+    if ($regKey) {
+        Write-OK (T 'O1_REG_DETECT')
+        $display = if ($showFull) { $regKey } else { Mask-Key $regKey }
+        Write-Key ((T 'O1_KEY_REG') + $display)
+    } else {
+        Write-Warn (T 'O1_REG_NONE')
+    }
 
+    # -- 1e. Installed Key (inline display) -----------------------------------
+    Write-Blank
     Write-Step (T 'O1_STEP_INST')
     $installedKey = Get-InstalledProductKey
-    if ($installedKey) { Write-OK (T 'O1_INST_OK') } else { Write-Warn (T 'O1_INST_NO') }
+    if ($installedKey) {
+        Write-OK (T 'O1_INST_OK')
+        $display = if ($showFull) { $installedKey } else { Mask-Key $installedKey }
+        Write-Key ((T 'O1_KEY_INST') + $display)
+    } else {
+        Write-Warn (T 'O1_INST_NO')
+    }
 
-    # Display key values (with full/partial choice)
-    if ($oemKey -or $regKey -or $installedKey) {
-        Write-Blank
-        $showFull = Ask-YesNo (T 'O1_SHOWFULL')
-        Write-Blank
-        Write-Host ('  ' + (T 'O1_KEYS_HDR')) -ForegroundColor Cyan
-        if ($installedKey) {
-            $val = if ($showFull) { $installedKey } else { Mask-Key $installedKey }
-            Write-Key ((T 'O1_KEY_INST') + $val)
-        }
-        if ($oemKey) {
-            $val = if ($showFull) { $oemKey } else { Mask-Key $oemKey }
-            Write-Key ((T 'O1_KEY_BIOS') + $val)
-        }
-        if ($regKey) {
-            $val = if ($showFull) { $regKey } else { Mask-Key $regKey }
-            Write-Key ((T 'O1_KEY_REG') + $val)
-        }
-
-        # Save-key advisory: warn if installed key is not a known generic/VL key
-        if ($WarnBeforeReplace -and $installedKey) {
-            $last5inst = $installedKey.Substring($installedKey.Length - 5)
-            $isGeneric  = $genericKeys.ContainsKey($last5inst)
-            $isKmsClient = $isVolume
-            if (-not $isGeneric -and -not $isKmsClient) {
-                Write-Warn (T 'O2_SAVE_KEY_WARN')
-            }
+    # -- Save-key advisory (inline, right after installed key) ----------------
+    if ($WarnBeforeReplace -and $installedKey) {
+        $isDE        = $genericKeys.ContainsKey($partialKey) -and -not $isVolume
+        $isKmsClient = $isVolume
+        if (-not $isDE -and -not $isKmsClient) {
+            Write-Warn (T 'O2_SAVE_KEY_WARN')
         }
     }
 
