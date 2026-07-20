@@ -382,6 +382,8 @@ $Str = @{
                                 'Giai đoạn 1 -- Phân tích key ngoại tuyến (tức thì, không mạng, không thay đổi registry): gọi pidgenx.dll (có sẵn trên mọi Win10/11) với pkeyconfig.xrm-ms để xác thực checksum và xác định kênh phân phối của key. Giai đoạn 2 (slmgr /ipk) mới là bước kiểm tra thực sự quyết định key có hoạt động trên hệ thống này không.')
     'O2_PIDGX_EDITION'     = @('  Edition  : ', '  Ấn bản   : ')
     'O2_PIDGX_CHANNEL'     = @('  Channel  : ', '  Kênh     : ')
+    'O2_PIDGX_PARTNO'      = @('  Part No. : ', '  Mã SP    : ')
+    'O2_PIDGX_WINVER'      = @('  Win Ver. : ', '  Phiên bản Windows: ')
     'O2_PIDGX_CHKSUM_OK'   = @('  Format   : OK (25 alphanumeric chars, 5x5 groups)',
                                 '  Định dạng: HỢP LỆ (25 ký tự chữ-số, 5 nhóm 5)')
     'O2_PIDGX_CHKSUM_FAIL' = @('  Format   : FAIL (must be 25 alphanumeric chars in 5x5 groups)',
@@ -1492,38 +1494,107 @@ function Get-InstalledProductKey {
 
 # Load the P/Invoke wrapper once at script startup (not inside the function)
 # so it is available across all calls without repeated Add-Type overhead.
+# Struct layout (critical):
+#   DigPid2 / DigPid4 use CharSet.Unicode (WCHAR fields)
+#   DigPid3 uses CharSet.Ansi + Pack=1 to give exactly 164 bytes
+#   3rd param (mpc) must be '12345', NOT the pkeyconfig path repeated
 if (-not ([System.Management.Automation.PSTypeName]'WinLicPidGenX').Type) {
     try {
         Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
+
+[StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
+public struct WL_DigPid2 {
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=24)] public string m_productId2;
+}
+
+[StructLayout(LayoutKind.Sequential, CharSet=CharSet.Ansi, Pack=1)]
+public struct WL_DigPid3 {
+    public uint   m_length;
+    public ushort m_versionMajor;
+    public ushort m_versionMinor;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst=24)] public byte[] m_productId2;
+    public uint   m_keyIdx;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=16)] public string m_sku;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst=16)] public byte[] m_abCdKey;
+    public uint m_cloneStatus, m_time, m_random, m_lt;
+    public uint m_licenseData0, m_licenseData1;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=8)] public string m_oemId;
+    public uint m_bundleId;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=8)] public string m_hardwareIdStatic;
+    public uint m_hwTypeStatic, m_biosChkStatic, m_volSerStatic, m_ramStatic, m_videoBiosStatic;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=8)] public string m_hardwareIdDynamic;
+    public uint m_hwTypeDynamic, m_biosChkDynamic, m_volSerDynamic, m_ramDynamic, m_videoBiosDynamic;
+    public uint m_crc32;
+}
+
+[StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
+public struct WL_DigPid4 {
+    public uint   m_length;
+    public ushort m_versionMajor;
+    public ushort m_versionMinor;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=64)]  public string m_productId2Ex;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=64)]  public string m_sku;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=8)]   public string m_oemId;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=260)] public string m_editionId;
+    public byte m_isUpgrade;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst=7)]  public byte[] m_reserved;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst=16)] public byte[] m_abCdKey;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst=32)] public byte[] m_abCdKeySHA256Hash;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst=32)] public byte[] m_abSHA256Hash;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=64)]  public string m_partNumber;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=64)]  public string m_productKeyType;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=64)]  public string m_eulaType;
+}
+
 public class WinLicPidGenX {
-    [DllImport("pidgenx.dll", CharSet=CharSet.Unicode, CallingConvention=CallingConvention.StdCall)]
+    [DllImport("pidgenx.dll", EntryPoint="PidGenX",
+               CharSet=CharSet.Unicode, CallingConvention=CallingConvention.StdCall)]
     public static extern int PidGenX(
-        string productKey, string pkeyConfigPath, string pkeyConfigPath2,
-        string groupId,
-        IntPtr pProductId, IntPtr pDigPid, IntPtr pDigPid4);
+        string productKey, string pkeyConfigPath, string mpc, string oemId,
+        ref WL_DigPid2 dpid2, ref WL_DigPid3 dpid3, ref WL_DigPid4 dpid4);
 }
 '@ -ErrorAction Stop
-    } catch { <# pidgenx.dll P/Invoke compile failed -- will fall back #> }
+    } catch { <# struct/DllImport compile failed -- Invoke-PidGenXCheck falls back to format-only #> }
 }
+
+# Decode a PidGenX part number prefix to a human-readable Windows version string.
+# Examples: '[TH]X19-98841' -> 'Windows 10 (Threshold)'
+#           '[CO]X22-81919' -> 'Windows 11 (Cobalt / 21H2-22H2)'
+function Get-PartNumberWinVersion {
+    param([string]$PartNumber)
+    if ([string]::IsNullOrEmpty($PartNumber)) { return '' }
+    # Extract bracket prefix e.g. '[TH]' -> 'TH'
+    if ($PartNumber -notmatch '^\[([A-Z]{2,4})\]') { return '' }
+    $prefix = $Matches[1].ToUpper()
+    switch ($prefix) {
+        'TH' { return 'Windows 10 Threshold (1507 / 1511)' }
+        'RS' { return 'Windows 10 Redstone (1607-1909)' }
+        'VB' { return 'Windows 10 Vibranium (2004 / 20H2 / 21H1)' }
+        'CO' { return 'Windows 11 Cobalt (21H2 / 22H2)' }
+        'NI' { return 'Windows 11 Nickel (23H2)' }
+        'GE' { return 'Windows 11 Germanium (24H2)' }
+        'CU' { return 'Windows 11 Copper (25H2+)' }
+        default { return "Windows (prefix: $prefix)" }
+    }
+}
+
 
 function Invoke-PidGenXCheck {
     param([string]$Key)
 
     $result = [pscustomobject]@{
         Valid      = $false
-        Edition    = ''
         Channel    = ''
-        GroupId    = ''
+        Edition    = ''
+        PartNumber = ''
+        WinVersion = ''
         SourceNote = 'checksum-only'
     }
 
     # -- Tier 1: Structural format check ------------------------------------
-    # Only check: 25 alphanumeric chars (A-Z, 0-9) in 5x5 layout.
-    # Do NOT apply the Base-24 encoding alphabet as a filter -- keys from
-    # different licensing channels (Win 7, 8, OEM, MAK, BIOS-embedded) can
-    # legitimately contain characters like N, A, E, I, O, S, etc.
+    # Only check: 25 alphanumeric chars in 5x5 layout.
     # slmgr /ipk is the sole arbiter of real key validity.
     $stripped = $Key.ToUpper() -replace '-', ''
     if ($stripped.Length -ne 25) { return $result }
@@ -1535,62 +1606,41 @@ function Invoke-PidGenXCheck {
     $result.Valid = $allValid
     if (-not $result.Valid) { return $result }
 
-    # -- Tier 2: Real pidgenx.dll P/Invoke call ----------------------------
-    # pidgenx.dll lives at %windir%\System32\pidgenx.dll on ALL Win10/11.
-    # pkeyconfig.xrm-ms is at %windir%\System32\spp\tokens\pkeyconfig\
-    # (NOT in the old \pkeys\ subdirectory which no longer exists).
+    # -- Tier 2: PidGenX P/Invoke with correct struct layout ----------------
+    # Requires: DigPid3 Pack=1 (164 bytes), DigPid4 WCHAR fields (1272 bytes)
+    # mpc = '12345' (generic MPC code, NOT the pkeyconfig path repeated)
     $pkcPath = "$env:SystemRoot\System32\spp\tokens\pkeyconfig\pkeyconfig.xrm-ms"
-    $pidgenxType = try { [WinLicPidGenX] } catch { $null }
+    $typeOk  = try { [WinLicPidGenX] | Out-Null; $true } catch { $false }
 
-    if ($pidgenxType -and (Test-Path $pkcPath)) {
-        $bufSize = 1024
-        $pPid   = [System.Runtime.InteropServices.Marshal]::AllocHGlobal($bufSize)
-        $pDpid  = [System.Runtime.InteropServices.Marshal]::AllocHGlobal($bufSize)
-        $pDpid4 = [System.Runtime.InteropServices.Marshal]::AllocHGlobal($bufSize)
+    if ($typeOk -and (Test-Path $pkcPath)) {
         try {
-            # Zero-initialize buffers
-            $zeros = New-Object byte[] $bufSize
-            [System.Runtime.InteropServices.Marshal]::Copy($zeros, 0, $pPid,   $bufSize)
-            [System.Runtime.InteropServices.Marshal]::Copy($zeros, 0, $pDpid,  $bufSize)
-            [System.Runtime.InteropServices.Marshal]::Copy($zeros, 0, $pDpid4, $bufSize)
+            $d2  = New-Object WL_DigPid2
+            $d3  = New-Object WL_DigPid3
+            $d3.m_length = [uint32][System.Runtime.InteropServices.Marshal]::SizeOf($d3)
+            $d4  = New-Object WL_DigPid4
+            $d4.m_length = [uint32][System.Runtime.InteropServices.Marshal]::SizeOf($d4)
 
-            $hr = [WinLicPidGenX]::PidGenX(
-                $Key, $pkcPath, $pkcPath, '',
-                $pPid, $pDpid, $pDpid4)
+            $hr = [WinLicPidGenX]::PidGenX($Key, $pkcPath, '12345', $null,
+                                           [ref]$d2, [ref]$d3, [ref]$d4)
 
             if ($hr -eq 0) {
-                # Key recognized by pkeyconfig -- extract channel from DigPid4 buffer
-                $buf = New-Object byte[] $bufSize
-                [System.Runtime.InteropServices.Marshal]::Copy($pDpid4, $buf, 0, $bufSize)
-                $dpid4Str = [System.Text.Encoding]::Unicode.GetString($buf)
-
-                $channel = ''
-                foreach ($ch in @('OEM:DM','OEM:NONSLP','OEM:SLP','Retail','Volume:GVLK','Volume:MAK','Volume:CSVLK')) {
-                    if ($dpid4Str.IndexOf($ch, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
-                        $channel = $ch; break
-                    }
-                }
-                $result.Channel    = $channel
+                $result.Channel    = if ($d4.m_productKeyType) { $d4.m_productKeyType } else { '' }
+                $result.Edition    = if ($d4.m_editionId)      { $d4.m_editionId }      else { '' }
+                $result.PartNumber = if ($d4.m_partNumber)     { $d4.m_partNumber }     else { '' }
+                $result.WinVersion = Get-PartNumberWinVersion $result.PartNumber
                 $result.SourceNote = 'pidgenx'
-                # result.Valid is already true from Tier 1
             } else {
-                # pidgenx.dll ran but key not matched in pkeyconfig.
-                # This does NOT mean the key is invalid -- it may be a valid
-                # Retail/OEM/MAK key for a different SKU. slmgr /ipk is the
-                # real arbiter. Keep Valid=true from Tier 1 and note the source.
+                # Key not in pkeyconfig -- still structurally valid; slmgr is the real arbiter.
                 $result.SourceNote = 'pidgenx-rejected'
             }
         } catch {
-            <# P/Invoke call failed at runtime -- fall through to format-only #>
-        } finally {
-            [System.Runtime.InteropServices.Marshal]::FreeHGlobal($pPid)
-            [System.Runtime.InteropServices.Marshal]::FreeHGlobal($pDpid)
-            [System.Runtime.InteropServices.Marshal]::FreeHGlobal($pDpid4)
+            <# P/Invoke failed at runtime -- stay with format-only result #>
         }
     }
 
     return $result
 }
+
 
 
 # =============================================================================
@@ -1678,6 +1728,12 @@ function Test-ProductKey {
     }
     if ($pidResult.Edition -ne '') {
         Write-Host ((T 'O2_PIDGX_EDITION') + $pidResult.Edition) -ForegroundColor Cyan
+    }
+    if ($pidResult.PartNumber -ne '') {
+        Write-Host ((T 'O2_PIDGX_PARTNO') + $pidResult.PartNumber) -ForegroundColor DarkCyan
+    }
+    if ($pidResult.WinVersion -ne '') {
+        Write-Host ((T 'O2_PIDGX_WINVER') + $pidResult.WinVersion) -ForegroundColor DarkCyan
     }
     switch ($pidResult.SourceNote) {
         'pidgenx'          { Write-Info (T 'O2_PIDGX_SRC_PIDGENX') }

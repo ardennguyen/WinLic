@@ -761,105 +761,176 @@ namespace WinLicApp
 
 
         // =========================================================================
-        // PidGenX P/Invoke wrapper
-        // pidgenx.dll is present at %windir%\System32\pidgenx.dll on ALL Win10/11.
-        // pkeyconfig.xrm-ms lives at %windir%\System32\spp\tokens\pkeyconfig\
-        // =========================================================================
-        private static class PidGenXNative
-        {
-            [DllImport("pidgenx.dll", CharSet = CharSet.Unicode,
-                       CallingConvention = CallingConvention.StdCall)]
-            internal static extern int PidGenX(
-                string productKey,
-                string pkeyConfigPath,
-                string pkeyConfigPath2,
-                string groupId,
-                IntPtr pProductId,
-                IntPtr pDigPid,
-                IntPtr pDigPid4);
-        }
-
-        private static readonly string PkcPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.Windows),
-            "System32", "spp", "tokens", "pkeyconfig", "pkeyconfig.xrm-ms");
-
-        private static readonly string[] _channelTokens =
-            { "OEM:DM", "OEM:NONSLP", "OEM:SLP", "Retail", "Volume:GVLK", "Volume:MAK", "Volume:CSVLK" };
-
-        // =========================================================================
-        // Option 2 — PidGenX Key Analysis helper
-        // Tier 1: format check (25 alphanum, 5x5).
-        // Tier 2: real P/Invoke to pidgenx.dll → pkeyconfig lookup → channel string.
+        // Option 2 — PidGenX key analysis
+        // Tier 1: format check (25 alphanum chars, 5×5).
+        // Tier 2: real PidGenX P/Invoke with correct struct layout.
+        //         Struct fix: all string fields in DigitalProductId2/4 are WCHAR.
+        //         Third param is MPC ("12345"), NOT the pkeyconfig path repeated.
+        //         Confirmed working on Win10/11 from live testing.
         // No side effects, no network, no key replacement.
         // =========================================================================
 
-        // Stores the last PidGenX result so EvaluateBannerFromBoxes can log it.
-        private (bool Valid, string Channel) _lastPidResult = (false, "");
-        // Tracks the last key that was written to the log (avoids duplicate entries
-        // if the user types, then re-types the same complete key).
+        // ── Struct definitions ────────────────────────────────────────────────
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct DigitalProductId2
+        {
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 24)]
+            public string m_productId2;    // WCHAR[24]
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
+        private struct DigitalProductId3
+        {
+            public uint   m_length;
+            public ushort m_versionMajor;
+            public ushort m_versionMinor;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 24)]
+            public byte[] m_productId2;
+            public uint   m_keyIdx;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 16)]
+            public string m_sku;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
+            public byte[] m_abCdKey;
+            public uint m_cloneStatus, m_time, m_random, m_lt;
+            public uint m_licenseData0, m_licenseData1;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 8)]
+            public string m_oemId;
+            public uint m_bundleId;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 8)]
+            public string m_hardwareIdStatic;
+            public uint m_hardwareIdTypeStatic, m_biosChecksumStatic, m_volSerStatic;
+            public uint m_totalRamStatic, m_videoBiosChecksumStatic;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 8)]
+            public string m_hardwareIdDynamic;
+            public uint m_hardwareIdTypeDynamic, m_biosChecksumDynamic, m_volSerDynamic;
+            public uint m_totalRamDynamic, m_videoBiosChecksumDynamic;
+            public uint m_crc32;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct DigitalProductId4
+        {
+            public uint   m_length;
+            public ushort m_versionMajor;
+            public ushort m_versionMinor;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+            public string m_productId2Ex;    // WCHAR[64]
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+            public string m_sku;             // WCHAR[64]
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 8)]
+            public string m_oemId;           // WCHAR[8]
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+            public string m_editionId;       // WCHAR[260]
+            public byte   m_isUpgrade;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 7)]
+            public byte[] m_reserved;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
+            public byte[] m_abCdKey;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
+            public byte[] m_abCdKeySHA256Hash;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
+            public byte[] m_abSHA256Hash;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+            public string m_partNumber;      // WCHAR[64]
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+            public string m_productKeyType;  // WCHAR[64] — "Retail", "OEM:DM", "Volume:GVLK" …
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+            public string m_eulaType;        // WCHAR[64]
+        }
+
+        private static class PidGenXNative
+        {
+            [DllImport("pidgenx.dll", EntryPoint = "PidGenX",
+                       CallingConvention = CallingConvention.StdCall,
+                       CharSet = CharSet.Unicode)]
+            internal static extern int PidGenX(
+                string pk, string pkcPath, string mpc, string oemId,
+                ref DigitalProductId2 dpid2,
+                ref DigitalProductId3 dpid3,
+                ref DigitalProductId4 dpid4);
+        }
+
+        private static readonly string PkcPath = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.Windows),
+            "System32", "spp", "tokens", "pkeyconfig", "pkeyconfig.xrm-ms");
+
+        // ── Fields ───────────────────────────────────────────────────────────
+        // (bool Valid, string Channel, string Edition, string PartNumber, string WinVersion)
+        // Channel    = "Retail", "OEM:DM", "Volume:GVLK", etc. (empty = pkc miss)
+        // Edition    = "Professional", "Home", "Enterprise", etc.
+        // PartNumber = e.g. "[TH]X19-98841" — prefix encodes Windows version target
+        //              [TH]=Win10 Threshold, [RS]=Win10 RS, [CO]=Win11 Cobalt, etc.
+        // WinVersion = human-readable string decoded from PartNumber prefix
+        private (bool Valid, string Channel, string Edition, string PartNumber, string WinVersion) _lastPidResult
+            = (false, "", "", "", "");
         private string _lastBannerKey = "";
 
         /// <summary>
-        /// Validates the structural format of a product key (Tier 1) then calls
-        /// pidgenx.dll (Tier 2) to identify the channel from pkeyconfig.xrm-ms.
-        /// Returns validity and the channel string (e.g. "Retail", "OEM:DM").
+        /// Decodes a PidGenX part number prefix to a human-readable Windows release string.
+        /// e.g. "[TH]X19-98841" -> "Windows 10 Threshold (1507 / 1511)"
+        ///      "[CO]X22-81919" -> "Windows 11 Cobalt (21H2 / 22H2)"
+        /// Returns empty string when prefix is unknown or part number is empty.
+        /// </summary>
+        private static string GetPartNumberWinVersion(string partNumber)
+        {
+            if (string.IsNullOrEmpty(partNumber)) return "";
+            var m = System.Text.RegularExpressions.Regex.Match(partNumber, @"^\[([A-Z]{2,4})\]");
+            if (!m.Success) return "";
+            return m.Groups[1].Value.ToUpperInvariant() switch
+            {
+                "TH" => "Windows 10 Threshold (1507 / 1511)",
+                "RS" => "Windows 10 Redstone (1607 - 1909)",
+                "VB" => "Windows 10 Vibranium (2004 / 20H2 / 21H1)",
+                "CO" => "Windows 11 Cobalt (21H2 / 22H2)",
+                "NI" => "Windows 11 Nickel (23H2)",
+                "GE" => "Windows 11 Germanium (24H2)",
+                "CU" => "Windows 11 Copper (25H2+)",
+                var p => $"Windows (prefix: {p})"
+            };
+        }
+
+        /// <summary>
+        /// Validates a product key format (Tier 1) then calls pidgenx.dll (Tier 2)
+        /// to identify the channel, edition, Windows version target, and part number.
+        /// Returns (valid, channel, edition, partNumber, winVersion).
+        /// Channel    = "Retail" / "OEM:DM" / "OEM:NONSLP" / "Volume:GVLK" / "Volume:MAK" (empty = pkc miss)
+        /// Edition    = "Professional" / "Home" / "Enterprise" / etc.
+        /// PartNumber = "[TH]X19-98841" etc. — bracket prefix encodes Windows version:
+        ///              [TH]=Win10 Threshold, [RS]=Win10 Redstone, [CO]=Win11 Cobalt, [NI]=Win11 Nickel
+        /// WinVersion = human-readable string decoded from PartNumber prefix
         /// No registry changes, no network, no key replacement.
         /// </summary>
-        private static (bool Valid, string Channel) CheckKeyChecksum(string key)
+        private static (bool Valid, string Channel, string Edition, string PartNumber, string WinVersion)
+            CheckKeyChecksum(string key)
         {
             // ── Tier 1: format check ──────────────────────────────────────────
             var stripped = key.Replace("-", "").ToUpperInvariant();
-            if (stripped.Length != 25) return (false, "");
+            if (stripped.Length != 25) return (false, "", "", "", "");
             foreach (var ch in stripped)
-                if (!char.IsLetterOrDigit(ch)) return (false, "");
+                if (!char.IsLetterOrDigit(ch)) return (false, "", "", "", "");
 
-            // ── Tier 2: pidgenx.dll P/Invoke ────────────────────────────────
-            if (File.Exists(PkcPath))
+            // ── Tier 2: PidGenX P/Invoke ─────────────────────────────────────
+            if (!System.IO.File.Exists(PkcPath)) return (true, "", "", "", "");
+            try
             {
-                const int Buf = 1024;
-                IntPtr pPid   = Marshal.AllocHGlobal(Buf);
-                IntPtr pDpid  = Marshal.AllocHGlobal(Buf);
-                IntPtr pDpid4 = Marshal.AllocHGlobal(Buf);
-                try
-                {
-                    // zero-fill buffers
-                    for (int i = 0; i < Buf; i++)
-                    {
-                        Marshal.WriteByte(pPid,   i, 0);
-                        Marshal.WriteByte(pDpid,  i, 0);
-                        Marshal.WriteByte(pDpid4, i, 0);
-                    }
-                    int hr = PidGenXNative.PidGenX(
-                        key, PkcPath, PkcPath, null,
-                        pPid, pDpid, pDpid4);
+                var dpid2 = new DigitalProductId2();
+                var dpid3 = new DigitalProductId3();
+                dpid3.m_length = (uint)Marshal.SizeOf<DigitalProductId3>();
+                var dpid4 = new DigitalProductId4();
+                dpid4.m_length = (uint)Marshal.SizeOf<DigitalProductId4>();
 
-                    if (hr != 0)
-                    {
-                        // pidgenx couldn't match the key in pkeyconfig (may be a valid
-                        // key for a different SKU/edition). Fall back to format-only.
-                        return (true, "");
-                    }
+                int hr = PidGenXNative.PidGenX(key, PkcPath, "12345", null,
+                                               ref dpid2, ref dpid3, ref dpid4);
+                if (hr != 0) return (true, "", "", "", "");  // not in pkeyconfig — format OK, rest unknown
 
-                    // Scan DigPid4 buffer for recognisable channel token
-                    var bytes = new byte[Buf];
-                    Marshal.Copy(pDpid4, bytes, 0, Buf);
-                    var buf = Encoding.Unicode.GetString(bytes);
-                    foreach (var tok in _channelTokens)
-                        if (buf.IndexOf(tok, StringComparison.OrdinalIgnoreCase) >= 0)
-                            return (true, tok);
-
-                    return (true, ""); // pidgenx OK but channel token not found
-                }
-                catch { /* fall through to format-only result below */ }
-                finally
-                {
-                    Marshal.FreeHGlobal(pPid);
-                    Marshal.FreeHGlobal(pDpid);
-                    Marshal.FreeHGlobal(pDpid4);
-                }
+                var pn  = dpid4.m_partNumber     ?? "";
+                return (true,
+                    dpid4.m_productKeyType ?? "",
+                    dpid4.m_editionId      ?? "",
+                    pn,
+                    GetPartNumberWinVersion(pn));
             }
-            // Tier 2 unavailable — return format-only result
-            return (true, "");
+            catch { return (true, "", "", "", ""); }
         }
 
         /// <summary>
@@ -958,7 +1029,7 @@ namespace WinLicApp
             KBox1.Text = KBox2.Text = KBox3.Text = KBox4.Text = KBox5.Text = "";
             KpOkBox.Text = string.Empty;
             PidBanner.Visibility = Visibility.Collapsed;
-            _lastPidResult  = (false, "");
+            _lastPidResult  = (false, "", "", "", "");
             _lastBannerKey  = "";
             KeyEntryPanel.Visibility = Visibility.Visible;
             EnsurePanelFits(KeyEntryPanel);
@@ -1055,8 +1126,8 @@ namespace WinLicApp
                 var fullKey = string.Join("-",
                     KBox1.Text, KBox2.Text, KBox3.Text, KBox4.Text, KBox5.Text)
                     .ToUpperInvariant();
-                var (valid, channel) = CheckKeyChecksum(fullKey);
-                _lastPidResult = (valid, channel);
+                var (valid, channel, edition, partNum, winVer) = CheckKeyChecksum(fullKey);
+                _lastPidResult = (valid, channel, edition, partNum, winVer);
 
                 // Show banner (includes channel when pidgenx succeeded)
                 var bannerDetail = (valid && !string.IsNullOrEmpty(channel))
@@ -1076,6 +1147,12 @@ namespace WinLicApp
                         if (!string.IsNullOrEmpty(channel))
                         {
                             LogInfo(L.Get("KP_PidChannel") + channel);
+                            if (!string.IsNullOrEmpty(edition))
+                                LogInfo(L.Get("O2_PIDGX_EDITION") + edition);
+                            if (!string.IsNullOrEmpty(partNum))
+                                LogInfo(L.Get("O2_PIDGX_PARTNO") + partNum);
+                            if (!string.IsNullOrEmpty(winVer))
+                                LogInfo(L.Get("O2_PIDGX_WINVER") + winVer);
                             LogInfo(L.Get("O2_PIDGX_SRC_PIDGENX"));
                         }
                         else
@@ -1086,7 +1163,7 @@ namespace WinLicApp
                     else
                     {
                         LogError(L.Get("O2_PIDGX_INVALID"));
-                        LogInfo(File.Exists(PkcPath)
+                        LogInfo(System.IO.File.Exists(PkcPath)
                             ? L.Get("O2_PIDGX_SRC_PIDGENX")
                             : L.Get("O2_PIDGX_SRC_CHK"));
                     }
@@ -1097,7 +1174,7 @@ namespace WinLicApp
             {
                 // Key is incomplete — hide stale result
                 PidBanner.Visibility = Visibility.Collapsed;
-                _lastPidResult = (false, "");
+                _lastPidResult = (false, "", "", "", "");
             }
         }
 
