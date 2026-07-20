@@ -334,6 +334,44 @@ $Str = @{
     'O2_DIAG_NOTGENUINE'   = @('Diagnosis: Not Genuine Windows (0x8004FE21) -- system files may be modified or corrupted. Reinstall Windows.',
                                 'Chẩn đoán: Windows Không Chính Hãng (0x8004FE21) -- tệp hệ thống có thể bị thay đổi hoặc hỏng. Cài lại Windows.')
 
+    # -- Additional /ipk error diagnoses --
+    'O2_DIAG_ACCESS_DENIED'   = @('Diagnosis: Access Denied (0x80070005) -- slmgr requires Administrator privileges. Ensure the script is running as Administrator.',
+                                   'Chẩn đoán: Bị Từ Chối Truy Cập (0x80070005) -- slmgr cần quyền Quản trị viên. Đảm bảo script đang chạy với quyền Quản trị viên.')
+    'O2_DIAG_KEY_LIMIT'       = @('Diagnosis: Key Activation Limit Exceeded (0xC004C008) -- this key has reached its maximum number of activations. Contact Microsoft Licensing or obtain a new key.',
+                                   'Chẩn đoán: Vượt Giới Hạn Kích Hoạt Key (0xC004C008) -- key này đã đạt số lần kích hoạt tối đa. Liên hệ Microsoft Licensing hoặc lấy key mới.')
+    'O2_DIAG_VOL_LIC'         = @('Diagnosis: Volume License Key Requires OEM BIOS Marker (0xC004F035) -- this UEFI firmware lacks the required ACPI/SLIC table. Use a Retail or MAK key instead.',
+                                   'Chẩn đoán: Key Volume License Yêu Cầu Dấu Hiệu BIOS OEM (0xC004F035) -- firmware UEFI thiếu bảng ACPI/SLIC cần thiết. Hãy dùng key Retail hoặc MAK thay thế.')
+    'O2_DIAG_KEY_BLOCKED_SLS' = @('Diagnosis: Product Key Blocked at Licensing Level (0xC004F051) -- Microsoft Software Licensing Service has blocklisted this key. Obtain a new key from an authorized source.',
+                                   'Chẩn đoán: Key Sản Phẩm Bị Chặn Ở Cấp Cấp Phép (0xC004F051) -- Dịch vụ Cấp phép Phần mềm Microsoft đã chặn key này. Lấy key mới từ nguồn được ủy quyền.')
+
+    # -- Additional /ato error diagnoses --
+    'O2_DIAG_DNS_NONAME'      = @('Diagnosis: KMS Server Not Found in DNS (0x8007007B / 0x80092328) -- the KMS SRV record is missing. If using Retail/MAK key, switch to Retail channel first. If enterprise KMS, contact IT admin.',
+                                   'Chẩn đoán: Không Tìm Thấy Máy Chủ KMS Trong DNS (0x8007007B / 0x80092328) -- bản ghi SRV KMS không tồn tại. Nếu dùng key Retail/MAK hãy chuyển sang kênh Retail trước. Nếu KMS doanh nghiệp, liên hệ quản trị viên IT.')
+    'O2_DIAG_RPC_UNAVAIL'     = @('Diagnosis: RPC Server Unavailable (0x800706BA) -- the KMS host is unreachable or TCP port 1688 is blocked. Check network connectivity and firewall rules.',
+                                   'Chẩn đoán: Máy Chủ RPC Không Khả Dụng (0x800706BA) -- máy chủ KMS không thể kết nối hoặc cổng TCP 1688 bị chặn. Kiểm tra kết nối mạng và quy tắc tường lửa.')
+    'O2_DIAG_DNS_FAIL'        = @('Diagnosis: DNS Server Failure (0x8007232A / 0x8007251D) -- the DNS server could not resolve the KMS hostname. Check DNS settings and network connectivity.',
+                                   'Chẩn đoán: Lỗi Máy Chủ DNS (0x8007232A / 0x8007251D) -- máy chủ DNS không thể phân giải tên máy chủ KMS. Kiểm tra cài đặt DNS và kết nối mạng.')
+    'O2_DIAG_NET_TIMEOUT'     = @('Diagnosis: Connection Timeout (0x80072EE2 / 0x80072EE7 / 0x80072EFD) -- Windows could not reach the activation server. Check internet, disable VPN/proxy, or use phone activation: run slui 4.',
+                                   'Chẩn đoán: Hết Thời Gian Kết Nối (0x80072EE2 / 0x80072EE7 / 0x80072EFD) -- Windows không thể kết nối đến máy chủ kích hoạt. Kiểm tra internet, tắt VPN/proxy, hoặc dùng kích hoạt qua điện thoại: chạy slui 4.')
+    'O2_DIAG_HW_CHANGED'      = @('Diagnosis: Hardware Changed (0xC004F00F) -- significant hardware changes were detected. Use the Activation Troubleshooter or phone activation (slui 4). For digital licenses sign in with the linked Microsoft account.',
+                                   'Chẩn đoán: Phần Cứng Đã Thay Đổi (0xC004F00F) -- phát hiện thay đổi phần cứng đáng kể. Dùng Trình Khắc Phục Sự Cố Kích Hoạt hoặc kích hoạt qua điện thoại (slui 4). Với giấy phép số, đăng nhập bằng tài khoản Microsoft đã liên kết.')
+    'O2_DIAG_LIC_EVAL_FAIL'   = @('Diagnosis: License Evaluation Failed (0xC004E003) -- the Software Licensing Service cannot evaluate the license. Run slmgr /rilc as Administrator to reinstall license files, then retry.',
+                                   'Chẩn đoán: Đánh Giá Giấy Phép Thất Bại (0xC004E003) -- Dịch vụ Cấp phép Phần mềm không thể đánh giá giấy phép. Chạy slmgr /rilc với quyền Quản trị viên để cài lại tệp giấy phép, sau đó thử lại.')
+    'O2_DIAG_KMS_COUNT'       = @('Diagnosis: KMS Activation Count Insufficient (0xC004F038) -- your KMS server requires at least 25 Windows client activation requests before it will activate any client. Contact your IT administrator.',
+                                   'Chẩn đoán: Số Lượng Kích Hoạt KMS Chưa Đủ (0xC004F038) -- máy chủ KMS cần ít nhất 25 yêu cầu kích hoạt từ client Windows. Liên hệ quản trị viên IT.')
+    'O2_DIAG_KMS_DISABLED'    = @('Diagnosis: KMS Service Not Enabled / Not Responding (0xC004F039) -- the KMS host service is not running or is not responding. Ensure TCP port 1688 is not blocked and the KMS host service is active.',
+                                   'Chẩn đoán: Dịch Vụ KMS Chưa Được Bật / Không Phản Hồi (0xC004F039) -- dịch vụ KMS trên máy chủ chưa chạy hoặc không phản hồi. Đảm bảo cổng TCP 1688 không bị chặn và dịch vụ KMS đang hoạt động.')
+    'O2_DIAG_KMS_NOT_ACT'     = @('Diagnosis: KMS Host Not Activated (0xC004F041) -- the KMS host server itself has not been activated with Microsoft. IT administrator must activate the KMS host first.',
+                                   'Chẩn đoán: Máy Chủ KMS Chưa Được Kích Hoạt (0xC004F041) -- bản thân máy chủ KMS chưa được kích hoạt với Microsoft. Quản trị viên IT phải kích hoạt máy chủ KMS trước.')
+    'O2_DIAG_KMS_WRONG'       = @('Diagnosis: Wrong KMS Host for This Product (0xC004F042) -- the configured KMS server cannot activate this Windows version. Ensure the KMS host version is compatible. Contact IT administrator.',
+                                   'Chẩn đoán: Máy Chủ KMS Sai Cho Sản Phẩm Này (0xC004F042) -- máy chủ KMS không thể kích hoạt phiên bản Windows này. Đảm bảo phiên bản máy chủ KMS tương thích. Liên hệ quản trị viên IT.')
+    'O2_DIAG_NONGENUINE_EXP'  = @('Diagnosis: Non-Genuine Grace Period Expired (0xC004F064) -- Windows was not activated in time and has entered Notification state. Enter a valid genuine product key immediately.',
+                                   'Chẩn đoán: Hết Thời Gian Ân Hạn Không Chính Hãng (0xC004F064) -- Windows chưa được kích hoạt kịp thời và đã vào trạng thái Thông báo. Hãy nhập ngay key sản phẩm chính hãng hợp lệ.')
+    'O2_DIAG_NONGENUINE_GRC'  = @('Diagnosis: Running in Non-Genuine Grace Period (0xC004F065) -- Windows has detected this copy may not be genuine. Activate with a valid key before the grace period ends.',
+                                   'Chẩn đoán: Đang Chạy Trong Thời Gian Ân Hạn Không Chính Hãng (0xC004F065) -- Windows phát hiện bản sao này có thể không chính hãng. Kích hoạt bằng key hợp lệ trước khi hết thời gian ân hạn.')
+    'O2_DIAG_KMS_CLOCK'       = @('Diagnosis: KMS Clock Skew Too Large (0xC004F06C) -- the system clock differs from the KMS server by more than 4 hours. Synchronize time by running w32tm /resync as Administrator, then retry.',
+                                   'Chẩn đoán: Đồng Hồ Hệ Thống Lệch Quá Lớn So Với KMS (0xC004F06C) -- đồng hồ hệ thống chênh lệch với máy chủ KMS hơn 4 giờ. Đồng bộ hóa thời gian bằng cách chạy w32tm /resync với quyền Quản trị viên, sau đó thử lại.')
+
     # =========================================================================
     # Option 3 -- Remove Activation
     # =========================================================================
@@ -1504,15 +1542,14 @@ function Test-ProductKey {
 
     if ($fullOut -match 'Error:' -or $fullOut -match '0x') {
         Write-Fail (T 'O2_FAIL')
-        if    ($fullOut -match '0xC004F069') {
-            Write-Warn (T 'O2_DIAG_SKU')
-        } elseif ($fullOut -match '0xC004F050') {
-            Write-Warn (T 'O2_DIAG_INVALID')
-        } elseif ($fullOut -match '0xC004C003') {
-            Write-Warn (T 'O2_DIAG_BLOCKED')
-        } else {
-            Write-Warn (T 'O2_DIAG_GENERAL')
-        }
+        if      ($fullOut -match '0x80070005') { Write-Warn (T 'O2_DIAG_ACCESS_DENIED') }
+        elseif  ($fullOut -match '0xC004F069') { Write-Warn (T 'O2_DIAG_SKU') }
+        elseif  ($fullOut -match '0xC004F050') { Write-Warn (T 'O2_DIAG_INVALID') }
+        elseif  ($fullOut -match '0xC004C003') { Write-Warn (T 'O2_DIAG_BLOCKED') }
+        elseif  ($fullOut -match '0xC004C008') { Write-Warn (T 'O2_DIAG_KEY_LIMIT') }
+        elseif  ($fullOut -match '0xC004F035') { Write-Warn (T 'O2_DIAG_VOL_LIC') }
+        elseif  ($fullOut -match '0xC004F051') { Write-Warn (T 'O2_DIAG_KEY_BLOCKED_SLS') }
+        else                                   { Write-Warn (T 'O2_DIAG_GENERAL') }
         Write-Blank
         Write-Info (T 'O2_REF_URL')
     } else {
@@ -1540,14 +1577,29 @@ function Test-ProductKey {
         Write-Blank
         if ($atoFull -match 'Error:' -or $atoFull -match '0x') {
             Write-Fail (T 'O2_ATO_FAIL')
-            if      ($atoFull -match '0x80070490') { Write-Warn (T 'O2_DIAG_DIDNTWORK') }
-            elseif  ($atoFull -match '0xC004C001') { Write-Warn (T 'O2_DIAG_SERVER_INVALID') }
-            elseif  ($atoFull -match '0xC004C020|0xC004C021') { Write-Warn (T 'O2_DIAG_MAK_LIMIT') }
-            elseif  ($atoFull -match '0xC004B100') { Write-Warn (T 'O2_DIAG_SERVER_NOACT') }
-            elseif  ($atoFull -match '0xC004F009') { Write-Warn (T 'O2_DIAG_GRACE') }
-            elseif  ($atoFull -match '0x8004FE21') { Write-Warn (T 'O2_DIAG_NOTGENUINE') }
-            elseif  ($atoFull -match '0x8007232B') { Write-Warn (T 'O2_DIAG_NO_NET') }
-            elseif  ($atoFull -match '0xC004F074') { Write-Warn (T 'O2_DIAG_KMS_NO_SRV') }
+            if      ($atoFull -match '0x80070005')                              { Write-Warn (T 'O2_DIAG_ACCESS_DENIED') }
+            elseif  ($atoFull -match '0x80070490')                              { Write-Warn (T 'O2_DIAG_DIDNTWORK') }
+            elseif  ($atoFull -match '0xC004C001')                              { Write-Warn (T 'O2_DIAG_SERVER_INVALID') }
+            elseif  ($atoFull -match '0xC004C008')                              { Write-Warn (T 'O2_DIAG_KEY_LIMIT') }
+            elseif  ($atoFull -match '0xC004C020|0xC004C021')                   { Write-Warn (T 'O2_DIAG_MAK_LIMIT') }
+            elseif  ($atoFull -match '0xC004B100')                              { Write-Warn (T 'O2_DIAG_SERVER_NOACT') }
+            elseif  ($atoFull -match '0xC004E003')                              { Write-Warn (T 'O2_DIAG_LIC_EVAL_FAIL') }
+            elseif  ($atoFull -match '0xC004F009')                              { Write-Warn (T 'O2_DIAG_GRACE') }
+            elseif  ($atoFull -match '0xC004F00F')                              { Write-Warn (T 'O2_DIAG_HW_CHANGED') }
+            elseif  ($atoFull -match '0xC004F038')                              { Write-Warn (T 'O2_DIAG_KMS_COUNT') }
+            elseif  ($atoFull -match '0xC004F039')                              { Write-Warn (T 'O2_DIAG_KMS_DISABLED') }
+            elseif  ($atoFull -match '0xC004F041')                              { Write-Warn (T 'O2_DIAG_KMS_NOT_ACT') }
+            elseif  ($atoFull -match '0xC004F042')                              { Write-Warn (T 'O2_DIAG_KMS_WRONG') }
+            elseif  ($atoFull -match '0xC004F064')                              { Write-Warn (T 'O2_DIAG_NONGENUINE_EXP') }
+            elseif  ($atoFull -match '0xC004F065')                              { Write-Warn (T 'O2_DIAG_NONGENUINE_GRC') }
+            elseif  ($atoFull -match '0xC004F06C')                              { Write-Warn (T 'O2_DIAG_KMS_CLOCK') }
+            elseif  ($atoFull -match '0x8004FE21')                              { Write-Warn (T 'O2_DIAG_NOTGENUINE') }
+            elseif  ($atoFull -match '0x8007007B|0x80092328')                   { Write-Warn (T 'O2_DIAG_DNS_NONAME') }
+            elseif  ($atoFull -match '0x800706BA')                              { Write-Warn (T 'O2_DIAG_RPC_UNAVAIL') }
+            elseif  ($atoFull -match '0x8007232A|0x8007251D')                   { Write-Warn (T 'O2_DIAG_DNS_FAIL') }
+            elseif  ($atoFull -match '0x8007232B')                              { Write-Warn (T 'O2_DIAG_NO_NET') }
+            elseif  ($atoFull -match '0x80072EE2|0x80072EE7|0x80072EFD')        { Write-Warn (T 'O2_DIAG_NET_TIMEOUT') }
+            elseif  ($atoFull -match '0xC004F074')                              { Write-Warn (T 'O2_DIAG_KMS_NO_SRV') }
             Write-Blank
             Write-Info (T 'O8KMS_REF_URL')
         } else {
@@ -2668,14 +2720,22 @@ function Invoke-KmsActivation {
 
     if ($atoFull -match 'Error:' -or $atoFull -match '0x') {
         Write-Fail (T 'O8KMS_FAIL')
-        if      ($atoFull -match '0xC004F038') { Write-Warn (T 'O8KMS_DIAG_COUNT') }
-        elseif  ($atoFull -match '0xC004F039') { Write-Warn (T 'O8KMS_DIAG_NOTENABLED') }
-        elseif  ($atoFull -match '0xC004F041') { Write-Warn (T 'O8KMS_DIAG_HOSTNACT') }
-        elseif  ($atoFull -match '0xC004F042') { Write-Warn (T 'O8KMS_DIAG_WRONGHOST') }
-        elseif  ($atoFull -match '0xC004F06C') { Write-Warn (T 'O8KMS_DIAG_CLOCK') }
-        elseif  ($atoFull -match '0xC004F074') { Write-Warn (T 'O8KMS_DIAG_NOCONTACT') }
+        if      ($atoFull -match '0x80070005')                              { Write-Warn (T 'O2_DIAG_ACCESS_DENIED') }
+        elseif  ($atoFull -match '0xC004E003')                              { Write-Warn (T 'O2_DIAG_LIC_EVAL_FAIL') }
+        elseif  ($atoFull -match '0xC004F00F')                              { Write-Warn (T 'O2_DIAG_HW_CHANGED') }
+        elseif  ($atoFull -match '0xC004F038')                              { Write-Warn (T 'O8KMS_DIAG_COUNT') }
+        elseif  ($atoFull -match '0xC004F039')                              { Write-Warn (T 'O8KMS_DIAG_NOTENABLED') }
+        elseif  ($atoFull -match '0xC004F041')                              { Write-Warn (T 'O8KMS_DIAG_HOSTNACT') }
+        elseif  ($atoFull -match '0xC004F042')                              { Write-Warn (T 'O8KMS_DIAG_WRONGHOST') }
+        elseif  ($atoFull -match '0xC004F064')                              { Write-Warn (T 'O2_DIAG_NONGENUINE_EXP') }
+        elseif  ($atoFull -match '0xC004F065')                              { Write-Warn (T 'O2_DIAG_NONGENUINE_GRC') }
+        elseif  ($atoFull -match '0xC004F06C')                              { Write-Warn (T 'O8KMS_DIAG_CLOCK') }
+        elseif  ($atoFull -match '0xC004F074')                              { Write-Warn (T 'O8KMS_DIAG_NOCONTACT') }
         elseif  ($atoFull -match '0x8007007B|0x8007232B|0x8007251D|0x80092328') { Write-Warn (T 'O8KMS_DIAG_DNS') }
-        elseif  ($atoFull -match '0xC004F035') { Write-Warn (T 'O8KMS_DIAG_VOLK') }
+        elseif  ($atoFull -match '0x800706BA')                              { Write-Warn (T 'O2_DIAG_RPC_UNAVAIL') }
+        elseif  ($atoFull -match '0x8007232A')                              { Write-Warn (T 'O2_DIAG_DNS_FAIL') }
+        elseif  ($atoFull -match '0x80072EE2|0x80072EE7|0x80072EFD')        { Write-Warn (T 'O2_DIAG_NET_TIMEOUT') }
+        elseif  ($atoFull -match '0xC004F035')                              { Write-Warn (T 'O8KMS_DIAG_VOLK') }
         Write-Blank
         Write-Info (T 'O8KMS_REF_URL')
     } else {

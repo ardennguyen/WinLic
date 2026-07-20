@@ -966,14 +966,32 @@ namespace WinLicApp
                 else
                 {
                     LogError(L.Get("O2_ATO_FAIL") + " " + atoOut.Trim());
-                    if      (atoOut.Contains("0x80070490")) LogDiag(L.Get("O2_DIAG_DIDNTWORK"));
+                    if      (atoOut.Contains("0x80070005")) LogDiag(L.Get("O2_DIAG_ACCESS_DENIED"));
+                    else if (atoOut.Contains("0x80070490")) LogDiag(L.Get("O2_DIAG_DIDNTWORK"));
                     else if (atoOut.Contains("0xC004C001")) LogDiag(L.Get("O2_DIAG_SERVER_INVALID"));
+                    else if (atoOut.Contains("0xC004C008")) LogDiag(L.Get("O2_DIAG_KEY_LIMIT"));
                     else if (atoOut.Contains("0xC004C020") || atoOut.Contains("0xC004C021"))
                                                             LogDiag(L.Get("O2_DIAG_MAK_LIMIT"));
                     else if (atoOut.Contains("0xC004B100")) LogDiag(L.Get("O2_DIAG_SERVER_NOACT"));
+                    else if (atoOut.Contains("0xC004E003")) LogDiag(L.Get("O2_DIAG_LIC_EVAL_FAIL"));
                     else if (atoOut.Contains("0xC004F009")) LogDiag(L.Get("O2_DIAG_GRACE"));
+                    else if (atoOut.Contains("0xC004F00F")) LogDiag(L.Get("O2_DIAG_HW_CHANGED"));
+                    else if (atoOut.Contains("0xC004F038")) LogDiag(L.Get("O2_DIAG_KMS_COUNT"));
+                    else if (atoOut.Contains("0xC004F039")) LogDiag(L.Get("O2_DIAG_KMS_DISABLED"));
+                    else if (atoOut.Contains("0xC004F041")) LogDiag(L.Get("O2_DIAG_KMS_NOT_ACT"));
+                    else if (atoOut.Contains("0xC004F042")) LogDiag(L.Get("O2_DIAG_KMS_WRONG"));
+                    else if (atoOut.Contains("0xC004F064")) LogDiag(L.Get("O2_DIAG_NONGENUINE_EXP"));
+                    else if (atoOut.Contains("0xC004F065")) LogDiag(L.Get("O2_DIAG_NONGENUINE_GRC"));
+                    else if (atoOut.Contains("0xC004F06C")) LogDiag(L.Get("O2_DIAG_KMS_CLOCK"));
                     else if (atoOut.Contains("0x8004FE21")) LogDiag(L.Get("O2_DIAG_NOTGENUINE"));
+                    else if (atoOut.Contains("0x8007007B") || atoOut.Contains("0x80092328"))
+                                                            LogDiag(L.Get("O2_DIAG_DNS_NONAME"));
+                    else if (atoOut.Contains("0x800706BA")) LogDiag(L.Get("O2_DIAG_RPC_UNAVAIL"));
+                    else if (atoOut.Contains("0x8007232A") || atoOut.Contains("0x8007251D"))
+                                                            LogDiag(L.Get("O2_DIAG_DNS_FAIL"));
                     else if (atoOut.Contains("0x8007232B")) LogDiag(L.Get("O2_DIAG_NO_NET"));
+                    else if (atoOut.Contains("0x80072EE2") || atoOut.Contains("0x80072EE7") || atoOut.Contains("0x80072EFD"))
+                                                            LogDiag(L.Get("O2_DIAG_NET_TIMEOUT"));
                     else if (atoOut.Contains("0xC004F074")) LogDiag(L.Get("O2_DIAG_KMS_NO_SRV"));
                     LogBlank();
                     LogHelp(L.Get("O8KMS_REF_URL"));
@@ -982,9 +1000,13 @@ namespace WinLicApp
             else
             {
                 LogError(L.Get("O4_Fail"));
-                if (output.Contains("0xC004F069"))      LogDiag(L.Get("O4_DiagSku"));
+                if      (output.Contains("0x80070005")) LogDiag(L.Get("O2_DIAG_ACCESS_DENIED"));
+                else if (output.Contains("0xC004F069")) LogDiag(L.Get("O4_DiagSku"));
                 else if (output.Contains("0xC004F050")) LogDiag(L.Get("O4_DiagInvalid"));
                 else if (output.Contains("0xC004C003")) LogDiag(L.Get("O4_DiagBlocked"));
+                else if (output.Contains("0xC004C008")) LogDiag(L.Get("O2_DIAG_KEY_LIMIT"));
+                else if (output.Contains("0xC004F035")) LogDiag(L.Get("O2_DIAG_VOL_LIC"));
+                else if (output.Contains("0xC004F051")) LogDiag(L.Get("O2_DIAG_KEY_BLOCKED_SLS"));
                 else                                     LogDiag(L.Get("O4_DiagGeneral"));
                 LogBlank();
                 LogHelp("https://support.microsoft.com/help/10738");
@@ -2170,15 +2192,24 @@ namespace WinLicApp
             else
             {
                 LogError(L.Get("O8KMS_FAIL"));
-                if      (atoOut.Contains("0xC004F038")) LogDiag(L.Get("O8KMS_DIAG_COUNT"));
+                if      (atoOut.Contains("0x80070005")) LogDiag(L.Get("O2_DIAG_ACCESS_DENIED"));
+                else if (atoOut.Contains("0xC004E003")) LogDiag(L.Get("O2_DIAG_LIC_EVAL_FAIL"));
+                else if (atoOut.Contains("0xC004F00F")) LogDiag(L.Get("O2_DIAG_HW_CHANGED"));
+                else if (atoOut.Contains("0xC004F038")) LogDiag(L.Get("O8KMS_DIAG_COUNT"));
                 else if (atoOut.Contains("0xC004F039")) LogDiag(L.Get("O8KMS_DIAG_NOTENABLED"));
                 else if (atoOut.Contains("0xC004F041")) LogDiag(L.Get("O8KMS_DIAG_HOSTNACT"));
                 else if (atoOut.Contains("0xC004F042")) LogDiag(L.Get("O8KMS_DIAG_WRONGHOST"));
+                else if (atoOut.Contains("0xC004F064")) LogDiag(L.Get("O2_DIAG_NONGENUINE_EXP"));
+                else if (atoOut.Contains("0xC004F065")) LogDiag(L.Get("O2_DIAG_NONGENUINE_GRC"));
                 else if (atoOut.Contains("0xC004F06C")) LogDiag(L.Get("O8KMS_DIAG_CLOCK"));
                 else if (atoOut.Contains("0xC004F074")) LogDiag(L.Get("O8KMS_DIAG_NOCONTACT"));
                 else if (atoOut.Contains("0x8007007B") || atoOut.Contains("0x8007232B") ||
                          atoOut.Contains("0x8007251D") || atoOut.Contains("0x80092328"))
                                                          LogDiag(L.Get("O8KMS_DIAG_DNS"));
+                else if (atoOut.Contains("0x800706BA")) LogDiag(L.Get("O2_DIAG_RPC_UNAVAIL"));
+                else if (atoOut.Contains("0x8007232A")) LogDiag(L.Get("O2_DIAG_DNS_FAIL"));
+                else if (atoOut.Contains("0x80072EE2") || atoOut.Contains("0x80072EE7") || atoOut.Contains("0x80072EFD"))
+                                                         LogDiag(L.Get("O2_DIAG_NET_TIMEOUT"));
                 else if (atoOut.Contains("0xC004F035")) LogDiag(L.Get("O8KMS_DIAG_VOLK"));
                 LogBlank();
                 LogHelp(L.Get("O8KMS_REF_URL"));
