@@ -791,6 +791,10 @@ namespace WinLicApp
             }
             catch { /* non-fatal */ }
 
+
+            // Internet requirement notice
+            LogInfo(L.Get("O2_NET_NOTICE"));
+
             LogBlank();
 
             // Populate panel (also kept in sync by RefreshLanguage on lang switch)
@@ -937,6 +941,19 @@ namespace WinLicApp
 
                 // ── Auto online activation (/ato) ─────────────────────────────
                 LogBlank();
+                // ── Internet pre-check before /ato ───────────────────────────
+                bool netOk = false;
+                try
+                {
+                    using var tc  = new System.Net.Sockets.TcpClient();
+                    var ar = tc.BeginConnect("8.8.8.8", 53, null, null);
+                    netOk = ar.AsyncWaitHandle.WaitOne(1500) && tc.Connected;
+                    try { tc.EndConnect(ar); } catch { }
+                }
+                catch { }
+                if (!netOk)
+                    LogWarn(L.Get("O2_ATO_NO_INTERNET"));
+
                 LogInfo(L.Get("O2_ATO_AUTO"));
                 var atoOut = RunSlmgr("/ato");
                 LogSlmgrOutput(atoOut);
@@ -956,6 +973,8 @@ namespace WinLicApp
                     else if (atoOut.Contains("0xC004B100")) LogDiag(L.Get("O2_DIAG_SERVER_NOACT"));
                     else if (atoOut.Contains("0xC004F009")) LogDiag(L.Get("O2_DIAG_GRACE"));
                     else if (atoOut.Contains("0x8004FE21")) LogDiag(L.Get("O2_DIAG_NOTGENUINE"));
+                    else if (atoOut.Contains("0x8007232B")) LogDiag(L.Get("O2_DIAG_NO_NET"));
+                    else if (atoOut.Contains("0xC004F074")) LogDiag(L.Get("O2_DIAG_KMS_NO_SRV"));
                     LogBlank();
                     LogHelp(L.Get("O8KMS_REF_URL"));
                 }

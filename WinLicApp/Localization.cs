@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace WinLicApp
 {
@@ -607,6 +607,15 @@ namespace WinLicApp
             ["O2_DIAG_NOTGENUINE"]   = ("Diagnosis: Not Genuine Windows (0x8004FE21) — system files may be modified or corrupted. Reinstall Windows.",
                                         "Chẩn đoán: Windows Không Chính Hãng (0x8004FE21) — tệp hệ thống có thể bị thay đổi hoặc hỏng. Cài lại Windows."),
 
+            ["O2_DIAG_NO_NET"]      = ("Diagnosis: No Internet / Server Unreachable (0x8007232B) — Windows could not reach Microsoft activation servers. Check your internet connection and try again.",
+                                        "Chẩn đoán: Không Có Internet / Không Kết Được Máy Chủ (0x8007232B) — Windows không thể kết nối đến máy chủ kích hoạt Microsoft. Kiểm tra kết nối internet và thử lại."),
+            ["O2_DIAG_KMS_NO_SRV"] = ("Diagnosis: KMS Server Unavailable (0xC004F074) — no KMS host could be contacted. If using a Retail/MAK key, switch to Retail channel first (Option 6). If using KMS, use Option 8 to diagnose.",
+                                        "Chẩn đoán: Máy Chủ KMS Không Khả Dụng (0xC004F074) — không thể liên hệ máy chủ KMS. Nếu dùng key Retail/MAK, hãy đổi kênh sang Retail trước (Tùy chọn 6). Nếu dùng KMS, dùng Tùy chọn 8 để chẩn đoán."),
+            ["O2_ATO_NO_INTERNET"]  = ("Offline: No internet detected — online activation may fail. Ensure you have an active connection before proceeding.",
+                                        "Ngoại tuyến: Không phát hiện kết nối internet — kích hoạt trực tuyến có thể thất bại. Hãy đảm bảo có kết nối trước khi tiếp tục."),
+            ["O2_NET_NOTICE"]      = ("Retail / MAK / OEM keys require internet access to activate with Microsoft servers.",
+                                       "Key Retail / MAK / OEM yêu cầu kết nối internet để kích hoạt với máy chủ Microsoft."),
+
             // ── Sidebar button — Option 6 ─────────────────────────────────────────
             ["Btn6"]             = ("6 — Change Activation Channel",               "6 — Thay Đổi Kênh Kích Hoạt"),
             ["Btn7"]             = ("7 — Check & Remove KMS Settings",             "7 — Kiểm Tra & Xóa Cài Đặt KMS"),
@@ -726,8 +735,8 @@ namespace WinLicApp
                                          "Đã cài GVLK. Đang chuyển sang Kích Hoạt KMS (Tùy chọn 8)…"),
             ["O6CH_GVLK_NOMAP"]      = ("No GVLK found for this edition. Contact your IT administrator.",
                                          "Không tìm thấy GVLK cho ấn bản này. Liên hệ quản trị viên IT."),
-            ["O6CH_RETAIL_MSG"]      = ("To switch to RETAIL or MAK, install your product key using Option 2 — Test & Install New Key.",
-                                         "Để chuyển sang RETAIL hoặc MAK, hãy cài key sản phẩm qua Tùy chọn 2 — Kiểm thử & Cài Key Mới."),
+            ["O6CH_RETAIL_MSG"]      = ("To switch to RETAIL or MAK, install your product key using Option 2 — Test & Install New Key. Note: activation requires internet access to reach Microsoft servers.",
+                                         "Để chuyển sang RETAIL hoặc MAK, hãy cài key sản phẩm qua Tùy chọn 2 — Kiểm thử & Cài Key Mới. Lưu ý: cần kết nối internet để kích hoạt với máy chủ Microsoft."),
             ["O6CH_REDIRECT_OPT2"]   = ("Redirecting to Option 2 — Test & Install New Key…",
                                          "Đang chuyển sang Tùy chọn 2 — Kiểm thử & Cài Key Mới…"),
             ["O6CH_REDIRECT_OPT8"]   = ("Redirecting to Option 8 — KMS Activation…",

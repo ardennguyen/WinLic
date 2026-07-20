@@ -313,6 +313,14 @@ $Str = @{
                                 'Đang tự động kích hoạt trực tuyến (slmgr /ato)...')
     'O2_ATO_SUCCESS'       = @('Online activation succeeded.', 'Kích hoạt trực tuyến thành công.')
     'O2_ATO_FAIL'          = @('Online activation failed.', 'Kích hoạt trực tuyến thất bại.')
+    'O2_DIAG_NO_NET'       = @('Diagnosis: No Internet / Server Unreachable (0x8007232B) -- Windows could not reach Microsoft activation servers. Check your internet connection and try again.',
+                                'Chẩn đoán: Không Có Internet / Không Kết Được Máy Chủ (0x8007232B) -- Windows không thể kết nối đến máy chủ kích hoạt Microsoft. Kiểm tra kết nối internet và thử lại.')
+    'O2_DIAG_KMS_NO_SRV'   = @('Diagnosis: KMS Server Unavailable (0xC004F074) -- no KMS host could be contacted. If using a Retail/MAK key, switch to Retail channel first (Option 6). If using KMS, use Option 8 to diagnose.',
+                                'Chẩn đoán: Máy Chủ KMS Không Khả Dụng (0xC004F074) -- không thể liên hệ máy chủ KMS. Nếu dùng key Retail/MAK, hãy đổi kênh sang Retail trước (Tùy chọn 6). Nếu dùng KMS, dùng Tùy chọn 8 để chẩn đoán.')
+    'O2_ATO_NO_INTERNET'   = @('Offline: No internet detected -- online activation may fail. Ensure you have an active connection before proceeding.',
+                                'Ngoại tuyến: Không phát hiện kết nối internet -- kích hoạt trực tuyến có thể thất bại. Hãy đảm bảo có kết nối trước khi tiếp tục.')
+    'O2_NET_NOTICE'        = @('Retail / MAK / OEM keys require internet access to activate with Microsoft servers.',
+                                'Key Retail / MAK / OEM yêu cầu kết nối internet để kích hoạt với máy chủ Microsoft.')
     'O2_DIAG_DIDNTWORK'    = @('Diagnosis: Key Did Not Work (0x80070490) -- key may be invalid or not accepted by this edition.',
                                 'Chẩn đoán: Key Không Hoạt Động (0x80070490) -- key có thể không hợp lệ hoặc không được chấp nhận bởi ấn bản này.')
     'O2_DIAG_SERVER_INVALID' = @('Diagnosis: Server Reports Key Invalid (0xC004C001) -- Microsoft activation server rejected this MAK. Verify the key.',
@@ -1442,6 +1450,8 @@ function Test-ProductKey {
     Write-Info (T 'O2_INFO2')
     Write-Warn (T 'O2_WARN_OVERWRITE')
 
+    Write-Info (T 'O2_NET_NOTICE')
+
     # Channel awareness -- warn if VOLUME_KMSCLIENT, VOLUME_KMS, or Subscription
     if ($activeProduct) {
         $chanDesc = ($activeProduct.Description + '').ToUpperInvariant()
@@ -1509,6 +1519,17 @@ function Test-ProductKey {
         Write-OK  (T 'O2_SUCCESS')
         Write-Info (T 'O2_SUCCESS2')
 
+        # -- Internet pre-check before /ato --------------------------------
+        $netOk = $false
+        try {
+            $tc = New-Object System.Net.Sockets.TcpClient
+            $ar = $tc.BeginConnect('8.8.8.8', 53, $null, $null)
+            $netOk = $ar.AsyncWaitHandle.WaitOne(1500) -and $tc.Connected
+            try { $tc.EndConnect($ar) } catch {}
+            $tc.Close()
+        } catch {}
+        if (-not $netOk) { Write-Warn (T 'O2_ATO_NO_INTERNET') }
+
         # -- Auto /ato after successful /ipk --------------------------------
         Write-Blank
         Write-Step (T 'O2_ATO_AUTO')
@@ -1525,6 +1546,8 @@ function Test-ProductKey {
             elseif  ($atoFull -match '0xC004B100') { Write-Warn (T 'O2_DIAG_SERVER_NOACT') }
             elseif  ($atoFull -match '0xC004F009') { Write-Warn (T 'O2_DIAG_GRACE') }
             elseif  ($atoFull -match '0x8004FE21') { Write-Warn (T 'O2_DIAG_NOTGENUINE') }
+            elseif  ($atoFull -match '0x8007232B') { Write-Warn (T 'O2_DIAG_NO_NET') }
+            elseif  ($atoFull -match '0xC004F074') { Write-Warn (T 'O2_DIAG_KMS_NO_SRV') }
             Write-Blank
             Write-Info (T 'O8KMS_REF_URL')
         } else {
