@@ -980,8 +980,12 @@ namespace WinLicApp
         /// <summary>
         /// Show or update the PidBanner element in the key entry panel.
         /// Call after CheckKeyChecksum completes.
+        /// valid=true  → green (OK)
+        /// valid=false, rejected=false → red (format fail)
+        /// valid=false, rejected=true  → orange (pidgenx rejected — format OK, wrong OS gen)
         /// </summary>
-        private void ShowPidBanner(bool valid, string channel, string edition, string partNum, string winVer)
+        private void ShowPidBanner(bool valid, string channel, string edition, string partNum, string winVer,
+                                   bool rejected = false)
         {
             if (valid)
             {
@@ -1002,8 +1006,19 @@ namespace WinLicApp
                     sb.AppendLine().Append(L.Get("KP_PidWinVer") + winVer);
                 PidBannerText.Text = sb.ToString();
             }
+            else if (rejected)
+            {
+                // Format is valid but pidgenx says key not in pkeyconfig for this OS
+                PidBanner.Background   = new SolidColorBrush(Color.FromRgb(0xff, 0xf7, 0xed));
+                PidBanner.BorderBrush  = new SolidColorBrush(Color.FromRgb(0xfd, 0xba, 0x74));
+                PidBannerIcon.Text     = "⚠️";
+                PidBannerIcon.Foreground = new SolidColorBrush(Color.FromRgb(0xc2, 0x41, 0x00));
+                PidBannerText.Foreground = new SolidColorBrush(Color.FromRgb(0x9a, 0x34, 0x07));
+                PidBannerText.Text     = L.Get("KP_PidRejected");
+            }
             else
             {
+                // True format fail (wrong length or non-alphanumeric)
                 PidBanner.Background   = new SolidColorBrush(Color.FromRgb(0xfe, 0xf2, 0xf2));
                 PidBanner.BorderBrush  = new SolidColorBrush(Color.FromRgb(0xfc, 0xa5, 0xa5));
                 PidBannerIcon.Text     = "⚠";
@@ -1156,11 +1171,13 @@ namespace WinLicApp
                 var (valid, channel, edition, partNum, winVer) = CheckKeyChecksum(fullKey);
                 _lastPidResult = (valid, channel, edition, partNum, winVer);
 
-                // Show banner (includes channel when pidgenx succeeded)
-                var bannerDetail = (valid && !string.IsNullOrEmpty(channel))
-                    ? L.Get("KP_PidChannel") + channel
-                    : "";
-                ShowPidBanner(valid, channel, edition, partNum, winVer);
+                // Determine if this is a pidgenx rejection vs format fail
+                // rejected = pkeyconfig present but hr!=0 (valid=false, but format IS correct)
+                bool pkcPresent = System.IO.File.Exists(PkcPath);
+                bool rejected   = !valid && pkcPresent;  // format passed but pidgenx rejected
+
+                // Show banner
+                ShowPidBanner(valid, channel, edition, partNum, winVer, rejected: rejected);
 
                 // Write Phase 1 analysis to log only once per unique full key
                 if (fullKey != _lastBannerKey)
@@ -1192,7 +1209,8 @@ namespace WinLicApp
                     else
                     {
                         // pkeyconfig present but pidgenx rejected key (hr != 0)
-                        LogError(L.Get("O2_PIDGX_INVALID"));
+                        LogOk(L.Get("O2_PIDGX_VALID"));       // format IS valid
+                        LogWarn(L.Get("O2_PIDGX_REJECTED"));  // but pidgenx says wrong OS gen
                         LogInfo(L.Get("O2_PIDGX_SRC_PIDGENX"));
                     }
                     LogSep();

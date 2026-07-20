@@ -398,6 +398,12 @@ $Str = @{
                                 '  Nguồn    : pidgenx.dll + pkeyconfig.xrm-ms (tra cứu key group thực sự)')
     'O2_PIDGX_SRC_CHK'     = @('  Source   : format check only (pidgenx.dll unavailable or key not in pkeyconfig)',
                                 '  Nguồn    : chỉ kiểm tra định dạng (pidgenx.dll không khả dụng hoặc key không trong pkeyconfig)')
+    'O2_PIDGX_REJECTED'    = @('  PidGenX  : REJECTED -- key not found in pkeyconfig.xrm-ms for this Windows version',
+                                '  PidGenX  : TỪ CHỐI -- key không tìm thấy trong pkeyconfig.xrm-ms cho phiên bản Windows này')
+    'O2_PIDGX_REJECT_WARN' = @('[!] This key was NOT found in pkeyconfig.xrm-ms -- it likely belongs to a different Windows generation (e.g. Windows 7/8) and cannot be installed on this system. Attempting /ipk may fail with 0xC004E016.',
+                                '[!] Key NÀY KHÔNG tìm thấy trong pkeyconfig.xrm-ms -- có thể thuộc phiên bản Windows khác (ví dụ Windows 7/8) và không thể cài trên hệ thống này. Thử /ipk có thể thất bại với lỗi 0xC004E016.')
+    'O2_PIDGX_OVERRIDE'    = @('Proceeding at user request -- key was rejected by pidgenx for this Windows version.',
+                                'Tiếp tục theo yêu cầu người dùng -- key bị pidgenx từ chối cho phiên bản Windows này.')
     'O2_INSTALL_ASK'       = @('Install this key now? (replaces current key + runs /ato)',
                                 'Cài đặt key này ngay? (thay key hiện tại + chạy /ato)')
     'O2_INSPECT_ONLY'      = @('Key info noted. No changes made.', 'Đã ghi nhận thông tin key. Không có thay đổi nào được thực hiện.')
@@ -1737,7 +1743,13 @@ function Test-ProductKey {
     if ($pidResult.Valid) {
         Write-OK   (T 'O2_PIDGX_CHKSUM_OK')
     } else {
-        Write-Fail (T 'O2_PIDGX_CHKSUM_FAIL')
+        if ($pidResult.SourceNote -eq 'pidgenx-rejected') {
+            # Format is valid but pidgenx says key is for a different OS generation
+            Write-OK   (T 'O2_PIDGX_CHKSUM_OK')     # format IS valid
+            Write-Warn (T 'O2_PIDGX_REJECTED')       # but pidgenx rejected it
+        } else {
+            Write-Fail (T 'O2_PIDGX_CHKSUM_FAIL')   # true format failure
+        }
     }
 
     if ($pidResult.Channel -ne '') {
@@ -1760,12 +1772,19 @@ function Test-ProductKey {
     Write-Sep
     Write-Blank
 
-    # If checksum failed, ask if user still wants to proceed
+    # If pidgenx rejected or checksum failed, warn and ask to proceed
     if (-not $pidResult.Valid) {
-        Write-Warn (T 'O2_PIDGX_WARN_FAIL')
+        if ($pidResult.SourceNote -eq 'pidgenx-rejected') {
+            Write-Warn (T 'O2_PIDGX_REJECT_WARN')
+        } else {
+            Write-Warn (T 'O2_PIDGX_WARN_FAIL')
+        }
         if (-not (Ask-YesNo (T 'O2_PROCEED_ANYWAY'))) {
             Write-Info (T 'O2_INSPECT_ONLY')
             return
+        }
+        if ($pidResult.SourceNote -eq 'pidgenx-rejected') {
+            Write-Warn (T 'O2_PIDGX_OVERRIDE')
         }
         Write-Blank
     }
