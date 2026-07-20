@@ -1668,7 +1668,9 @@ function Invoke-PidGenXCheck {
                 $result.WinVersion = Get-PartNumberWinVersion $result.PartNumber
                 $result.SourceNote = 'pidgenx'
             } else {
-                # Key not in pkeyconfig -- still structurally valid; slmgr is the real arbiter.
+                # Key not in pkeyconfig for this OS generation (e.g. Win8 key on Win10)
+                # Must gate the install -- set Valid=false so the prompt fires
+                $result.Valid      = $false
                 $result.SourceNote = 'pidgenx-rejected'
             }
         } catch {
@@ -1752,7 +1754,7 @@ function Test-ProductKey {
     }
     switch ($pidResult.SourceNote) {
         'pidgenx'          { Write-Info (T 'O2_PIDGX_SRC_PIDGENX') }
-        'pidgenx-rejected' { Write-Info (T 'O2_PIDGX_SRC_CHK') }
+        'pidgenx-rejected' { Write-Info (T 'O2_PIDGX_SRC_PIDGENX') }
         default            { Write-Info (T 'O2_PIDGX_SRC_CHK') }
     }
     Write-Sep

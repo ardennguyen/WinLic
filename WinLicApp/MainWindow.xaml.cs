@@ -946,13 +946,14 @@ namespace WinLicApp
         private static (bool Valid, string Channel, string Edition, string PartNumber, string WinVersion)
             CheckKeyChecksum(string key)
         {
-            // ── Tier 1: format check ──────────────────────────────────────────
+            // ── Tier 1: format check ────────────────────────────────────────────
             var stripped = key.Replace("-", "").ToUpperInvariant();
             if (stripped.Length != 25) return (false, "", "", "", "");
             foreach (var ch in stripped)
                 if (!char.IsLetterOrDigit(ch)) return (false, "", "", "", "");
 
             // ── Tier 2: PidGenX P/Invoke ─────────────────────────────────────
+            // pkeyconfig not present: format-only mode, no gate (valid=true, empty details)
             if (!System.IO.File.Exists(PkcPath)) return (true, "", "", "", "");
             try
             {
@@ -964,7 +965,7 @@ namespace WinLicApp
 
                 int hr = PidGenXNative.PidGenX(key, PkcPath, "12345", null,
                                                ref dpid2, ref dpid3, ref dpid4);
-                if (hr != 0) return (true, "", "", "", "");  // not in pkeyconfig — format OK, rest unknown
+                if (hr != 0) return (false, "", "", "", "");  // not in pkeyconfig \u2014 REJECTED (e.g. Win8 key on Win10)
 
                 var pn  = dpid4.m_partNumber     ?? "";
                 return (true,
@@ -1167,31 +1168,32 @@ namespace WinLicApp
                     _lastBannerKey = fullKey;
                     LogSep();
                     LogInfo(L.Get("O2_PIDGX_HDR"));
-                    if (valid)
+
+                    bool pkcExists = System.IO.File.Exists(PkcPath);
+                    if (valid && !string.IsNullOrEmpty(channel))
                     {
+                        // pkeyconfig found AND pidgenx recognized this key
                         LogOk(L.Get("O2_PIDGX_VALID"));
-                        if (!string.IsNullOrEmpty(channel))
-                        {
-                            LogInfo(L.Get("KP_PidChannel") + channel);
-                            if (!string.IsNullOrEmpty(edition))
-                                LogInfo(L.Get("O2_PIDGX_EDITION") + edition);
-                            if (!string.IsNullOrEmpty(partNum))
-                                LogInfo(L.Get("O2_PIDGX_PARTNO") + partNum);
-                            if (!string.IsNullOrEmpty(winVer))
-                                LogInfo(L.Get("O2_PIDGX_WINVER") + winVer);
-                            LogInfo(L.Get("O2_PIDGX_SRC_PIDGENX"));
-                        }
-                        else
-                        {
-                            LogInfo(L.Get("O2_PIDGX_SRC_CHK"));
-                        }
+                        LogInfo(L.Get("KP_PidChannel") + channel);
+                        if (!string.IsNullOrEmpty(edition))
+                            LogInfo(L.Get("O2_PIDGX_EDITION") + edition);
+                        if (!string.IsNullOrEmpty(partNum))
+                            LogInfo(L.Get("O2_PIDGX_PARTNO") + partNum);
+                        if (!string.IsNullOrEmpty(winVer))
+                            LogInfo(L.Get("O2_PIDGX_WINVER") + winVer);
+                        LogInfo(L.Get("O2_PIDGX_SRC_PIDGENX"));
+                    }
+                    else if (valid && string.IsNullOrEmpty(channel))
+                    {
+                        // pkeyconfig absent: format-only check, unknown validity
+                        LogOk(L.Get("O2_PIDGX_VALID"));
+                        LogInfo(L.Get("O2_PIDGX_SRC_CHK"));
                     }
                     else
                     {
+                        // pkeyconfig present but pidgenx rejected key (hr != 0)
                         LogError(L.Get("O2_PIDGX_INVALID"));
-                        LogInfo(System.IO.File.Exists(PkcPath)
-                            ? L.Get("O2_PIDGX_SRC_PIDGENX")
-                            : L.Get("O2_PIDGX_SRC_CHK"));
+                        LogInfo(L.Get("O2_PIDGX_SRC_PIDGENX"));
                     }
                     LogSep();
                 }
