@@ -4,26 +4,306 @@
 
 ![WinLic Manager](WinLicApp/winlic_256.png)
 
-**Công cụ quản lý bản quyền Windows — GUI & PowerShell CLI**
+**Windows License Management Tool — GUI & PowerShell CLI**
 
-[![Version](https://img.shields.io/badge/phiên%20bản-v1.5-a78bfa?style=flat-square)](https://github.com/ardennguyen/WinLic/releases)
-[![Platform](https://img.shields.io/badge/nền%20tảng-Windows%2010%2F11-7c3aed?style=flat-square)](https://github.com/ardennguyen/WinLic)
+[![Version](https://img.shields.io/badge/version-v1.5-a78bfa?style=flat-square)](https://github.com/ardennguyen/WinLic/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-7c3aed?style=flat-square)](https://github.com/ardennguyen/WinLic)
 [![Framework](https://img.shields.io/badge/.NET%20Framework-4.8-6d28d9?style=flat-square)](https://dotnet.microsoft.com/en-us/download/dotnet-framework/net48)
-[![License](https://img.shields.io/badge/giấy%20phép-MIT-6d28d9?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-6d28d9?style=flat-square)](LICENSE)
 
 </div>
 
 ---
 
-**Điều hướng / Navigate:**
+> 🇺🇸 [English](#-english) · 🇻🇳 [Tiếng Việt](#-tiếng-việt)
+
+---
+
+# 🇺🇸 English
+
+**Navigation:**
+[Overview](#overview) ·
+[Download](#download) ·
+[Features](#features) ·
+[GUI App](#gui-app) ·
+[PowerShell CLI](#powershell-cli) ·
+[Build from Source](#build-from-source) ·
+[Project Structure](#project-structure) ·
+[Author](#author)
+
+---
+
+## Overview
+
+**WinLic Manager** consists of two parallel tools — a **.NET WPF GUI application** and a **PowerShell CLI script** — that let you view, inspect, and manage Windows licensing without typing manual commands.
+
+Both tools support the same **8 options** in full, run on **Windows 10/11**, and use WMI, Registry, and `slmgr.vbs` — **no additional installation required**.
+
+---
+
+## Download
+
+Get the latest release from the [**Releases**](https://github.com/ardennguyen/WinLic/releases) page:
+
+| File | Description |
+|---|---|
+| `WinLicApp-<version>.exe` | **GUI App** — run directly, no installation needed |
+| `WinLicApp-<version>.exe.sha256` | Integrity check for the EXE file |
+| `WinLicApp-<version>.zip` | Compressed archive of the GUI App |
+| `WinLicApp-<version>.zip.sha256` | Integrity check for the ZIP file |
+| `WinLicManager-<version>.ps1` | **PowerShell CLI** — standalone script |
+| `WinLicManager-<version>.ps1.sha256` | Integrity check for the PS1 file |
+| `WinLicPS-<version>.zip` | **PowerShell CLI bundle** — script + settings |
+| `WinLicPS-<version>.zip.sha256` | Integrity check for the CLI bundle |
+
+### Integrity Verification (optional)
+
+```powershell
+# PowerShell
+Get-FileHash .\WinLicApp-<version>.zip -Algorithm SHA256
+# Compare with the contents of the matching .sha256 file
+```
+```cmd
+:: CMD / certutil
+certutil -hashfile WinLicApp-<version>.zip SHA256
+```
+
+---
+
+## Features
+
+Both tools (GUI and CLI) provide the same **8 options**:
+
+| # | Feature | Privilege |
+|---|---------|-----------|
+| 1 | **System Info & License Status** — reads OS info, activation channel, OEM BIOS key, detects DE/KMS/Retail; optional extended `/dlv` scan | No Admin required |
+| 2 | **Test & Install Product Key** — validates and installs a new key via `slmgr /ipk`; auto-activates `/ato`; channel warnings; detailed error diagnostics | **Admin** |
+| 3 | **Remove License Key** — removes the current key with `slmgr /upk` + `/cpky`; confirmation required before execution | **Admin** |
+| 4 | **Reset Activation (Rearm)** — shows remaining rearm count (WMI); confirmation required; optional automatic restart | **Admin** |
+| 5 | **3rd-Party Activation Audit** — scans **10 layers** of indicators; customizable list; 3-level results (CRITICAL / SUSPICIOUS / CLEAN) | No Admin required |
+| 6 | **Change Activation Channel** — switches between GVLK/KMS and Retail; auto-installs the correct GVLK for your edition; auto-redirects after change | **Admin** |
+| 7 | **Check & Remove KMS Settings** — reads KMS host/port from Registry and `/dlv`; removes KMS config; suggests next steps | **Admin** |
+| 8 | **KMS Activation** — 6-step pre-check workflow: channel, GVLK, DNS SRV, TCP 1688, system clock, `/ato`; error code diagnostics | **Admin** |
+
+> ⚠️ Options **2, 3, 4, 6, 7, 8** make real changes to the Windows licensing state. The app always asks for confirmation before executing.
+
+---
+
+### Option 5 — 3rd-Party Activation Audit (10 scan layers)
+
+| Layer | Check | Detects |
+|-------|-------|---------|
+| 1 | System services | KMSpico, KMSAuto, vlmcsd, KMS_VL_ALL, Activation-Renewal… |
+| 2 | Scheduled tasks | Automatic activation tasks from third-party tools |
+| 3 | Running processes | Active activation processes |
+| 4 | File paths | GenuineTicket.xml, gatherosstate.exe, Activation_task.cmd, data.dat… |
+| 5 | Localhost KMS ports | TCP 1688 and custom ports listening locally |
+| 6 | KMS Registry | KMS server, port, fake IP `10.0.0.10`, WoW64 |
+| 7 | GVLK & Activation channel | Permanent GVLK + VOLUME = violation; non-VOLUME + generic key = valid DE; phone activation detection |
+| 8 | Expiry date | TSforge KMS4k (≥ 2100), KMS38 (≥ 2037), Online KMS 180-day (165–195 days) |
+| 9 | SPP timestamps | `data.dat` vs. Windows install date + Event ID 19 from Windows Update |
+| 10 | SPP event log | Events 12288/12289/12290/8198 — external KMS server addresses |
+
+**3-level results:** 🔴 CRITICAL (confirmed violation) / 🟡 SUSPICIOUS (indicators found) / 🟢 CLEAN
+
+| Activation Method | Detected | Reason |
+|---|---|---|
+| KMSpico / KMSAuto (active) | ✅ | Leaves services, tasks, and files |
+| vlmcsd / KMS_VL_ALL (active) | ✅ | Leaves services, open KMS ports |
+| Online KMS (internet activation) | ✅ | 180-day grace period, task/service traces, event log |
+| KMS38 (traces remain) | ✅ | GenuineTicket.xml, gatherosstate, 2038 expiry date |
+| TSforge (traces remain) | ⚠️ | Abnormally modified data.dat |
+| **MAS HWID / Digital Entitlement** | ❌ | Creates a real Digital Entitlement — leaves no traces |
+| Fully cleaned tool | ❌ | No traces remain after removal |
+
+---
+
+### Option 8 — 6-Step KMS Activation Workflow
+
+```
+Step 1  Channel check       Must be VOLUME_KMSCLIENT
+Step 2  GVLK check          Auto-installs correct key if missing
+Step 3  DNS SRV lookup      _VLMCS._TCP → auto-discovers server
+Step 4  TCP 1688 check      Manual entry if DNS fails
+Step 5  System clock        Warning if offset > ±5 minutes
+Step 6  slmgr /ato          Activates + error code diagnostics
+```
+
+---
+
+## System Requirements
+
+| | GUI App | PowerShell CLI |
+|---|---|---|
+| **OS** | Windows 10 (1903+) / Windows 11 x64 | Windows 10 / 11 |
+| **.NET** | Framework 4.8 (built-in on Win 10/11) | Not required |
+| **PowerShell** | Not required | 5.1+ (built-in) or 7+ |
+| **Launch privilege** | No Admin required | No Admin required |
+| **Options 2,3,4,6,7,8** | App prompts UAC automatically | App prompts relaunch automatically |
+
+---
+
+## GUI App
+
+### Download & Run
+
+1. Download `WinLicApp-<version>.exe` or `.zip` from [**Releases**](https://github.com/ardennguyen/WinLic/releases)
+2. **Double-click** `WinLicApp-<version>.exe` — no installation needed
+3. Select language **EN** or **VI** in the top-right corner
+4. Select the **Windows 10/11** tab (first tab, default)
+5. Click options in the left sidebar to get started
+
+> Options 1 and 5 work immediately without Admin. When you select 2, 3, 4, 6, 7, or 8 — the app will automatically prompt for UAC elevation.
+
+### Interface
+
+- **Tab bar** (Microsoft Edge style) at the top of the window: **Windows 10/11** and **Office 2019+** *(in development)*
+- **Left sidebar**: 8 option buttons + show-full-key checkbox + Clear Log button
+- **Log area** (right): shared across all options, persists through UAC elevation
+- **Inline panels**: dangerous confirmations, key input, KMS checks… appear inside the main window instead of separate dialogs
+
+### Custom Scan Settings (Option 5)
+
+Click the **⚙ Scan Settings** button in the sidebar to open the configuration dialog. Changes are automatically saved to `settings.ini` next to the EXE.
+
+Click **↻ Update Defaults** to fetch the latest list from GitHub.
+
+---
+
+## PowerShell CLI
+
+Designed for power users who prefer the command line. Full **bilingual EN/VI** support.
+
+### Download & Run
+
+1. Download `WinLicPS-<version>.zip` from [**Releases**](https://github.com/ardennguyen/WinLic/releases)
+2. Extract to any folder (`WinLicManager.ps1` and `settings.ini` must be in the same folder)
+3. Run the script:
+
+```powershell
+# Run directly (no Admin — prompts automatically for options 2/3/4/6/7/8)
+powershell -ExecutionPolicy Bypass -File .\WinLicManager.ps1
+
+# Or use PowerShell 7
+pwsh -ExecutionPolicy Bypass -File .\WinLicManager.ps1
+
+# Run with Admin from the start
+Start-Process powershell -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -File .\WinLicManager.ps1"
+```
+
+### Menu
+
+```
+  ╔══════════════════════════════════════════════════════╗
+  ║         WinLic Manager v1.5                          ║
+  ╠══════════════════════════════════════════════════════╣
+  ║  1 -- System Info & License Status                   ║
+  ║  2 -- Test & Install Product Key              [!]    ║
+  ║  3 -- Remove License Key                      [!]    ║
+  ║  4 -- Reset Activation (Rearm)                [!]    ║
+  ║  5 -- 3rd Party Activation Audit                     ║
+  ║  6 -- Change Activation Channel               [!]    ║
+  ║  7 -- Check & Remove KMS Settings             [!]    ║
+  ║  8 -- KMS Activation                          [!]    ║
+  ║  U -- Update scan defaults from GitHub               ║
+  ║  Q -- Quit                                           ║
+  ╚══════════════════════════════════════════════════════╝
+```
+
+### Custom Option 5 Scan (settings.ini)
+
+The `settings.ini` file is included in the CLI bundle. Before scanning, the CLI displays a configuration summary and asks if you want to edit it first.
+
+| Section | Description |
+|---|---|
+| `[ExtraPorts]` | Additional TCP ports to check on localhost |
+| `[ExtraServices]` | Additional service name keywords |
+| `[ExtraTaskKeywords]` | Additional scheduled task name keywords |
+| `[ExtraProcesses]` | Additional process name keywords |
+| `[ExtraFilePaths]` | Additional file/folder paths to check |
+| `[UserKmsPiracyDomains]` | Additional suspicious KMS domain names |
+| `[UserGvlkKeys]` | Additional GVLK keys to recognize |
+| `[UserGenericKeys]` | Additional HWID/DE placeholder keys |
+
+Type `U` in the menu to fetch the latest default list from GitHub while keeping your custom settings intact.
+
+---
+
+## Build from Source
+
+### Requirements
+
+- [.NET SDK](https://dotnet.microsoft.com/download) (targeting .NET Framework 4.8)
+- Windows 10/11
+
+### Build the GUI App
+
+```bash
+git clone https://github.com/ardennguyen/WinLic.git
+cd WinLic
+dotnet build WinLicApp/WinLicApp.csproj -c Release
+```
+
+Output EXE: `WinLicApp/bin/Release/net4.8-windows/WinLicApp.exe`
+
+### PowerShell CLI
+
+No build needed — run directly from source:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\WinLicPS\WinLicManager.ps1
+```
+
+---
+
+## Project Structure
+
+```
+WinLic/
+├── WinLicApp/                       # GUI application (.NET Framework 4.8 WPF)
+│   ├── MainWindow.xaml[.cs]         # Main UI & logic, 8 options + tab bar
+│   ├── Localization.cs              # Bilingual EN/VI string table
+│   ├── AppSettings.cs               # settings.ini manager (GVLK, ports, domains…)
+│   ├── SettingsDialog.xaml[.cs]     # Scan Settings dialog
+│   ├── AboutDialog.xaml[.cs]        # About dialog + update check
+│   ├── App.xaml[.cs]                # App entry point
+│   ├── app.manifest                 # UAC + DPI manifest
+│   ├── winlic.ico / winlic_256.png  # App icon
+│   └── WinLicApp.csproj             # .NET Framework 4.8 WPF project definition
+├── WinLicPS/                        # PowerShell tool (CLI)
+│   ├── WinLicManager.ps1            # Main script — 8 bilingual EN/VI options
+│   ├── settings.ini                 # Scan configuration (user block)
+│   └── settings.default.ini        # Default list (fetched from GitHub)
+└── README.md
+```
+
+---
+
+## Author
+
+**Arden Nguyen Duc Huy**
+- GitHub: [@ardennguyen](https://github.com/ardennguyen)
+- Repository: [ardennguyen/WinLic](https://github.com/ardennguyen/WinLic)
+
+---
+
+## License
+
+This project is distributed under the **MIT** license. See the [LICENSE](LICENSE) file for details.
+
+---
+
+# 🇻🇳 Tiếng Việt
+
+**Điều hướng:**
 [Giới thiệu](#giới-thiệu) ·
 [Tải về](#tải-về) ·
 [Tính năng](#tính-năng) ·
-[GUI App](#gui-app) ·
-[PowerShell CLI](#powershell-cli) ·
+[GUI App](#gui-app-1) ·
+[PowerShell CLI](#powershell-cli-1) ·
 [Xây dựng từ mã nguồn](#xây-dựng-từ-mã-nguồn) ·
 [Cấu trúc dự án](#cấu-trúc-dự-án) ·
-[Tác giả](#tác-giả)
+[Tác giả](#tác-giả-1)
 
 ---
 
@@ -87,10 +367,10 @@ Cả hai công cụ (GUI và CLI) đều cung cấp **8 tùy chọn** giống nh
 
 | Lớp | Kiểm tra | Phát hiện |
 |-----|----------|-----------|
-| 1 | Dịch vụ hệ thống | KMSpico, KMSAuto, vlmcsd, KMS_VL_ALL, Activation-Renewal... |
+| 1 | Dịch vụ hệ thống | KMSpico, KMSAuto, vlmcsd, KMS_VL_ALL, Activation-Renewal… |
 | 2 | Tác vụ định kỳ | Tác vụ kích hoạt tự động từ công cụ bên thứ ba |
 | 3 | Tiến trình đang chạy | Tiến trình kích hoạt đang hoạt động |
-| 4 | Đường dẫn tệp | GenuineTicket.xml, gatherosstate.exe, Activation_task.cmd, data.dat... |
+| 4 | Đường dẫn tệp | GenuineTicket.xml, gatherosstate.exe, Activation_task.cmd, data.dat… |
 | 5 | Cổng KMS localhost | TCP 1688 và các cổng tùy chỉnh đang lắng nghe cục bộ |
 | 6 | Registry KMS | Máy chủ KMS, cổng, IP giả `10.0.0.10`, WoW64 |
 | 7 | GVLK & Kênh kích hoạt | GVLK vĩnh viễn + VOLUME = vi phạm; non-VOLUME + generic key = DE hợp lệ; phát hiện kích hoạt qua điện thoại |
@@ -154,7 +434,7 @@ Bước 6  slmgr /ato           Kích hoạt + chẩn đoán mã lỗi
 - **Thanh tab** (kiểu Microsoft Edge) ở đầu cửa sổ: **Windows 10/11** và **Office 2019+** *(đang phát triển)*
 - **Thanh bên trái**: 8 nút tùy chọn + hộp kiểm hiện key đầy đủ + nút Xóa nhật ký
 - **Khu vực nhật ký** (phải): chia sẻ cho tất cả tùy chọn, giữ lại qua nâng quyền UAC
-- **Các panel inline**: xác nhận nguy hiểm, nhập key, kiểm tra KMS... xuất hiện ngay trong cửa sổ chính thay vì hộp thoại riêng
+- **Các panel inline**: xác nhận nguy hiểm, nhập key, kiểm tra KMS… xuất hiện ngay trong cửa sổ chính thay vì hộp thoại riêng
 
 ### Cài đặt quét tùy chỉnh (Tùy chọn 5)
 
@@ -257,7 +537,7 @@ WinLic/
 ├── WinLicApp/                       # Ứng dụng GUI (.NET Framework 4.8 WPF)
 │   ├── MainWindow.xaml[.cs]         # Giao diện & logic chính, 8 tùy chọn + tab bar
 │   ├── Localization.cs              # Bảng chuỗi song ngữ EN/VI
-│   ├── AppSettings.cs               # Quản lý settings.ini (GVLK, ports, domains...)
+│   ├── AppSettings.cs               # Quản lý settings.ini (GVLK, ports, domains…)
 │   ├── SettingsDialog.xaml[.cs]     # Hộp thoại Cài đặt Kiểm tra
 │   ├── AboutDialog.xaml[.cs]        # Hộp thoại Giới thiệu + kiểm tra cập nhật
 │   ├── App.xaml[.cs]                # Điểm khởi động ứng dụng
