@@ -151,8 +151,8 @@ namespace WinLicApp
                                       "Gắn với dấu vân tay phần cứng và tài khoản Microsoft của bạn."),
             ["DE_Explain3"]         = ("The active key is a generic placeholder -- the actual entitlement lives in the cloud.",
                                       "Key đang dùng là key chung thay thế -- quyền kích hoạt thực sự nằm trên cloud."),
-            ["DE_KeyMismatch"]      = ("The BIOS OEM key and Registry Backup key may differ from the active key -- this is normal for DE-activated systems.",
-                                      "Key OEM BIOS và dự phòng có thể khác Key đang dùng -- điều này bình thường với hệ thống kích hoạt bằng DE."),
+            ["DE_KeyMismatch"]      = ("The BIOS OEM key and Registry Backup key may differ from the active key. The Registry Backup key (BackupProductKeyDefault) is a pre-existing value placed by Windows Setup, OEM provisioning, or a prior upgrade -- it is NOT the key displaced by your most recent install. slmgr /ipk does not reliably update this value. You may be seeing it for the first time because WinLic reads and exposes it.",
+                                       "Key OEM BIOS v\u00e0 Key D\u1ef1 ph\u00f2ng c\u00f3 th\u1ec3 kh\u00e1c Key \u0111ang d\u00f9ng. Key D\u1ef1 ph\u00f2ng (BackupProductKeyDefault) l\u00e0 gi\u00e1 tr\u1ecb c\u00f3 s\u1eb5n t\u1eeb tr\u01b0\u1edbc, \u0111\u01b0\u1ee3c \u0111\u1eb7t b\u1edfi Windows Setup, OEM, ho\u1eb7c l\u1ea7n n\u00e2ng c\u1ea5p tr\u01b0\u1edbc -- KH\u00d4NG ph\u1ea3i key b\u1ecb thay th\u1ebf trong l\u1ea7n c\u00e0i \u0111\u1eb7t v\u1eeba r\u1ed3i. slmgr /ipk kh\u00f4ng c\u1eadp nh\u1eadt gi\u00e1 tr\u1ecb n\u00e0y m\u1ed9t c\u00e1ch \u0111\u00e1ng tin c\u1eady. \u0110\u00e2y c\u00f3 th\u1ec3 l\u00e0 l\u1ea7n \u0111\u1ea7u ti\u00ean b\u1ea1n th\u1ea5y n\u00f3 v\u00ec WinLic \u0111\u1ecdc v\u00e0 hi\u1ec3n th\u1ecb n\u00f3."),
             ["DE_Verify"]           = ("To verify: Settings > System > Activation > look for Digital license",
                                       "Để xác nhận: Cài đặt > Hệ thống > Kích hoạt > tìm 'Giấy phép kỹ thuật số'"),
             ["DE_NotActivated"]     = ("Activation method:  Digital Entitlement placeholder key detected — but status is NOT Licensed.",
@@ -215,10 +215,10 @@ namespace WinLicApp
                                       "Không phát hiện Key Bản Quyền OEM trên firmware BIOS/UEFI."),
 
             // ── Option 4 ──────────────────────────────────────────────────────────
-            ["O4_Info1"]           = ("Key testing works by attempting local installation of the entered key.",
-                                      "Kiểm thử Key Bản Quyền bằng cách thử cài đặt key đã nhập trên máy."),
-            ["O4_Info2"]           = ("Your existing activation will NOT be harmed if the key is rejected or belongs to a different edition.",
-                                      "Trạng thái kích hoạt hiện tại sẽ KHÔNG bị ảnh hưởng nếu key bị từ chối hoặc thuộc ấn bản khác."),
+            ["O4_Info1"]           = ("Phase 1 (offline, instant): Key structure is checked as you type — no network, no registry changes.",
+                                      "Giai đoạn 1 (ngoại tuyến, tức thì): Cấu trúc key được kiểm tra ngay khi nhập — không mạng, không thay đổi registry."),
+            ["O4_Info2"]           = ("Phase 2 (online): slmgr /ipk runs only after you type OK and click Install — this is the real key install.",
+                                      "Giai đoạn 2 (trực tuyến): slmgr /ipk chỉ chạy sau khi bạn nhập OK và nhấn Cài đặt — đây mới là thao tác cài key thực sự."),
             ["O4_Prompt"]          = ("Enter the 25-character product key:\n\nFormat:  XXXXX-XXXXX-XXXXX-XXXXX-XXXXX",
                                       "Nhập Key Bản Quyền gồm 25 ký tự:\n\nĐịnh dạng:  XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"),
             ["O4_PromptTitle"]     = ("Enter Product Key",  "Nhập Key Bản Quyền"),
@@ -234,11 +234,13 @@ namespace WinLicApp
             ["O4_Success2"]        = ("Check activation status with Option 3 or Option 2.",
                                       "Kiểm tra trạng thái kích hoạt ở Tùy chọn 3 hoặc Tùy chọn 2."),
             ["O4_Fail"]            = ("Key was rejected by Windows.",  "Key Bản Quyền bị Windows từ chối."),
-            ["O4_DiagSku"]         = ("SKU Mismatch — key belongs to a different Windows edition (e.g. Home vs Pro).",
-                                      "SKU không khớp — Key thuộc ấn bản Windows khác (ví dụ: Home và Pro)."),
+            ["O4_DiagGen"]         = ("Generation Mismatch (0xC004E016) — this key is for a different Windows generation (e.g. a Windows 8 key cannot be installed on Windows 10/11). Microsoft does not allow cross-generation installs via slmgr /ipk.",
+                                      "Không khớp thế hệ (0xC004E016) — Key này dành cho thế hệ Windows khác (ví dụ: key Windows 8 không cài được trên Windows 10/11). Microsoft không cho phép cài key khác thế hệ qua slmgr /ipk."),
+            ["O4_DiagSku"]         = ("Edition Mismatch (0xC004F069) — this key belongs to a different Windows edition (e.g. Home vs Pro). Use a key for the currently installed edition.",
+                                      "Không khớp ấn bản (0xC004F069) — Key này thuộc ấn bản Windows khác (ví dụ: Home và Pro). Hãy dùng key đúng với ấn bản đang cài."),
             ["O4_DiagInvalid"]     = ("Invalid Key — the key is invalid or mistyped.",
                                       "Key không hợp lệ — Key Bản Quyền bị sai hoặc nhập nhầm."),
-            ["O4_DiagBlocked"]     = ("Blocked Key — this key has been blacklisted by Microsoft.",
+            ["O4_DiagBlocked"]     = ("Blocked Key — this key has been blocklisted by Microsoft.",
                                       "Key bị chặn — Key Bản Quyền này đã bị Microsoft thu hồi."),
             ["O4_DiagGeneral"]     = ("Check the error code for more information.",
                                       "Kiểm tra mã lỗi để biết thêm thông tin."),
@@ -564,10 +566,10 @@ namespace WinLicApp
 
             // ── Key Entry Panel (segmented key input, Option 2) ───────────────────
             ["KP_Title"]   = ("Enter Product Key", "Nhập Key Bản Quyền"),
-            ["KP_Info1"]   = ("Key testing works by attempting a local installation of the entered key via slmgr /ipk.",
-                              "Kiểm tra key bằng cách thử cài đặt cục bộ qua lệnh slmgr /ipk."),
-            ["KP_Info2"]   = ("Your existing activation will NOT be harmed if the key is rejected or belongs to a different edition.",
-                              "Kích hoạt hiện tại KHÔNG bị ảnh hưởng nếu key bị từ chối hoặc thuộc ấn bản khác."),
+            ["KP_Info1"]   = ("Phase 1 (offline, instant): Key structure is checked as you type — no network, no registry changes.",
+                              "Giai đoạn 1 (ngoại tuyến, tức thì): Cấu trúc key được kiểm tra ngay khi nhập — không mạng, không thay đổi registry."),
+            ["KP_Info2"]   = ("Phase 2 (online): slmgr /ipk runs only after you type OK and click Install — this is the real key install.",
+                              "Giai đoạn 2 (trực tuyến): slmgr /ipk chỉ chạy sau khi bạn nhập OK và nhấn Cài đặt — đây mới là thao tác cài key thực sự."),
             ["KP_Warn"]    = ("⚠  If the key is compatible, it WILL overwrite your current product key immediately.",
                               "⚠  Nếu key tương thích, nó SẼ ghi đè key bản quyền hiện tại ngay lập tức."),
             ["KP_TypeOk"]  = ("Type  OK  below to confirm you understand:",
@@ -578,6 +580,39 @@ namespace WinLicApp
                               "Kích hoạt hiện tại KHÔNG bị ảnh hưởng nếu key bị từ chối."),
             ["KP_Install"] = ("Install Key", "Cài đặt Key"),
             ["KP_Cancel"]  = ("Cancel", "Hủy"),
+
+            // ── Key Entry Panel -- PidGenX decode banner ──────────────────────────
+            ["KP_PidDecoding"] = ("Verifying key...",
+                                  "Đang xác minh key..."),
+            ["KP_PidValid"]    = ("Phase 1 OK — format valid",
+                                  "Giai đoạn 1 OK — định dạng hợp lệ"),
+            ["KP_PidInvalid"]  = ("Phase 1 FAIL — must be 25 alphanumeric chars in 5x5 groups",
+                                  "Giai đoạn 1 THẤT BẠI — phải có 25 ký tự chữ-số chia thành 5 nhóm 5"),
+            ["KP_PidUnavail"]  = ("(offline structure check only)",
+                                  "(chỉ kiểm tra cấu trúc ngoại tuyến)"),
+            ["KP_PidEdition"]  = ("  Edition  : ", "  Ấn bản   : "),
+            ["KP_PidChannel"]  = ("  Channel  : ", "  Kênh     : "),
+
+            // ── Option 2 — Phase 1 PidGenX strings ───────────────────────────────
+            ["O2_PIDGX_ABOUT"]       = ("Phase 1 — Offline Key Analysis (instant, no network, no registry change): " +
+                                        "calls pidgenx.dll (present on all Win10/11) with pkeyconfig.xrm-ms to validate " +
+                                        "the key checksum and identify its Channel. Phase 2 (slmgr /ipk) is the final " +
+                                        "authority on whether the key actually works for this system.",
+                                        "Giai đoạn 1 — Phân tích key ngoại tuyến (tức thì, không mạng, không thay đổi registry): " +
+                                        "gọi pidgenx.dll (có sẵn trên mọi Win10/11) với pkeyconfig.xrm-ms để xác thực checksum " +
+                                        "và xác định kênh phân phối của key. Giai đoạn 2 (slmgr /ipk) mới là cơ quan phán quyết cuối cùng."),
+            ["O2_PIDGX_HDR"]         = ("-- KEY ANALYSIS -- (Phase 1: Offline)",
+                                        "-- PHÂN TÍCH KEY -- (Giai đoạn 1: Ngoại tuyến)"),
+            ["O2_PIDGX_VALID"]       = ("Format   : OK (25 alphanumeric chars, 5x5 groups, recognized by pidgenx)",
+                                        "Định dạng: HỢP LỆ (25 ký tự chữ-số, 5 nhóm 5, được pidgenx nhận diện)"),
+            ["O2_PIDGX_INVALID"]     = ("Format   : FAIL — key rejected by pidgenx.dll (wrong length, non-alphanumeric, or not in pkeyconfig)",
+                                        "Định dạng: THẤT BẠI — key bị pidgenx.dll từ chối (sai độ dài, ký tự không hợp lệ, hoặc không trong pkeyconfig)"),
+            ["O2_PIDGX_SRC_PIDGENX"] = ("Source   : pidgenx.dll + pkeyconfig.xrm-ms (real key group lookup)",
+                                        "Nguồn    : pidgenx.dll + pkeyconfig.xrm-ms (tra cứu key group thực sự)"),
+            ["O2_PIDGX_SRC_CHK"]     = ("Source   : format check only (pidgenx.dll unavailable or key not in pkeyconfig)",
+                                        "Nguồn    : chỉ kiểm tra định dạng (pidgenx.dll không khả dụng hoặc key không trong pkeyconfig)"),
+            ["O2_PHASE2_HDR"]        = ("── Phase 2: Installing key via slmgr /ipk ──────────────────────────",
+                                        "── Giai đoạn 2: Cài đặt key qua slmgr /ipk ──────────────────────"),
 
             // ── Option 2 — channel warnings (shown in pre-arm) ───────────────────
             ["O2_WARN_CHAN_KMS"]    = ("⚠  Current channel is VOLUME_KMSCLIENT — this option is for Retail/OEM/MAK keys. For KMS activation use Option 6.",
@@ -653,6 +688,18 @@ namespace WinLicApp
                                              "Chẩn đoán: Đang Chạy Trong Thời Gian Ân Hạn Không Chính Hãng (0xC004F065) — Windows phát hiện bản sao này có thể không chính hãng. Kích hoạt bằng key hợp lệ trước khi hết thời gian ân hạn."),
             ["O2_DIAG_KMS_CLOCK"]        = ("Diagnosis: KMS Clock Skew Too Large (0xC004F06C) — the system clock differs from the KMS server by more than 4 hours. Synchronize time by running 'w32tm /resync' as Administrator, then retry activation.",
                                              "Chẩn đoán: Đồng Hồ Hệ Thống Lệch Quá Lớn So Với KMS (0xC004F06C) — đồng hồ hệ thống chênh lệch với máy chủ KMS hơn 4 giờ. Đồng bộ hóa thời gian bằng cách chạy 'w32tm /resync' với quyền Quản trị viên, sau đó thử kích hoạt lại."),
+
+            // ── Option 2 — Key Analysis log block (aligned to PS1 output) ─────────
+            ["O2_PIDGX_HDR"]     = ("-- KEY ANALYSIS -- (Phase 1: Offline)",
+                                    "-- PHÂN TÍCH KEY -- (Giai đoạn 1: Ngoại tuyến)"),
+            ["O2_PIDGX_EDITION"] = ("  Edition  : ",  "  Ấn bản   : "),
+            ["O2_PIDGX_CHANNEL"] = ("  Channel  : ",  "  Kênh     : "),
+            ["O2_PIDGX_VALID"]   = ("  Format   : OK (25 alphanumeric chars, 5x5 groups)",
+                                    "  Định dạng: HỢP LỆ (25 ký tự chữ-số, 5 nhóm 5)"),
+            ["O2_PIDGX_INVALID"] = ("  Format   : FAIL (must be 25 alphanumeric chars in 5x5 groups)",
+                                    "  Định dạng: THẤT BẠI (phải có 25 ký tự chữ-số chia 5 nhóm 5)"),
+            ["O2_PIDGX_UNAVAIL"] = ("  Source   : format check only (pkeyconfig unavailable)",
+                                    "  Nguồn    : chỉ kiểm tra định dạng (pkeyconfig không khả dụng)"),
 
             // ── Sidebar button — Option 6 ─────────────────────────────────────────
             ["Btn6"]             = ("6 — Change Activation Channel",               "6 — Thay Đổi Kênh Kích Hoạt"),

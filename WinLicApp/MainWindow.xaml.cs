@@ -6,6 +6,7 @@ using System.Linq;
 using System.Management;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -760,6 +761,132 @@ namespace WinLicApp
 
 
         // =========================================================================
+        // PidGenX P/Invoke wrapper
+        // pidgenx.dll is present at %windir%\System32\pidgenx.dll on ALL Win10/11.
+        // pkeyconfig.xrm-ms lives at %windir%\System32\spp\tokens\pkeyconfig\
+        // =========================================================================
+        private static class PidGenXNative
+        {
+            [DllImport("pidgenx.dll", CharSet = CharSet.Unicode,
+                       CallingConvention = CallingConvention.StdCall)]
+            internal static extern int PidGenX(
+                string productKey,
+                string pkeyConfigPath,
+                string pkeyConfigPath2,
+                string groupId,
+                IntPtr pProductId,
+                IntPtr pDigPid,
+                IntPtr pDigPid4);
+        }
+
+        private static readonly string PkcPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.Windows),
+            "System32", "spp", "tokens", "pkeyconfig", "pkeyconfig.xrm-ms");
+
+        private static readonly string[] _channelTokens =
+            { "OEM:DM", "OEM:NONSLP", "OEM:SLP", "Retail", "Volume:GVLK", "Volume:MAK", "Volume:CSVLK" };
+
+        // =========================================================================
+        // Option 2 — PidGenX Key Analysis helper
+        // Tier 1: format check (25 alphanum, 5x5).
+        // Tier 2: real P/Invoke to pidgenx.dll → pkeyconfig lookup → channel string.
+        // No side effects, no network, no key replacement.
+        // =========================================================================
+
+        // Stores the last PidGenX result so EvaluateBannerFromBoxes can log it.
+        private (bool Valid, string Channel) _lastPidResult = (false, "");
+        // Tracks the last key that was written to the log (avoids duplicate entries
+        // if the user types, then re-types the same complete key).
+        private string _lastBannerKey = "";
+
+        /// <summary>
+        /// Validates the structural format of a product key (Tier 1) then calls
+        /// pidgenx.dll (Tier 2) to identify the channel from pkeyconfig.xrm-ms.
+        /// Returns validity and the channel string (e.g. "Retail", "OEM:DM").
+        /// No registry changes, no network, no key replacement.
+        /// </summary>
+        private static (bool Valid, string Channel) CheckKeyChecksum(string key)
+        {
+            // ── Tier 1: format check ──────────────────────────────────────────
+            var stripped = key.Replace("-", "").ToUpperInvariant();
+            if (stripped.Length != 25) return (false, "");
+            foreach (var ch in stripped)
+                if (!char.IsLetterOrDigit(ch)) return (false, "");
+
+            // ── Tier 2: pidgenx.dll P/Invoke ────────────────────────────────
+            if (File.Exists(PkcPath))
+            {
+                const int Buf = 1024;
+                IntPtr pPid   = Marshal.AllocHGlobal(Buf);
+                IntPtr pDpid  = Marshal.AllocHGlobal(Buf);
+                IntPtr pDpid4 = Marshal.AllocHGlobal(Buf);
+                try
+                {
+                    // zero-fill buffers
+                    for (int i = 0; i < Buf; i++)
+                    {
+                        Marshal.WriteByte(pPid,   i, 0);
+                        Marshal.WriteByte(pDpid,  i, 0);
+                        Marshal.WriteByte(pDpid4, i, 0);
+                    }
+                    int hr = PidGenXNative.PidGenX(
+                        key, PkcPath, PkcPath, null,
+                        pPid, pDpid, pDpid4);
+
+                    if (hr != 0) return (false, ""); // key not in pkeyconfig
+
+                    // Scan DigPid4 buffer for recognisable channel token
+                    var bytes = new byte[Buf];
+                    Marshal.Copy(pDpid4, bytes, 0, Buf);
+                    var buf = Encoding.Unicode.GetString(bytes);
+                    foreach (var tok in _channelTokens)
+                        if (buf.IndexOf(tok, StringComparison.OrdinalIgnoreCase) >= 0)
+                            return (true, tok);
+
+                    return (true, ""); // pidgenx OK but channel token not found
+                }
+                catch { /* fall through to format-only result below */ }
+                finally
+                {
+                    Marshal.FreeHGlobal(pPid);
+                    Marshal.FreeHGlobal(pDpid);
+                    Marshal.FreeHGlobal(pDpid4);
+                }
+            }
+            // Tier 2 unavailable — return format-only result
+            return (true, "");
+        }
+
+        /// <summary>
+        /// Show or update the PidBanner element in the key entry panel.
+        /// Call after CheckKeyChecksum completes.
+        /// </summary>
+        private void ShowPidBanner(bool valid, string detailLine)
+        {
+            if (valid)
+            {
+                PidBanner.Background   = new SolidColorBrush(Color.FromRgb(0xf0, 0xfd, 0xf4));
+                PidBanner.BorderBrush  = new SolidColorBrush(Color.FromRgb(0x86, 0xef, 0xac));
+                PidBannerIcon.Text     = "✔";
+                PidBannerIcon.Foreground = new SolidColorBrush(Color.FromRgb(0x15, 0x80, 0x3d));
+                PidBannerText.Foreground = new SolidColorBrush(Color.FromRgb(0x16, 0x65, 0x34));
+                PidBannerText.Text     = string.IsNullOrEmpty(detailLine)
+                    ? L.Get("KP_PidValid")
+                    : L.Get("KP_PidValid") + "  |  " + detailLine;
+            }
+            else
+            {
+                PidBanner.Background   = new SolidColorBrush(Color.FromRgb(0xfe, 0xf2, 0xf2));
+                PidBanner.BorderBrush  = new SolidColorBrush(Color.FromRgb(0xfc, 0xa5, 0xa5));
+                PidBannerIcon.Text     = "⚠";
+                PidBannerIcon.Foreground = new SolidColorBrush(Color.FromRgb(0xb9, 0x1c, 0x1c));
+                PidBannerText.Foreground = new SolidColorBrush(Color.FromRgb(0x99, 0x1b, 0x1b));
+                PidBannerText.Text     = L.Get("KP_PidInvalid");
+            }
+            PidBanner.Visibility = Visibility.Visible;
+        }
+
+        // =========================================================================
         // Option 2 — Test & Install New Product Key  (was Option 4)
         // Key entry uses inline segmented panel instead of InputDialog
         // =========================================================================
@@ -797,15 +924,22 @@ namespace WinLicApp
 
             LogBlank();
 
+            // Log ABOUT note so user knows what Phase 1 will do
+            LogInfo(L.Get("O2_PIDGX_ABOUT"));
+            LogBlank();
+
             // Populate panel (also kept in sync by RefreshLanguage on lang switch)
             KpInfo1.Text        = L.Get("KP_Info1");
             KpInfo2.Text        = L.Get("KP_Info2");
             KpWarn.Text         = L.Get("KP_Warn");
             KpConfirmLabel.Text = L.Get("KP_TypeOk");
 
-            // Clear boxes and show the panel
+            // Clear boxes, reset PidBanner, and show the panel
             KBox1.Text = KBox2.Text = KBox3.Text = KBox4.Text = KBox5.Text = "";
             KpOkBox.Text = string.Empty;
+            PidBanner.Visibility = Visibility.Collapsed;
+            _lastPidResult  = (false, "");
+            _lastBannerKey  = "";
             KeyEntryPanel.Visibility = Visibility.Visible;
             EnsurePanelFits(KeyEntryPanel);
             KBox1.Focus();
@@ -860,23 +994,131 @@ namespace WinLicApp
             }
         }
 
+        private bool _textChangedGuard = false;
+
         private void KeyBox_TextChanged(object sender, TextChangedEventArgs e)
         {
+            if (_textChangedGuard) return;   // prevent re-entrant fire from tb.Text = clean
             if (sender is not TextBox tb) return;
-            int idx = int.Parse((string)tb.Tag) - 1;  // 0-based index
+            int idx = int.Parse((string)tb.Tag) - 1;  // 0-based
 
             // Strip non-alphanumeric chars that bypassed CharacterCasing
             var clean = new string(tb.Text.ToUpperInvariant()
                 .Where(c => char.IsLetterOrDigit(c)).ToArray());
             if (clean != tb.Text)
             {
+                _textChangedGuard = true;
                 tb.Text = clean;
                 tb.CaretIndex = clean.Length;
+                _textChangedGuard = false;
             }
 
             // Auto-jump to next box when this one is full (5 chars)
             if (tb.Text.Length == 5 && idx < 4)
                 KeyBoxes[idx + 1].Focus();
+
+            // Re-evaluate banner on every keystroke
+            EvaluateBannerFromBoxes();
+        }
+
+        /// <summary>
+        /// Assembles all 5 key segments and shows/hides the format banner.
+        /// When the key becomes complete (25 chars), also writes the full Phase 1
+        /// KEY ANALYSIS block to the main log immediately — before the user clicks
+        /// Install. This way Phase 1 results are always visible before Phase 2.
+        /// </summary>
+        private void EvaluateBannerFromBoxes()
+        {
+            var assembled = KBox1.Text + KBox2.Text + KBox3.Text + KBox4.Text + KBox5.Text;
+            if (assembled.Length == 25)
+            {
+                var fullKey = string.Join("-",
+                    KBox1.Text, KBox2.Text, KBox3.Text, KBox4.Text, KBox5.Text)
+                    .ToUpperInvariant();
+                var (valid, channel) = CheckKeyChecksum(fullKey);
+                _lastPidResult = (valid, channel);
+
+                // Show banner (includes channel when pidgenx succeeded)
+                var bannerDetail = (valid && !string.IsNullOrEmpty(channel))
+                    ? L.Get("KP_PidChannel") + channel
+                    : "";
+                ShowPidBanner(valid, bannerDetail);
+
+                // Write Phase 1 analysis to log only once per unique full key
+                if (fullKey != _lastBannerKey)
+                {
+                    _lastBannerKey = fullKey;
+                    LogSep();
+                    LogInfo(L.Get("O2_PIDGX_HDR"));
+                    if (valid)
+                    {
+                        LogOk(L.Get("O2_PIDGX_VALID"));
+                        if (!string.IsNullOrEmpty(channel))
+                        {
+                            LogInfo(L.Get("KP_PidChannel") + channel);
+                            LogInfo(L.Get("O2_PIDGX_SRC_PIDGENX"));
+                        }
+                        else
+                        {
+                            LogInfo(L.Get("O2_PIDGX_SRC_CHK"));
+                        }
+                    }
+                    else
+                    {
+                        LogError(L.Get("O2_PIDGX_INVALID"));
+                        LogInfo(File.Exists(PkcPath)
+                            ? L.Get("O2_PIDGX_SRC_PIDGENX")
+                            : L.Get("O2_PIDGX_SRC_CHK"));
+                    }
+                    LogSep();
+                }
+            }
+            else if (PidBanner.Visibility == Visibility.Visible)
+            {
+                // Key is incomplete — hide stale result
+                PidBanner.Visibility = Visibility.Collapsed;
+                _lastPidResult = (false, "");
+            }
+        }
+
+        private void KeyBox_Pasting(object sender, DataObjectPastingEventArgs e)
+        {
+            if (!e.DataObject.GetDataPresent(typeof(string))) return;
+            var raw = e.DataObject.GetData(typeof(string)) as string ?? "";
+
+            // Strip separators only (dashes, spaces, dots) — keep ALL alphanumeric chars.
+            // Do NOT filter by the Windows key alphabet here: invalid characters should
+            // reach the boxes intact so the red banner correctly reports the bad character.
+            // Alphabet validation happens in CheckKeyChecksum / EvaluateBannerFromBoxes.
+            var clean = new string(raw.ToUpperInvariant()
+                                      .Where(char.IsLetterOrDigit)
+                                      .ToArray());
+
+            // Only intercept when enough chars for a multi-box paste (> 5 means at least 2 blocks)
+            if (clean.Length <= 5) return;   // let normal single-box paste proceed
+
+            // Cancel the normal paste and distribute chars starting at box 0
+            e.CancelCommand();
+
+            _textChangedGuard = true;   // suppress per-assignment TextChanged evaluations
+            for (int b = 0; b < 5; b++)
+            {
+                int start = b * 5;
+                KeyBoxes[b].Text = start < clean.Length
+                    ? clean.Substring(start, Math.Min(5, clean.Length - start))
+                    : string.Empty;
+            }
+            _textChangedGuard = false;
+
+            // Single banner evaluation after all boxes are filled
+            EvaluateBannerFromBoxes();
+
+            // Move focus: if all 5 are full go to the OK box, otherwise last non-full box
+            var firstIncomplete = Array.FindIndex(KeyBoxes, bx => bx.Text.Length < 5);
+            if (firstIncomplete < 0)
+                KpOkBox.Focus();
+            else
+                KeyBoxes[firstIncomplete].Focus();
         }
 
         private void BtnKeyInstall_Click(object sender, RoutedEventArgs e)
@@ -924,6 +1166,11 @@ namespace WinLicApp
 
             // Hide the panel before running slmgr (which may take a moment)
             KeyEntryPanel.Visibility = Visibility.Collapsed;
+
+            // Phase 1 result was already written to the log by EvaluateBannerFromBoxes
+            // when the user finished typing the key. Add Phase 2 separator.
+            LogSep();
+            LogInfo(L.Get("O2_PHASE2_HDR"));
 
             bool full = ShowFullKey;
             LogInfo(L.Get("O4_Installing") + (full ? key : MaskKey(key)));
@@ -1001,6 +1248,7 @@ namespace WinLicApp
             {
                 LogError(L.Get("O4_Fail"));
                 if      (output.Contains("0x80070005")) LogDiag(L.Get("O2_DIAG_ACCESS_DENIED"));
+                else if (output.Contains("0xC004E016")) LogDiag(L.Get("O4_DiagGen"));
                 else if (output.Contains("0xC004F069")) LogDiag(L.Get("O4_DiagSku"));
                 else if (output.Contains("0xC004F050")) LogDiag(L.Get("O4_DiagInvalid"));
                 else if (output.Contains("0xC004C003")) LogDiag(L.Get("O4_DiagBlocked"));

@@ -211,8 +211,10 @@ $Str = @{
                               'Điều này có thể xảy ra sau khi nâng cấp ấn bản hoặc thay đổi phương thức kích hoạt.')
     'O1_ACTIVE_ENDS' = @('  Active key ends with:         ', '  Key đang dùng kết thúc với:  ')
     'O1_BACKUP_ENDS' = @('  Registry Backup Key ends with: ', '  Key Dự phòng Registry kết thúc với:  ')
-    'O1_STALE_NOTE'  = @('This is a stale backup from a previous activation or edition upgrade.',
-                          'Đây là key dự phòng cũ từ lần kích hoạt hoặc nâng cấp ấn bản trước đó.')
+    'O1_STALE_NOTE'  = @('This backup key is stale -- it pre-dates or was not updated by the most recent key install. slmgr /ipk does not reliably update BackupProductKeyDefault.',
+                          'Key dự phòng này đã cũ -- nó có từ trước hoặc không được cập nhật bởi lần cài key gần nhất. slmgr /ipk không cập nhật BackupProductKeyDefault một cách đáng tin cậy.')
+    'O1_DE_MISMATCH_REG' = @('For DE-activated systems: BackupProductKeyDefault is a pre-existing registry value placed by Windows Setup, OEM provisioning, or a prior upgrade -- it is NOT the key displaced by your most recent slmgr /ipk. You may be seeing it for the first time because WinLic reads and exposes it.',
+                              'Với hệ thống kích hoạt DE: BackupProductKeyDefault là giá trị registry có sẵn từ trước, được đặt bởi Windows Setup, OEM hoặc lần nâng cấp trước đó -- KHÔNG phải key bị thay thế bởi slmgr /ipk gần đây. Bạn thấy nó lần đầu vì WinLic đọc và hiển thị nó.')
     'O1_ACTIVE_SAFE' = @('Your active Windows activation is NOT affected.',
                           'Trạng thái kích hoạt Windows hiện tại KHÔNG bị ảnh hưởng.')
     'O1_REMOVE_ASK'  = @('Remove the stale Registry Backup Key?',
@@ -259,10 +261,10 @@ $Str = @{
     'O2_CUR_KEY'    = @('  Current partial key:', '  Key một phần hiện tại:')
     'O2_CUR_STATUS' = @('  Current status:', '  Trạng thái hiện tại:')
     'O2_NO_LIC'     = @('  No active license detected.', '  Không phát hiện bản quyền đang hoạt động.')
-    'O2_INFO1'      = @('Key testing works by attempting local installation of the entered key.',
-                         'Kiểm thử Key bằng cách thử cài đặt key đã nhập trên máy.')
-    'O2_INFO2'      = @('Your existing activation will NOT be harmed if the key is rejected or belongs to a different edition.',
-                         'Trạng thái kích hoạt hiện tại sẽ KHÔNG bị ảnh hưởng nếu key bị từ chối hoặc thuộc ấn bản khác.')
+    'O2_INFO1'      = @('Phase 1 (offline, instant): Key structure is checked immediately -- no network, no registry changes.',
+                         'Giai đoạn 1 (ngoại tuyến, tức thì): Cấu trúc key được kiểm tra ngay -- không mạng, không thay đổi registry.')
+    'O2_INFO2'      = @('Phase 2 (online): slmgr /ipk runs only after you confirm -- this is the real key install.',
+                         'Giai đoạn 2 (trực tuyến): slmgr /ipk chỉ chạy sau khi bạn xác nhận -- đây mới là thao tác cài key thực sự.')
     'O2_PROMPT'     = @('  Enter the new 25-character product key (XXXXX-XXXXX-XXXXX-XXXXX-XXXXX)',
                          '  Nhập Key Bản Quyền mới gồm 25 ký tự (XXXXX-XXXXX-XXXXX-XXXXX-XXXXX)')
     'O2_SHOW_KEY'   = @('Show full key in the command log?', 'Hiển thị đầy đủ key trong nhật ký lệnh?')
@@ -289,8 +291,10 @@ $Str = @{
     'O2_SUCCESS2'   = @('Check activation status with Option 1.',
                          'Kiểm tra trạng thái kích hoạt ở Tùy chọn 1.')
     'O2_FAIL'       = @('Key was rejected by Windows.', 'Key Bản Quyền bị Windows từ chối.')
-    'O2_DIAG_SKU'   = @('Diagnosis: SKU Mismatch (0xC004F069) -- key belongs to a different edition.',
-                         'Chẩn đoán: Sai SKU (0xC004F069) -- key thuộc ấn bản Windows khác.')
+    'O2_DIAG_GEN'   = @('Diagnosis: Generation Mismatch (0xC004E016) -- this key is for a different Windows generation (e.g. a Windows 8 key cannot be installed on Windows 10/11 and vice versa). Microsoft does not allow cross-generation installs via slmgr /ipk.',
+                         'Chẩn đoán: Không khớp thế hệ (0xC004E016) -- Key này dành cho thế hệ Windows khác (ví dụ: key Windows 8 không cài được trên Windows 10/11 và ngược lại). Microsoft không cho phép cài key khác thế hệ qua slmgr /ipk.')
+    'O2_DIAG_SKU'   = @('Diagnosis: Edition Mismatch (0xC004F069) -- key belongs to a different Windows edition (e.g. Home vs Pro). Use a key matching the currently installed edition.',
+                         'Chẩn đoán: Không khớp ấn bản (0xC004F069) -- key thuộc ấn bản Windows khác (ví dụ: Home và Pro). Hãy dùng key đúng ấn bản đang cài.')
     'O2_DIAG_INVALID' = @('Diagnosis: Invalid Key (0xC004F050) -- key is invalid or mistyped.',
                            'Chẩn đoán: Key không hợp lệ (0xC004F050) -- key sai hoặc nhập nhầm.')
     'O2_DIAG_BLOCKED' = @('Diagnosis: Blocked Key (0xC004C003) -- key has been blacklisted by Microsoft.',
@@ -371,6 +375,30 @@ $Str = @{
                                    'Chẩn đoán: Đang Chạy Trong Thời Gian Ân Hạn Không Chính Hãng (0xC004F065) -- Windows phát hiện bản sao này có thể không chính hãng. Kích hoạt bằng key hợp lệ trước khi hết thời gian ân hạn.')
     'O2_DIAG_KMS_CLOCK'       = @('Diagnosis: KMS Clock Skew Too Large (0xC004F06C) -- the system clock differs from the KMS server by more than 4 hours. Synchronize time by running w32tm /resync as Administrator, then retry.',
                                    'Chẩn đoán: Đồng Hồ Hệ Thống Lệch Quá Lớn So Với KMS (0xC004F06C) -- đồng hồ hệ thống chênh lệch với máy chủ KMS hơn 4 giờ. Đồng bộ hóa thời gian bằng cách chạy w32tm /resync với quyền Quản trị viên, sau đó thử lại.')
+
+    # -- Option 2 -- Key Analysis (Phase 1: Offline structure check) --
+    'O2_PIDGX_HDR'         = @('-- KEY ANALYSIS -- (Phase 1: Offline)', '-- PHÂN TÍCH KEY -- (Giai đoạn 1: Ngoại tuyến)')
+    'O2_PIDGX_ABOUT'       = @('Phase 1 -- Offline Key Analysis (instant, no network, no registry change): calls pidgenx.dll (present on all Win10/11) with pkeyconfig.xrm-ms to validate the key checksum and identify its Edition and Channel. Phase 2 (slmgr /ipk) is the final authority on whether the key actually works for this system.',
+                                'Giai đoạn 1 -- Phân tích key ngoại tuyến (tức thì, không mạng, không thay đổi registry): gọi pidgenx.dll (có sẵn trên mọi Win10/11) với pkeyconfig.xrm-ms để xác thực checksum và xác định ấn bản và kênh phân phối của key. Giai đoạn 2 (slmgr /ipk) mới là cơ quan phán quyết cuối cùng.')
+    'O2_PIDGX_EDITION'     = @('  Edition  : ', '  Ấn bản   : ')
+    'O2_PIDGX_CHANNEL'     = @('  Channel  : ', '  Kênh     : ')
+    'O2_PIDGX_CHKSUM_OK'   = @('  Format   : OK (25 alphanumeric chars, 5x5 groups)',
+                                '  Định dạng: HỢP LỆ (25 ký tự chữ-số, 5 nhóm 5)')
+    'O2_PIDGX_CHKSUM_FAIL' = @('  Format   : FAIL (must be 25 alphanumeric chars in 5x5 groups)',
+                                '  Định dạng: THẤT BẠI (phải có 25 ký tự chữ-số chia 5 nhóm 5)')
+    'O2_PIDGX_WARN_FAIL'   = @('[!] Key structure is invalid -- check length and ensure only letters/digits are used. Proceed at own risk.',
+                                '[!] Cấu trúc key không hợp lệ -- kiểm tra độ dài và đảm bảo chỉ dùng chữ cái/số. Tiếp tục theo trách nhiệm của bạn.')
+    'O2_PIDGX_SRC_PIDGENX' = @('  Source   : pidgenx.dll + pkeyconfig.xrm-ms (real key group lookup)',
+                                '  Nguồn    : pidgenx.dll + pkeyconfig.xrm-ms (tra cứu key group thực sự)')
+    'O2_PIDGX_SRC_PKC'     = @('  Source   : pidgenx.dll + pkeyconfig.xrm-ms (real key group lookup)',
+                                '  Nguồn    : pidgenx.dll + pkeyconfig.xrm-ms (tra cứu key group thực sự)')
+    'O2_PIDGX_SRC_CHK'     = @('  Source   : format check only (pidgenx.dll unavailable or key not in pkeyconfig)',
+                                '  Nguồn    : chỉ kiểm tra định dạng (pidgenx.dll không khả dụng hoặc key không trong pkeyconfig)')
+    'O2_INSTALL_ASK'       = @('Install this key now? (replaces current key + runs /ato)',
+                                'Cài đặt key này ngay? (thay key hiện tại + chạy /ato)')
+    'O2_INSPECT_ONLY'      = @('Key info noted. No changes made.', 'Đã ghi nhận thông tin key. Không có thay đổi nào được thực hiện.')
+    'O2_PROCEED_ANYWAY'    = @('Proceed with installation despite invalid format?',
+                                'Tiếp tục cài đặt dù định dạng không hợp lệ?')
 
     # =========================================================================
     # Option 3 -- Remove Activation
@@ -1345,11 +1373,13 @@ function Get-VersionInfo {
     Write-Sep
 
     # Key mismatch check
+    $isDE = $partialKey -and $genericKeys.ContainsKey($partialKey) -and -not $isVolume
     if ($regKey -and $partialKey -and -not $regKey.EndsWith($partialKey)) {
         Write-Warn (T 'O1_MISMATCH')
         Write-Data (T 'O1_ACTIVE_ENDS') $partialKey 'Yellow'
         Write-Data (T 'O1_BACKUP_ENDS') $regKey.Substring($regKey.Length - 5) 'Yellow'
         Write-Diag (T 'O1_STALE_NOTE')
+        if ($isDE) { Write-Diag (T 'O1_DE_MISMATCH_REG') }
         Write-Diag (T 'O1_ACTIVE_SAFE')
         Write-Blank
         if ($isAdmin) {
@@ -1452,6 +1482,116 @@ function Get-InstalledProductKey {
 
 
 # =============================================================================
+# OPTION 2 -- Key Analysis Helper (format + alphabet check + pkeyconfig parse)
+# =============================================================================
+# =============================================================================
+# PidGenX Key Analysis Helper
+# Calls pidgenx.dll (present in System32 on all Win10/11) via P/Invoke.
+# Falls back to format-only check if pidgenx.dll fails or pkeyconfig not found.
+# =============================================================================
+
+# Load the P/Invoke wrapper once at script startup (not inside the function)
+# so it is available across all calls without repeated Add-Type overhead.
+if (-not ([System.Management.Automation.PSTypeName]'WinLicPidGenX').Type) {
+    try {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public class WinLicPidGenX {
+    [DllImport("pidgenx.dll", CharSet=CharSet.Unicode, CallingConvention=CallingConvention.StdCall)]
+    public static extern int PidGenX(
+        string productKey, string pkeyConfigPath, string pkeyConfigPath2,
+        string groupId,
+        IntPtr pProductId, IntPtr pDigPid, IntPtr pDigPid4);
+}
+'@ -ErrorAction Stop
+    } catch { <# pidgenx.dll P/Invoke compile failed -- will fall back #> }
+}
+
+function Invoke-PidGenXCheck {
+    param([string]$Key)
+
+    $result = [pscustomobject]@{
+        Valid      = $false
+        Edition    = ''
+        Channel    = ''
+        GroupId    = ''
+        SourceNote = 'checksum-only'
+    }
+
+    # -- Tier 1: Structural format check ------------------------------------
+    # Only check: 25 alphanumeric chars (A-Z, 0-9) in 5x5 layout.
+    # Do NOT apply the Base-24 encoding alphabet as a filter -- keys from
+    # different licensing channels (Win 7, 8, OEM, MAK, BIOS-embedded) can
+    # legitimately contain characters like N, A, E, I, O, S, etc.
+    # slmgr /ipk is the sole arbiter of real key validity.
+    $stripped = $Key.ToUpper() -replace '-', ''
+    if ($stripped.Length -ne 25) { return $result }
+
+    $allValid = $true
+    foreach ($ch in $stripped.ToCharArray()) {
+        if ($ch -notmatch '[A-Z0-9]') { $allValid = $false; break }
+    }
+    $result.Valid = $allValid
+    if (-not $result.Valid) { return $result }
+
+    # -- Tier 2: Real pidgenx.dll P/Invoke call ----------------------------
+    # pidgenx.dll lives at %windir%\System32\pidgenx.dll on ALL Win10/11.
+    # pkeyconfig.xrm-ms is at %windir%\System32\spp\tokens\pkeyconfig\
+    # (NOT in the old \pkeys\ subdirectory which no longer exists).
+    $pkcPath = "$env:SystemRoot\System32\spp\tokens\pkeyconfig\pkeyconfig.xrm-ms"
+    $pidgenxType = try { [WinLicPidGenX] } catch { $null }
+
+    if ($pidgenxType -and (Test-Path $pkcPath)) {
+        $bufSize = 1024
+        $pPid   = [System.Runtime.InteropServices.Marshal]::AllocHGlobal($bufSize)
+        $pDpid  = [System.Runtime.InteropServices.Marshal]::AllocHGlobal($bufSize)
+        $pDpid4 = [System.Runtime.InteropServices.Marshal]::AllocHGlobal($bufSize)
+        try {
+            # Zero-initialize buffers
+            $zeros = New-Object byte[] $bufSize
+            [System.Runtime.InteropServices.Marshal]::Copy($zeros, 0, $pPid,   $bufSize)
+            [System.Runtime.InteropServices.Marshal]::Copy($zeros, 0, $pDpid,  $bufSize)
+            [System.Runtime.InteropServices.Marshal]::Copy($zeros, 0, $pDpid4, $bufSize)
+
+            $hr = [WinLicPidGenX]::PidGenX(
+                $Key, $pkcPath, $pkcPath, '',
+                $pPid, $pDpid, $pDpid4)
+
+            if ($hr -eq 0) {
+                # Key recognized by pkeyconfig -- extract channel from DigPid4 buffer
+                $buf = New-Object byte[] $bufSize
+                [System.Runtime.InteropServices.Marshal]::Copy($pDpid4, $buf, 0, $bufSize)
+                $dpid4Str = [System.Text.Encoding]::Unicode.GetString($buf)
+
+                $channel = ''
+                foreach ($ch in @('OEM:DM','OEM:NONSLP','OEM:SLP','Retail','Volume:GVLK','Volume:MAK','Volume:CSVLK')) {
+                    if ($dpid4Str.IndexOf($ch, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                        $channel = $ch; break
+                    }
+                }
+                $result.Channel    = $channel
+                $result.SourceNote = 'pidgenx'
+                # result.Valid is already true from Tier 1
+            } else {
+                # pidgenx.dll ran but rejected the key (wrong key group / invalid)
+                $result.Valid      = $false
+                $result.SourceNote = 'pidgenx-rejected'
+            }
+        } catch {
+            <# P/Invoke call failed at runtime -- fall through to format-only #>
+        } finally {
+            [System.Runtime.InteropServices.Marshal]::FreeHGlobal($pPid)
+            [System.Runtime.InteropServices.Marshal]::FreeHGlobal($pDpid)
+            [System.Runtime.InteropServices.Marshal]::FreeHGlobal($pDpid4)
+        }
+    }
+
+    return $result
+}
+
+
+# =============================================================================
 # OPTION 2 -- Test & Install New Product Key
 # =============================================================================
 function Test-ProductKey {
@@ -1502,14 +1642,68 @@ function Test-ProductKey {
     $rawKey = Read-Host (T 'O2_PROMPT')
     $key    = $rawKey.Trim().ToUpper()
 
+    if ($key.Length -eq 0) {
+        Write-Warn (T 'O2_CANCEL')
+        return
+    }
+
+    # Basic format check: XXXXX-XXXXX-XXXXX-XXXXX-XXXXX (alphanumeric).
+    # Do NOT restrict to the Base-24 alphabet here — keys with unexpected
+    # characters (e.g. N) should reach the analysis phase so the user gets
+    # the Format-FAIL warning + "proceed anyway?" prompt, not a hard stop.
     if ($key -notmatch '^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$') {
         Write-Fail (T 'O2_BADFMT')
         return
     }
 
+    # ── PHASE 1: PidGenX / Checksum pre-verification ────────────────────────
+    Write-Blank
+    Write-Sep
+    Write-Step (T 'O2_PIDGX_HDR')
+    Write-Diag (T 'O2_PIDGX_ABOUT')
+    Write-Blank
+
+    $pidResult = Invoke-PidGenXCheck -Key $key
+
+    if ($pidResult.Valid) {
+        Write-OK   (T 'O2_PIDGX_CHKSUM_OK')
+    } else {
+        Write-Fail (T 'O2_PIDGX_CHKSUM_FAIL')
+    }
+
+    if ($pidResult.Channel -ne '') {
+        Write-Host ((T 'O2_PIDGX_CHANNEL') + $pidResult.Channel) -ForegroundColor Cyan
+    }
+    if ($pidResult.Edition -ne '') {
+        Write-Host ((T 'O2_PIDGX_EDITION') + $pidResult.Edition) -ForegroundColor Cyan
+    }
+    switch ($pidResult.SourceNote) {
+        'pidgenx'          { Write-Info (T 'O2_PIDGX_SRC_PIDGENX') }
+        'pidgenx-rejected' { Write-Info (T 'O2_PIDGX_SRC_PIDGENX') }
+        default            { Write-Info (T 'O2_PIDGX_SRC_CHK') }
+    }
+    Write-Sep
+    Write-Blank
+
+    # If checksum failed, ask if user still wants to proceed
+    if (-not $pidResult.Valid) {
+        Write-Warn (T 'O2_PIDGX_WARN_FAIL')
+        if (-not (Ask-YesNo (T 'O2_PROCEED_ANYWAY'))) {
+            Write-Info (T 'O2_INSPECT_ONLY')
+            return
+        }
+        Write-Blank
+    }
+
+    # ── PHASE 2: Ask whether to actually install ────────────────────────────
+    if (-not (Ask-YesNo (T 'O2_INSTALL_ASK'))) {
+        Write-Info (T 'O2_INSPECT_ONLY')
+        return
+    }
+
     $displayKey = if (Ask-YesNo (T 'O2_SHOW_KEY')) { $key } else { Mask-Key $key }
 
-    # Confirmation before installing — require typing OK
+    # Confirmation before installing -- require typing OK
     Write-Blank
     Write-Sep
     Write-Warn (T 'O2_CONFIRM_HDR')
@@ -1543,6 +1737,7 @@ function Test-ProductKey {
     if ($fullOut -match 'Error:' -or $fullOut -match '0x') {
         Write-Fail (T 'O2_FAIL')
         if      ($fullOut -match '0x80070005') { Write-Warn (T 'O2_DIAG_ACCESS_DENIED') }
+        elseif  ($fullOut -match '0xC004E016') { Write-Warn (T 'O2_DIAG_GEN') }
         elseif  ($fullOut -match '0xC004F069') { Write-Warn (T 'O2_DIAG_SKU') }
         elseif  ($fullOut -match '0xC004F050') { Write-Warn (T 'O2_DIAG_INVALID') }
         elseif  ($fullOut -match '0xC004C003') { Write-Warn (T 'O2_DIAG_BLOCKED') }
@@ -1608,6 +1803,8 @@ function Test-ProductKey {
     }
     Write-Blank
 }
+
+
 
 # =============================================================================
 # OPTION 3 -- Remove Activation
