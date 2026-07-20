@@ -600,7 +600,7 @@ namespace WinLicApp
                                         "authority on whether the key actually works for this system.",
                                         "Giai đoạn 1 — Phân tích key ngoại tuyến (tức thì, không mạng, không thay đổi registry): " +
                                         "gọi pidgenx.dll (có sẵn trên mọi Win10/11) với pkeyconfig.xrm-ms để xác thực checksum " +
-                                        "và xác định kênh phân phối của key. Giai đoạn 2 (slmgr /ipk) mới là cơ quan phán quyết cuối cùng."),
+                                        "và xác định kênh phân phối của key. Giai đoạn 2 (slmgr /ipk) mới là bước kiểm tra thực sự quyết định key có hoạt động trên hệ thống này không."),
             ["O2_PIDGX_HDR"]         = ("-- KEY ANALYSIS -- (Phase 1: Offline)",
                                         "-- PHÂN TÍCH KEY -- (Giai đoạn 1: Ngoại tuyến)"),
             ["O2_PIDGX_VALID"]       = ("Format   : OK (25 alphanumeric chars, 5x5 groups, recognized by pidgenx)",
