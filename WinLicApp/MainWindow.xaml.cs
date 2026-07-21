@@ -56,6 +56,7 @@ namespace WinLicApp
 
         private readonly bool _isAdmin;
         private bool _firstAction = true;
+        private Button? _activeButton;
 
         // Session log temp file — used to preserve log across elevation relaunches.
         // %TEMP% resolves to the current user's private temp folder
@@ -102,6 +103,36 @@ namespace WinLicApp
                 double deficit  = naturalH - e.NewSize.Height;
                 if (deficit > 2) this.Height += deficit + 40;
             };
+        }
+
+        private void CollapseAllPanels()
+        {
+            KeyEntryPanel.Visibility       = Visibility.Collapsed;
+            DlvPanel.Visibility            = Visibility.Collapsed;
+            RemoveConfirmPanel.Visibility  = Visibility.Collapsed;
+            RearmPanel.Visibility          = Visibility.Collapsed;
+            KmsPanel.Visibility            = Visibility.Collapsed;
+            ChangeChannelPanel.Visibility  = Visibility.Collapsed;
+            KmsSettingsPanel.Visibility    = Visibility.Collapsed;
+        }
+
+        private static readonly System.Windows.Media.SolidColorBrush ActiveBorderBrush =
+            new(System.Windows.Media.Color.FromRgb(0x7c, 0x3a, 0xed));
+
+        private void SetActiveButton(Button? btn)
+        {
+            // Reset previous
+            if (_activeButton != null)
+            {
+                _activeButton.BorderThickness = new Thickness(0);
+                _activeButton.BorderBrush     = null;
+            }
+            _activeButton = btn;
+            if (btn != null)
+            {
+                btn.BorderThickness = new Thickness(3, 0, 0, 0);
+                btn.BorderBrush     = ActiveBorderBrush;
+            }
         }
 
 
@@ -543,6 +574,7 @@ namespace WinLicApp
         // =========================================================================
         private void BtnVersionInfo_Click(object sender, RoutedEventArgs e)
         {
+            CollapseAllPanels(); SetActiveButton(BtnVersionInfo);
             LogAction("Act1");
             ShowSystemInfo();
 
@@ -566,6 +598,28 @@ namespace WinLicApp
             BtnDlvRun.Content    = L.Get("DLV_RUN");
             DlvPanel.Visibility  = Visibility.Visible;
             EnsurePanelFits(DlvPanel);
+        }
+
+        private void RunPidGenXAnalysis(string key)
+        {
+            var (valid, channel, edition, _, winVer) = CheckKeyChecksum(key);
+            bool pkcPresent = System.IO.File.Exists(PkcPath);
+            if (valid && !string.IsNullOrEmpty(channel))
+            {
+                LogInfo(L.Get("OemPid_Channel") + channel);
+                if (!string.IsNullOrEmpty(edition)) LogInfo(L.Get("OemPid_Edition") + edition);
+                if (!string.IsNullOrEmpty(winVer))  LogInfo(L.Get("OemPid_WinVer")  + winVer);
+                LogInfo(L.Get("O2_PIDGX_SRC_PIDGENX"));
+            }
+            else if (!valid && pkcPresent)
+            {
+                LogWarn(L.Get("OemPid_Rejected"));
+                LogInfo(L.Get("O2_PIDGX_SRC_PIDGENX"));
+            }
+            else
+            {
+                LogInfo(L.Get("OemPid_FormatOnly"));
+            }
         }
 
         private void ShowSystemInfo(bool warnBeforeReplace = false)
@@ -651,7 +705,12 @@ namespace WinLicApp
                             LogDE(L.Get("DE_Confirmed"));
                             LogDiag(L.Get("DE_Explain1"));
                             LogDiag(L.Get("DE_Explain2"));
-                            LogDiag(L.Get("DE_Explain3"));
+                            bool isGenericKey = partialKey != null
+                                && AppSettings.AllGenericKeySuffixes.Contains(partialKey);
+                            if (isGenericKey)
+                                LogDiag(L.Get("DE_Explain3"));
+                            else
+                                LogDiag(L.Get("DE_Explain3_Real"));
                             LogDiag(L.Get("DE_KeyMismatch"));
                             LogDiag(L.Get("DE_Verify"));
                         }
@@ -691,29 +750,8 @@ namespace WinLicApp
                 // Show key inline immediately after detection
                 LogKey(L.Get("O3_KeyBios") + (showFull ? oemKey! : MaskKey(oemKey!)));
 
-                // Run pidgenx Phase 1 analysis on OEM key (same CheckKeyChecksum as Option 2)
                 LogFetch(L.Get("Fetch_OemPidGenX"));
-                var (oemValid, oemChannel, oemEdition, _, oemWinVer) = CheckKeyChecksum(oemKey!);
-                bool pkcPresent = System.IO.File.Exists(PkcPath);
-                if (oemValid && !string.IsNullOrEmpty(oemChannel))
-                {
-                    // pidgenx recognized the key — show channel/edition/winver
-                    LogInfo(L.Get("OemPid_Channel") + oemChannel);
-                    if (!string.IsNullOrEmpty(oemEdition)) LogInfo(L.Get("OemPid_Edition") + oemEdition);
-                    if (!string.IsNullOrEmpty(oemWinVer))  LogInfo(L.Get("OemPid_WinVer")  + oemWinVer);
-                    LogInfo(L.Get("O2_PIDGX_SRC_PIDGENX"));
-                }
-                else if (!oemValid && pkcPresent)
-                {
-                    // pkeyconfig present but pidgenx rejected (pre-Win10 OEM key)
-                    LogWarn(L.Get("OemPid_Rejected"));
-                    LogInfo(L.Get("O2_PIDGX_SRC_PIDGENX"));
-                }
-                else
-                {
-                    // pkeyconfig absent — format check only, no gate
-                    LogInfo(L.Get("OemPid_FormatOnly"));
-                }
+                RunPidGenXAnalysis(oemKey!);
             }
 
             // ── Registry backup key (inline display) ──────────────────────────────
@@ -721,7 +759,11 @@ namespace WinLicApp
             bool hasReg = !string.IsNullOrWhiteSpace(regKey);
             LogData(L.Get("D_RegBackupKey"), hasReg ? L.Get("O3_BiosDetected") : L.Get("O3_RegNone"));
             if (hasReg)
+            {
                 LogKey(L.Get("O3_KeyReg") + (showFull ? regKey! : MaskKey(regKey!)));
+                LogFetch(L.Get("Fetch_RegPidGenX"));
+                RunPidGenXAnalysis(regKey!);
+            }
 
             // ── Installed Key (DigitalProductId decoder, inline display) ──────────
             LogBlank();
@@ -740,7 +782,11 @@ namespace WinLicApp
             LogData(L.Get("D_InstalledKey"),
                     hasInstalled ? L.Get("O3_BiosDetected") : L.Get("O3_RegNone"));
             if (hasInstalled)
+            {
                 LogKey(L.Get("O3_KeyInstalled") + (showFull ? installedKey! : MaskKey(installedKey!)));
+                LogFetch(L.Get("Fetch_InstPidGenX"));
+                RunPidGenXAnalysis(installedKey!);
+            }
 
             // ── Save-key advisory (inline, right after installed key display) ──────
             // Suppress only for DE (generic placeholder) and KMS (volume key).
@@ -1041,6 +1087,7 @@ namespace WinLicApp
         // =========================================================================
         private void BtnTestKey_Click(object sender, RoutedEventArgs e)
         {
+            CollapseAllPanels(); SetActiveButton(BtnTestKey);
             if (!RequireAdmin()) return;
 
             // Log the action header and pre-arm info to output FIRST
@@ -1445,12 +1492,46 @@ namespace WinLicApp
         // =========================================================================
         private void BtnRemoveLicense_Click(object sender, RoutedEventArgs e)
         {
+            CollapseAllPanels(); SetActiveButton(BtnRemoveLicense);
             if (!RequireAdmin()) return;
 
             // Log the action header and pre-arm warnings to output FIRST
             LogAction("Act3");
             LogWarn(L.Get("O3_Remove_Warn1"));
             LogWarn(L.Get("O3_Remove_Warn2"));
+            LogBlank();
+
+            // Show current key info so user can save it before removal
+            string? currentPartial = null;
+            try
+            {
+                using var licRes = WmiQuery(
+                    "SELECT PartialProductKey FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL AND Name LIKE 'Windows%'");
+                if (licRes != null)
+                    foreach (ManagementObject obj in licRes)
+                    { currentPartial = obj["PartialProductKey"]?.ToString(); break; }
+            }
+            catch { }
+
+            string? currentInstalled = null;
+            try
+            {
+                using var rk = Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+                if (rk?.GetValue("DigitalProductId") is byte[] dpId)
+                    currentInstalled = DecodeProductKeyWin8AndUp(dpId);
+            }
+            catch { }
+
+            if (!string.IsNullOrWhiteSpace(currentInstalled))
+            {
+                LogData(L.Get("D_InstalledKey"),
+                    ShowFullKey ? currentInstalled : MaskKey(currentInstalled));
+                bool isDE = currentPartial != null
+                    && AppSettings.AllGenericKeySuffixes.Contains(currentPartial);
+                if (!isDE)
+                    LogWarn(L.Get("O2_SAVE_KEY_WARN"));
+            }
             LogBlank();
 
             // Populate panel text (localized)
@@ -1471,6 +1552,7 @@ namespace WinLicApp
 
         private void BtnRemoveCancel_Click(object sender, RoutedEventArgs e)
         {
+            SetActiveButton(null);
             RemoveConfirmPanel.Visibility = Visibility.Collapsed;
             LogInfo(L.Get("O3_Cancelled"));
         }
@@ -1513,6 +1595,7 @@ namespace WinLicApp
         // =========================================================================
         private void BtnResetActivation_Click(object sender, RoutedEventArgs e)
         {
+            CollapseAllPanels(); SetActiveButton(BtnResetActivation);
             if (!RequireAdmin()) return;
 
             // WMI always has the live count; registry key only appears after first rearm
@@ -1563,6 +1646,7 @@ namespace WinLicApp
 
         private void BtnRpCancel_Click(object sender, RoutedEventArgs e)
         {
+            SetActiveButton(null);
             RearmPanel.Visibility = Visibility.Collapsed;
             LogInfo(L.Get("R4_CANCELLED"));
         }
@@ -1599,6 +1683,7 @@ namespace WinLicApp
         // =========================================================================
         private void BtnPiracyCheck_Click(object sender, RoutedEventArgs e)
         {
+            CollapseAllPanels(); SetActiveButton(BtnPiracyCheck);
             LogAction("Act5");
 
             // ── Verbose preamble: what this scan covers ────────────────────────
@@ -2332,6 +2417,7 @@ namespace WinLicApp
 
         private void BtnKmsActivate_Click(object sender, RoutedEventArgs e)
         {
+            CollapseAllPanels(); SetActiveButton(BtnKmsActivate);
             if (!RequireAdmin()) return;
 
             // Log pre-arm to main output
@@ -2441,7 +2527,7 @@ namespace WinLicApp
                     _kmsGvlkNeeded = true;
                     _kmsGvlkKey    = gvlkKey;
                     KmsGvlkLabel.Text = L.Get("O8KMS_GVLK_FOUND_KEY") + "  " + gvlkEdition;
-                    KmsGvlkKey.Text   = gvlkKey;
+                    KmsGvlkKey.Text   = ShowFullKey ? gvlkKey : MaskKey(gvlkKey);
                     KmsGvlkSection.Visibility = Visibility.Visible;
                     EnsurePanelFits(KmsPanel);
                 }
@@ -2644,6 +2730,7 @@ namespace WinLicApp
 
         private void BtnKmsCancel_Click(object sender, RoutedEventArgs e)
         {
+            SetActiveButton(null);
             KmsPanel.Visibility = Visibility.Collapsed;
             LogInfo(L.Get("O8KMS_CANCELED"));
         }
@@ -2656,6 +2743,7 @@ namespace WinLicApp
 
         private void BtnChangeChannel_Click(object sender, RoutedEventArgs e)
         {
+            CollapseAllPanels(); SetActiveButton(BtnChangeChannel);
             if (!RequireAdmin()) return;
 
             LogAction("Act6");
@@ -2742,7 +2830,7 @@ namespace WinLicApp
             if (_chGvlkKey != null)
             {
                 ChGvlkLabel.Text        = L.Get("O6CH_GVLK_LABEL") + "  " + gvlkEdition;
-                ChGvlkKey.Text          = _chGvlkKey;
+                ChGvlkKey.Text          = ShowFullKey ? _chGvlkKey : MaskKey(_chGvlkKey);
                 ChGvlkConfirmLabel.Text = L.Get("O6CH_GVLK_CONFIRM");
                 ChGvlkSection.Visibility = Visibility.Visible;
                 BtnChProceed.IsEnabled   = true;
@@ -2770,6 +2858,7 @@ namespace WinLicApp
 
         private void BtnChCancel_Click(object sender, RoutedEventArgs e)
         {
+            SetActiveButton(null);
             ChangeChannelPanel.Visibility = Visibility.Collapsed;
             LogInfo(L.Get("O6CH_CANCELLED"));
         }
@@ -2836,6 +2925,7 @@ namespace WinLicApp
 
         private void BtnKmsSettings_Click(object sender, RoutedEventArgs e)
         {
+            CollapseAllPanels(); SetActiveButton(BtnKmsSettings);
             LogAction("Act7");
             LogInfo(L.Get("O7KMS_DESC"));
             LogBlank();
@@ -2957,6 +3047,7 @@ namespace WinLicApp
 
         private void BtnKs7Close_Click(object sender, RoutedEventArgs e)
         {
+            SetActiveButton(null);
             KmsSettingsPanel.Visibility = Visibility.Collapsed;
         }
     }

@@ -109,6 +109,10 @@ namespace WinLicApp
             ["D_InstalledKey"]   = ("Installed Key:",        "Key Đã cài đặt:"),
             ["Fetch_InstalledKey"] = ("Decoding installed key from registry…",
                                       "Đang giải mã Key Bản Quyền từ Registry…"),
+            ["Fetch_RegPidGenX"]  = ("Analyzing Registry Backup Key via pidgenx...",
+                                     "Đang phân tích Key Dự phòng qua pidgenx..."),
+            ["Fetch_InstPidGenX"] = ("Analyzing Installed Key via pidgenx...",
+                                     "Đang phân tích Key Đã Cài Đặt qua pidgenx..."),
 
             // ── BIOS OEM key inline pidgenx analysis ──────────────────────────────────────
             ["Fetch_OemPidGenX"]    = ("Running Phase 1 analysis on BIOS OEM key…",
@@ -139,10 +143,16 @@ namespace WinLicApp
                                       "Windows được kích hoạt qua Digital Entitlement lưu trên máy chủ Microsoft."),
             ["DE_Explain2"]         = ("Bound to your hardware fingerprint and Microsoft Account.",
                                       "Gắn với dấu vân tay phần cứng và tài khoản Microsoft của bạn."),
-            ["DE_Explain3"]         = ("The active key is a generic placeholder -- the actual entitlement lives in the cloud.",
-                                      "Key đang dùng là key chung thay thế -- quyền kích hoạt thực sự nằm trên cloud."),
-            ["DE_KeyMismatch"]      = ("The BIOS OEM key and Registry Backup key may differ from the active key. The Registry Backup key (BackupProductKeyDefault) is a pre-existing value placed by Windows Setup, OEM provisioning, or a prior upgrade -- it is NOT the key displaced by your most recent install. slmgr /ipk does not reliably update this value. You may be seeing it for the first time because WinLic reads and exposes it.",
-                                       "Key OEM BIOS v\u00e0 Key D\u1ef1 ph\u00f2ng c\u00f3 th\u1ec3 kh\u00e1c Key \u0111ang d\u00f9ng. Key D\u1ef1 ph\u00f2ng (BackupProductKeyDefault) l\u00e0 gi\u00e1 tr\u1ecb c\u00f3 s\u1eb5n t\u1eeb tr\u01b0\u1edbc, \u0111\u01b0\u1ee3c \u0111\u1eb7t b\u1edfi Windows Setup, OEM, ho\u1eb7c l\u1ea7n n\u00e2ng c\u1ea5p tr\u01b0\u1edbc -- KH\u00d4NG ph\u1ea3i key b\u1ecb thay th\u1ebf trong l\u1ea7n c\u00e0i \u0111\u1eb7t v\u1eeba r\u1ed3i. slmgr /ipk kh\u00f4ng c\u1eadp nh\u1eadt gi\u00e1 tr\u1ecb n\u00e0y m\u1ed9t c\u00e1ch \u0111\u00e1ng tin c\u1eady. \u0110\u00e2y c\u00f3 th\u1ec3 l\u00e0 l\u1ea7n \u0111\u1ea7u ti\u00ean b\u1ea1n th\u1ea5y n\u00f3 v\u00ec WinLic \u0111\u1ecdc v\u00e0 hi\u1ec3n th\u1ecb n\u00f3."),
+            ["DE_Explain3"]         = ("The active key is a generic placeholder — the actual entitlement lives in the cloud.",
+                                      "Key đang dùng là key chung thay thế — quyền kích hoạt thực sự nằm trên cloud."),
+            ["DE_Explain3_Real"]    = ("The installed key appears to be a real retail/OEM key — not a generic placeholder. " +
+                                      "Microsoft likely cloud-assigned a Digital Entitlement tied to your hardware and account, " +
+                                      "while the original key was preserved.",
+                                      "Key đã cài đặt có vẻ là key thực (bán lẻ/OEM) — không phải key chung thay thế. " +
+                                      "Microsoft có thể đã gán Digital Entitlement qua đám mây gắn với phần cứng " +
+                                      "và tài khoản của bạn, trong khi key gốc được giữ nguyên."),
+            ["DE_KeyMismatch"]      = ("The BIOS OEM key and Registry Backup key may differ from the active key. The Registry Backup key (BackupProductKeyDefault) is a pre-existing value placed by Windows Setup, OEM provisioning, or a prior upgrade — it is NOT the key displaced by your most recent install. slmgr /ipk does not reliably update this value. You may be seeing it for the first time because WinLic reads and exposes it.",
+                                       "Key OEM BIOS và Key Dự phòng có thể khác Key đang dùng. Key Dự phòng (BackupProductKeyDefault) là giá trị có sẵn từ trước, được đặt bởi Windows Setup, OEM, hoặc lần nâng cấp trước — KHÔNG phải key bị thay thế trong lần cài đặt vừa rồi. slmgr /ipk không cập nhật giá trị này một cách đáng tin cậy. Đây có thể là lần đầu tiên bạn thấy nó vì WinLic đọc và hiển thị nó."),
             ["DE_Verify"]           = ("To verify: Settings > System > Activation > look for Digital license",
                                       "Để xác nhận: Cài đặt > Hệ thống > Kích hoạt > tìm 'Giấy phép kỹ thuật số'"),
             ["DE_NotActivated"]     = ("Activation method:  Digital Entitlement placeholder key detected — but status is NOT Licensed.",

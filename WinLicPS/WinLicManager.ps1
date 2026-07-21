@@ -255,7 +255,6 @@ $Str = @{
                          'Giai đoạn 2 (trực tuyến): slmgr /ipk chỉ chạy sau khi bạn xác nhận -- đây mới là thao tác cài key thực sự.')
     'O2_PROMPT'     = @('  Enter the new 25-character product key (XXXXX-XXXXX-XXXXX-XXXXX-XXXXX)',
                          '  Nhập Key Bản Quyền mới gồm 25 ký tự (XXXXX-XXXXX-XXXXX-XXXXX-XXXXX)')
-    'O2_SHOW_KEY'   = @('Show full key in the command log?', 'Hiển thị đầy đủ key trong nhật ký lệnh?')
     'O2_CONFIRM_HDR' = @('CONFIRM INSTALLATION', 'XÁC NHẬN CÀI ĐẶT')
     'O2_NEW_KEY'    = @('  New key  : ', '  Key mới : ')
     'O2_REPLACES'   = @('  Replaces : ...', '  Thay thế : ...')
@@ -408,6 +407,15 @@ $Str = @{
     'O3_CLEAR'    = @('Clearing key from registry  (slmgr /cpky)...', 'Đang xóa Key Bản Quyền khỏi Registry  (slmgr /cpky)...')
     'O3_DONE'     = @('Product key uninstalled and registry cleared.',
                        'Đã gỡ cài đặt Key Bản Quyền và xóa khỏi Registry.')
+
+    'O1_DE_REAL'        = @('The installed key appears to be a real retail/OEM key -- not a generic placeholder. Microsoft likely cloud-assigned a Digital Entitlement tied to your hardware and account, while the original key was preserved.',
+                        'Key đã cài đặt có vẻ là key thực (bán lẻ/OEM) -- không phải key chung thay thế. Microsoft có thể đã gán Digital Entitlement qua đám mây gắn với phần cứng và tài khoản của bạn, trong khi key gốc được giữ nguyên.')
+    'O1_REG_PIDGENX'    = @('Analyzing Registry Backup Key via pidgenx...', 'Đang phân tích Key Dự phòng qua pidgenx...')
+    'O1_INST_PIDGENX'   = @('Analyzing Installed Key via pidgenx...', 'Đang phân tích Key Đã Cài Đặt qua pidgenx...')
+    'O3_CURRENT_KEY'    = @('Current installed key:', 'Key đang cài đặt:')
+    'O3_SAVE_WARN'      = @('This appears to be a unique Retail / MAK / OEM key. Save it now before removing -- you will NOT be able to recover it afterwards.',
+                            'Đây có vẻ là key Retail / MAK / OEM riêng. Hãy lưu lại trước khi gỡ -- bạn sẽ KHÔNG thể khôi phục sau này.')
+
 
     # =========================================================================
     # Option 4 -- Reset Activation (Rearm)
@@ -1117,6 +1125,21 @@ function Resolve-KmsHost {
     }
 }
 
+$script:showFullKeys = $null
+
+function Get-ShowFullKeys {
+    if ($null -eq $script:showFullKeys) {
+        $script:showFullKeys = Ask-YesNo (T 'O1_SHOWFULL')
+    }
+    return $script:showFullKeys
+}
+
+function Display-Key {
+    param([string]$key)
+    if (Get-ShowFullKeys) { return $key }
+    return Mask-Key $key
+}
+
 function Mask-Key {
     param([string]$key)
     if ($key.Length -lt 5) { return $key }
@@ -1288,14 +1311,19 @@ function Show-SystemInfo {
 
         Write-Blank
         $isVolume = $activeProduct.Description -match 'VOLUME_KMSCLIENT'
-        if ($genericKeys.ContainsKey($partialKey) -and $activeProduct.LicenseStatus -eq 1 -and -not $isVolume) {
+        $isMak = $activeProduct.Description -match 'VOLUME_MAK'
+        if (-not $isVolume -and -not $isMak -and $activeProduct.LicenseStatus -eq 1) {
             Write-DE   (T 'O1_DE_OK')
             Write-Diag ('Channel: ' + $activeProduct.Description)
             Write-Diag (T 'O1_DE_1')
             Write-Diag (T 'O1_DE_2')
-            Write-Diag (T 'O1_DE_3')
+            if ($genericKeys.ContainsKey($partialKey)) {
+                Write-Diag (T 'O1_DE_3')
+            } else {
+                Write-Diag (T 'O1_DE_REAL')
+            }
             Write-Diag (T 'O1_DE_VFY')
-        } elseif ($activeProduct.Description -match 'VOLUME_KMSCLIENT') {
+        } elseif ($isVolume) {
             Write-OK  (T 'O1_KMS_OK')
             $kmsHost = $activeProduct.KeyManagementServiceMachine
             if ($kmsHost) { Write-Data (T 'O1_LBL_KMS') $kmsHost 'Cyan' }
@@ -1320,9 +1348,7 @@ function Show-SystemInfo {
     # -- Determine display mode (ask once, apply to all three keys) -----------
     # In Option 1: ask user. In Option 2 (WarnBeforeReplace): always show partial only.
     if ($WarnBeforeReplace) {
-        $showFull = $false
-    } else {
-        $showFull = Ask-YesNo (T 'O1_SHOWFULL')
+        $script:showFullKeys = $false
     }
 
     # -- 1c. BIOS OEM Key (inline display + pidgenx analysis) -----------------
@@ -1335,8 +1361,7 @@ function Show-SystemInfo {
 
     if ($oemKey) {
         Write-OK (T 'O1_BIOS_DETECT')
-        $display = if ($showFull) { $oemKey } else { Mask-Key $oemKey }
-        Write-Key ((T 'O1_KEY_BIOS') + $display)
+        Write-Key ((T 'O1_KEY_BIOS') + (Display-Key $oemKey))
 
         # PidGenX analysis on BIOS OEM key (reuses Invoke-PidGenXCheck from Option 2)
         Write-Step (T 'O1_STEP_OEM_PID')
@@ -1365,8 +1390,21 @@ function Show-SystemInfo {
     $regKey = (Get-ItemProperty -Path $regKeyPath -Name 'BackupProductKeyDefault' -ErrorAction SilentlyContinue).BackupProductKeyDefault
     if ($regKey) {
         Write-OK (T 'O1_REG_DETECT')
-        $display = if ($showFull) { $regKey } else { Mask-Key $regKey }
-        Write-Key ((T 'O1_KEY_REG') + $display)
+        Write-Key ((T 'O1_KEY_REG') + (Display-Key $regKey))
+        
+        Write-Step (T 'O1_REG_PIDGENX')
+        $regPid = Invoke-PidGenXCheck -Key $regKey
+        if ($regPid.SourceNote -eq 'pidgenx') {
+            if ($regPid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $regPid.Channel) }
+            if ($regPid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $regPid.Edition) }
+            if ($regPid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $regPid.WinVersion) }
+            Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
+        } elseif ($regPid.SourceNote -eq 'pidgenx-rejected') {
+            Write-Warn (T 'O1_OEM_PID_REJECTED')
+            Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
+        } else {
+            Write-Info (T 'O1_OEM_PID_FMTONLY')
+        }
     } else {
         Write-Warn (T 'O1_REG_NONE')
     }
@@ -1377,8 +1415,21 @@ function Show-SystemInfo {
     $installedKey = Get-InstalledProductKey
     if ($installedKey) {
         Write-OK (T 'O1_INST_OK')
-        $display = if ($showFull) { $installedKey } else { Mask-Key $installedKey }
-        Write-Key ((T 'O1_KEY_INST') + $display)
+        Write-Key ((T 'O1_KEY_INST') + (Display-Key $installedKey))
+        
+        Write-Step (T 'O1_INST_PIDGENX')
+        $instPid = Invoke-PidGenXCheck -Key $installedKey
+        if ($instPid.SourceNote -eq 'pidgenx') {
+            if ($instPid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $instPid.Channel) }
+            if ($instPid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $instPid.Edition) }
+            if ($instPid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $instPid.WinVersion) }
+            Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
+        } elseif ($instPid.SourceNote -eq 'pidgenx-rejected') {
+            Write-Warn (T 'O1_OEM_PID_REJECTED')
+            Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
+        } else {
+            Write-Info (T 'O1_OEM_PID_FMTONLY')
+        }
     } else {
         Write-Warn (T 'O1_INST_NO')
     }
@@ -1793,7 +1844,7 @@ function Test-ProductKey {
         return
     }
 
-    $displayKey = if (Ask-YesNo (T 'O2_SHOW_KEY')) { $key } else { Mask-Key $key }
+    $displayKey = Display-Key $key
 
     # Confirmation before installing -- require typing OK
     Write-Blank
@@ -1910,6 +1961,24 @@ function Remove-License {
     Write-Warn (T 'O3_WARN1')
     Write-Warn (T 'O3_WARN2')
     Write-Sep
+    Write-Blank
+
+    # Show current key so user can save it
+    try {
+        $product = Get-CimInstance -Query "SELECT PartialProductKey FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL AND Name LIKE 'Windows%'" -ErrorAction SilentlyContinue | Select-Object -First 1
+        $ppk = $product.PartialProductKey
+    } catch { $ppk = $null }
+
+    $instKey = $null
+    try { $instKey = Get-InstalledProductKey } catch {}
+
+    if ($instKey) {
+        Write-Info ((T 'O3_CURRENT_KEY') + ' ' + (Display-Key $instKey))
+        $isGeneric = $ppk -and $genericKeys.ContainsKey($ppk)
+        if (-not $isGeneric) {
+            Write-Warn (T 'O3_SAVE_WARN')
+        }
+    }
     Write-Blank
 
     if (-not (Ask-YesNo (T 'O3_CONFIRM'))) {
@@ -2786,7 +2855,7 @@ function Set-ActivationChannel {
                 Write-Warn (T 'O6CH_GVLK_NOMAP')
                 return
             }
-            Write-Info ((T 'O6CH_GVLK_LABEL') + " " + $gvlk)
+            Write-Info ((T 'O6CH_GVLK_LABEL') + " " + (Display-Key $gvlk))
             $ok = (Read-Host (T 'O8KMS_GVLK_CONFIRM')).Trim()
             if ($ok -ne 'OK') { Write-Info (T 'O6CH_CANCELLED'); return }
             
@@ -2923,7 +2992,7 @@ function Invoke-KmsActivation {
         if ($gvlkToInstall) {
             Write-Blank
             Write-Host ("  " + (T 'O8KMS_GVLK_FOUND') + "  $gvlkEdition") -ForegroundColor Yellow
-            Write-Host ("  Key: $gvlkToInstall") -ForegroundColor Cyan
+            Write-Host ("  Key: $(Display-Key $gvlkToInstall)") -ForegroundColor Cyan
             Write-Blank
             $okInput = Read-Host (T 'O8KMS_GVLK_CONFIRM')
             if ($okInput.Trim().ToUpper() -ne 'OK') {
