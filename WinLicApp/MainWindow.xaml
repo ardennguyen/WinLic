@@ -1026,11 +1026,7 @@
                                             BorderBrush="{TemplateBinding BorderBrush}"
                                             BorderThickness="1" CornerRadius="6"
                                             Padding="{TemplateBinding Padding}">
-                                        <StackPanel>
-                                            <TextBlock x:Name="FlRawTitle" FontFamily="Segoe UI Semibold" FontSize="13" Foreground="#0369a1"/>
-                                            <TextBlock x:Name="FlRawDesc" FontFamily="Segoe UI" FontSize="10.5"
-                                                       Foreground="#64748b" TextWrapping="Wrap" MaxWidth="380" Margin="0,4,0,0"/>
-                                        </StackPanel>
+                                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
@@ -1053,11 +1049,7 @@
                                             BorderBrush="{TemplateBinding BorderBrush}"
                                             BorderThickness="1" CornerRadius="6"
                                             Padding="{TemplateBinding Padding}">
-                                        <StackPanel>
-                                            <TextBlock x:Name="FlEnrichedTitle" FontFamily="Segoe UI Semibold" FontSize="13" Foreground="#047857"/>
-                                            <TextBlock x:Name="FlEnrichedDesc" FontFamily="Segoe UI" FontSize="10.5"
-                                                       Foreground="#64748b" TextWrapping="Wrap" MaxWidth="380" Margin="0,4,0,0"/>
-                                        </StackPanel>
+                                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
