@@ -6,6 +6,7 @@ using System.Linq;
 using System.Management;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -55,6 +56,7 @@ namespace WinLicApp
 
         private readonly bool _isAdmin;
         private bool _firstAction = true;
+        private Button? _activeButton;
 
         // Session log temp file — used to preserve log across elevation relaunches.
         // %TEMP% resolves to the current user's private temp folder
@@ -103,6 +105,36 @@ namespace WinLicApp
             };
         }
 
+        private void CollapseAllPanels()
+        {
+            KeyEntryPanel.Visibility       = Visibility.Collapsed;
+            DlvPanel.Visibility            = Visibility.Collapsed;
+            RemoveConfirmPanel.Visibility  = Visibility.Collapsed;
+            RearmPanel.Visibility          = Visibility.Collapsed;
+            KmsPanel.Visibility            = Visibility.Collapsed;
+            ChangeChannelPanel.Visibility  = Visibility.Collapsed;
+            KmsSettingsPanel.Visibility    = Visibility.Collapsed;
+        }
+
+        private static readonly System.Windows.Media.SolidColorBrush ActiveBorderBrush =
+            new(System.Windows.Media.Color.FromRgb(0x7c, 0x3a, 0xed));
+
+        private void SetActiveButton(Button? btn)
+        {
+            // Reset previous
+            if (_activeButton != null)
+            {
+                _activeButton.BorderThickness = new Thickness(0);
+                _activeButton.BorderBrush     = null;
+            }
+            _activeButton = btn;
+            if (btn != null)
+            {
+                btn.BorderThickness = new Thickness(3, 0, 0, 0);
+                btn.BorderBrush     = ActiveBorderBrush;
+            }
+        }
+
 
 
         // =========================================================================
@@ -115,10 +147,11 @@ namespace WinLicApp
             AppSettings.Load();
             InitializeComponent();
             HookKmsPanelResize();       // KMS panel (uses dedicated hook with identical logic)
-            HookPanelResize(DlvPanel);             // new Option 1 /dlv panel
-            HookPanelResize(RearmPanel);           // new Option 4 danger panel
-            HookPanelResize(ChangeChannelPanel);   // new Option 6 panel
-            HookPanelResize(KmsSettingsPanel);     // new Option 7 panel
+            HookPanelResize(DlvPanel);             // Option 1 /dlv panel
+            HookPanelResize(KeyEntryPanel);        // Option 2 key entry panel (PidBanner grows)
+            HookPanelResize(RearmPanel);           // Option 4 danger panel
+            HookPanelResize(ChangeChannelPanel);   // Option 6 panel
+            HookPanelResize(KmsSettingsPanel);     // Option 7 panel
 
             RefreshLanguage();
 
@@ -131,7 +164,7 @@ namespace WinLicApp
             {
                 AdminStatusText.Text       = L.Get("AdminOk");
                 AdminStatusText.Foreground = BrushOk;
-                LogInfo(string.Format(L.Get("Startup_Ready"), L.Get("About_Version")));
+                LogInfo(string.Format(L.Get("Startup_Ready"), AboutDialog.AppVersion));
             }
             else
             {
@@ -150,7 +183,7 @@ namespace WinLicApp
             Title                      = L.Get("AppTitle");
             AdminStatusText.Text       = _isAdmin ? L.Get("AdminOk") : L.Get("AdminWarn");
             AdminStatusText.Foreground = _isAdmin ? BrushOk : BrushWarn;
-            TxtAppVersion.Text         = "  " + L.Get("About_Version");
+            TxtAppVersion.Text         = "  " + AboutDialog.AppVersion;
             BtnElevate.Content         = L.Get("BtnElevate");
             BtnAbout.Content           = L.Get("BtnAbout");
 
@@ -164,6 +197,7 @@ namespace WinLicApp
             BtnKmsSettings.Content     = L.Get("Btn7");
             BtnAuditSettings.Content   = L.Get("BtnAuditSettings");
             BtnClear.Content           = L.Get("BtnClear");
+            BtnFullLog.Content         = "📋 " + L.Get("FL_BTN");
             ChkShowFullKey.Content     = L.Get("ChkShowKey");
             StatusBar.Text             = L.Get("Ready");
 
@@ -358,7 +392,7 @@ namespace WinLicApp
         private ManagementObjectCollection? WmiQuery(string wql)
         {
             try { return new ManagementObjectSearcher(wql).Get(); }
-            catch (Exception ex) { LogError("WMI: " + ex.Message); return null; }
+            catch (Exception ex) { LogError(string.Format(L.Get("P7_WmiErr"), ex.Message)); return null; }
         }
 
         // =========================================================================
@@ -372,7 +406,7 @@ namespace WinLicApp
         private string RunSlmgr(string option)
         {
             var path = SlmgrPath;
-            if (!System.IO.File.Exists(path)) { LogError("slmgr.vbs not found: " + path); return ""; }
+            if (!System.IO.File.Exists(path)) { LogError(string.Format(L.Get("Fetch_SlmgrNotFound"), path)); return ""; }
             var args = $"//nologo \"{path}\" {option}";
             LogCmd($"cscript.exe {args}");
             try
@@ -541,9 +575,61 @@ namespace WinLicApp
         // =========================================================================
         private void BtnVersionInfo_Click(object sender, RoutedEventArgs e)
         {
+            CollapseAllPanels(); SetActiveButton(BtnVersionInfo);
             LogAction("Act1");
+            ShowSystemInfo();
 
-            // ── OS information ────────────────────────────────────────────────
+            // ── slmgr /dli — License Channel info ────────────────
+            LogBlank();
+            LogSep();
+            LogFetch(L.Get("Act1_DliHeader"));
+            LogInfo(L.Get("O2_Note"));
+            LogBlank();
+            var dliOutput = RunSlmgr("/dli");
+            if (string.IsNullOrWhiteSpace(dliOutput))
+                LogWarn(L.Get("O2_NoOutput"));
+            else
+                LogSlmgrOutput(dliOutput);
+
+            // ── Extended info: slmgr /dlv — show panel instead of MessageBox ────
+            DlvTitle.Text  = L.Get("DLV_PANEL_TITLE");
+            DlvDesc1.Text  = L.Get("DLV_DESC1");
+            DlvDesc2.Text  = L.Get("DLV_DESC2");
+            BtnDlvCancel.Content = L.Get("DLV_CANCEL");
+            BtnDlvRun.Content    = L.Get("DLV_RUN");
+            DlvPanel.Visibility  = Visibility.Visible;
+            EnsurePanelFits(DlvPanel);
+        }
+
+        private void RunPidGenXAnalysis(string key)
+        {
+            var (valid, channel, edition, partNumber, winVer, oemId, sku, eulaType, isUpgrade, extPid) = CheckKeyChecksum(key);
+            bool pkcPresent = System.IO.File.Exists(PkcPath);
+            if (valid && !string.IsNullOrEmpty(channel))
+            {
+                LogInfo(L.Get("OemPid_Channel") + channel);
+                if (!string.IsNullOrEmpty(edition))    LogInfo(L.Get("OemPid_Edition") + edition);
+                if (!string.IsNullOrEmpty(partNumber))  LogInfo(L.Get("OemPid_PartNo")  + partNumber);
+                if (!string.IsNullOrEmpty(winVer))      LogInfo(L.Get("OemPid_WinVer")  + winVer);
+                if (!string.IsNullOrEmpty(oemId))       LogInfo(L.Get("OemPid_OemId")   + oemId);
+                if (!string.IsNullOrEmpty(sku))         LogInfo(L.Get("OemPid_Sku")     + sku);
+                if (!string.IsNullOrEmpty(eulaType))    LogInfo(L.Get("OemPid_EulaType")+ eulaType);
+                LogInfo(L.Get("OemPid_IsUpgrade") + (isUpgrade != 0 ? L.Get("OemPid_UpgradeYes") : L.Get("OemPid_UpgradeNo")));
+                if (!string.IsNullOrEmpty(extPid))      LogInfo(L.Get("OemPid_ExtPid")  + extPid);
+            }
+            else if (!valid && pkcPresent)
+            {
+                LogWarn(L.Get("OemPid_Rejected"));
+            }
+            else
+            {
+                LogInfo(L.Get("OemPid_FormatOnly"));
+            }
+        }
+
+        private void ShowSystemInfo(bool warnBeforeReplace = false)
+        {
+            // ── OS information ──────────────────────────────────────────────────
             LogFetch(L.Get("Fetch_OS"));
             using var osRes = WmiQuery(
                 "SELECT Caption,Version,BuildNumber,OSArchitecture FROM Win32_OperatingSystem");
@@ -556,7 +642,28 @@ namespace WinLicApp
                     LogData(L.Get("D_Arch"),        obj["OSArchitecture"]?.ToString() ?? "—");
                 }
 
-            // ── Registry backup key (read first for DE detection) ─────────────
+            // Product ID
+            try
+            {
+                using var pvRk = Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+                var pid = pvRk?.GetValue("ProductId")?.ToString();
+                if (!string.IsNullOrEmpty(pid)) LogData(L.Get("D_ProductId"), pid);
+            }
+            catch { }
+
+            // System Manufacturer (OEM)
+            using var csRes = WmiQuery("SELECT Manufacturer,Model FROM Win32_ComputerSystem");
+            if (csRes != null)
+                foreach (ManagementObject csObj in csRes)
+                {
+                    var mfr = csObj["Manufacturer"]?.ToString();
+                    var mdl = csObj["Model"]?.ToString();
+                    if (!string.IsNullOrEmpty(mfr)) LogInfo(L.Get("Sys_Manufacturer") + mfr);
+                    if (!string.IsNullOrEmpty(mdl))  LogInfo(L.Get("Sys_Model") + mdl);
+                }
+
+            // ── Registry backup key (read first for DE detection) ─────────
             LogBlank();
             LogFetch(L.Get("Fetch_RegKey"));
             string? regKey = null;
@@ -568,7 +675,7 @@ namespace WinLicApp
             }
             catch (Exception ex) { LogError(L.Get("O3_RegReadErr") + ex.Message); }
 
-            // ── Active Windows license (WMI) ──────────────────────────────────
+            // ── Active Windows license (WMI) ───────────────────
             LogFetch(L.Get("Fetch_License"));
             string? partialKey  = null;
             bool    foundActive = false;
@@ -578,7 +685,8 @@ namespace WinLicApp
 
             using var licRes = WmiQuery(
                 "SELECT Name,Description,PartialProductKey,LicenseStatus," +
-                "DiscoveredKeyManagementServiceMachineName,KeyManagementServiceCurrentCount " +
+                "DiscoveredKeyManagementServiceMachineName,KeyManagementServiceCurrentCount," +
+                "ProductKeyChannel,LicenseStatusReason,GracePeriodRemaining " +
                 "FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL");
 
             if (licRes != null)
@@ -600,31 +708,59 @@ namespace WinLicApp
                     LogData(L.Get("D_Channel"),    obj["Description"]?.ToString() ?? "—");
                     LogData(L.Get("D_PartialKey"), partialKey ?? "—");
 
+                    var keyChannel = obj["ProductKeyChannel"]?.ToString();
+                    if (!string.IsNullOrEmpty(keyChannel)) LogData(L.Get("D_ProdKeyChannel"), keyChannel);
+
                     if (isLicensed) LogOk(L.Get("O3_Activation") + LicenseStatusText(raw));
                     else            LogWarn(L.Get("O3_Activation") + LicenseStatusText(raw));
+
+                    var statusReason = obj["LicenseStatusReason"]?.ToString();
+                    if (!string.IsNullOrEmpty(statusReason) && statusReason != "0")
+                        LogData(L.Get("D_LicStatusReason"), $"0x{Convert.ToUInt32(statusReason):X8}");
+
+                    var grace = obj["GracePeriodRemaining"];
+                    if (grace != null)
+                    {
+                        var graceMin = Convert.ToInt64(grace);
+                        if (graceMin > 0)
+                            LogData(L.Get("D_GracePeriod"), string.Format(L.Get("D_GracePeriodMin"), graceMin));
+                    }
                     break;
                 }
             }
             if (!foundActive) LogWarn(L.Get("O3_NoLicense"));
 
-            // ── Activation method block ───────────────────────────────────────
+            // ── Activation method block ─────────────────────────────
             LogBlank();
             switch (activationMethod)
             {
                 case ActivationMethod.DE:
-                    if (isLicensed)
+                    if (warnBeforeReplace)
                     {
-                        LogDE(L.Get("DE_Confirmed"));
-                        LogDiag(L.Get("DE_Explain1"));
-                        LogDiag(L.Get("DE_Explain2"));
-                        LogDiag(L.Get("DE_Explain3"));
-                        LogDiag(L.Get("DE_KeyMismatch"));
-                        LogDiag(L.Get("DE_Verify"));
+                        if (isLicensed) LogDE(L.Get("DE_Confirmed"));
+                        else            LogWarn(L.Get("DE_NotActivated"));
                     }
                     else
                     {
-                        LogWarn(L.Get("DE_NotActivated"));
-                        LogDiag(L.Get("DE_Verify"));
+                        if (isLicensed)
+                        {
+                            LogDE(L.Get("DE_Confirmed"));
+                            LogDiag(L.Get("DE_Explain1"));
+                            LogDiag(L.Get("DE_Explain2"));
+                            bool isGenericKey = partialKey != null
+                                && AppSettings.AllGenericKeySuffixes.Contains(partialKey);
+                            if (isGenericKey)
+                                LogDiag(L.Get("DE_Explain3"));
+                            else
+                                LogDiag(L.Get("DE_Explain3_Real"));
+                            LogDiag(L.Get("DE_KeyMismatch"));
+                            LogDiag(L.Get("DE_Verify"));
+                        }
+                        else
+                        {
+                            LogWarn(L.Get("DE_NotActivated"));
+                            LogDiag(L.Get("DE_Verify"));
+                        }
                     }
                     break;
                 case ActivationMethod.KMS:
@@ -638,30 +774,47 @@ namespace WinLicApp
                     break;
             }
 
-            // ── BIOS OEM key ──────────────────────────────────────────────────
+            bool showFull = ShowFullKey;
+
+            // ── BIOS OEM key (inline display + pidgenx analysis) ───────────────────
             LogBlank();
             LogFetch(L.Get("Fetch_BiosKey"));
             string? oemKey = null;
-            using var svcRes = WmiQuery("SELECT OA3xOriginalProductKey FROM SoftwareLicensingService");
+            string? oa3xDesc = null;
+            using var svcRes = WmiQuery("SELECT OA3xOriginalProductKey, OA3xOriginalProductKeyDescription FROM SoftwareLicensingService");
             if (svcRes != null)
                 foreach (ManagementObject obj in svcRes)
+                {
                     oemKey = obj["OA3xOriginalProductKey"]?.ToString();
+                    oa3xDesc = obj["OA3xOriginalProductKeyDescription"]?.ToString();
+                }
 
             bool hasOem = !string.IsNullOrWhiteSpace(oemKey);
             LogData(L.Get("D_BiosOemKey"), hasOem ? L.Get("O3_BiosDetected") : L.Get("O3_BiosNone"));
             if (hasOem)
             {
-                LogFetch(L.Get("Fetch_OemEdition"));
-                var ed = IdentifyKeyEdition(oemKey!);
-                if (!string.IsNullOrEmpty(ed)) LogOk(L.Get("OemEd_Found") + "  " + ed);
-                else                           LogInfo(L.Get("OemEd_NoMatch"));
+                // Show key inline immediately after detection
+                LogKey(L.Get("O3_KeyBios") + (showFull ? oemKey! : MaskKey(oemKey!)));
+
+                if (!string.IsNullOrEmpty(oa3xDesc)) LogData(L.Get("D_OA3xDesc"), oa3xDesc);
+
+                LogFetch(L.Get("Fetch_OemPidGenX"));
+                RunPidGenXAnalysis(oemKey!);
             }
 
-            // ── Registry backup key status ────────────────────────────────────
+            // ── Registry backup key (inline display) ──────────────────────────────
+            LogBlank();
             bool hasReg = !string.IsNullOrWhiteSpace(regKey);
             LogData(L.Get("D_RegBackupKey"), hasReg ? L.Get("O3_BiosDetected") : L.Get("O3_RegNone"));
+            if (hasReg)
+            {
+                LogKey(L.Get("O3_KeyReg") + (showFull ? regKey! : MaskKey(regKey!)));
+                LogFetch(L.Get("Fetch_RegPidGenX"));
+                RunPidGenXAnalysis(regKey!);
+            }
 
-            // ── Installed Key (DigitalProductId decoder) ──────────────────────
+            // ── Installed Key (DigitalProductId decoder, inline display) ──────────
+            LogBlank();
             LogFetch(L.Get("Fetch_InstalledKey"));
             string? installedKey = null;
             try
@@ -676,18 +829,48 @@ namespace WinLicApp
             bool hasInstalled = !string.IsNullOrWhiteSpace(installedKey);
             LogData(L.Get("D_InstalledKey"),
                     hasInstalled ? L.Get("O3_BiosDetected") : L.Get("O3_RegNone"));
-
-            // ── Key reveal (driven by sidebar checkbox) ───────────────────────
-            if (hasOem || hasReg || hasInstalled)
+            if (hasInstalled)
             {
-                LogBlank();
-                bool full = ShowFullKey;
-                if (hasInstalled) LogKey(L.Get("O3_KeyInstalled") + (full ? installedKey! : MaskKey(installedKey!)));
-                if (hasOem)       LogKey(L.Get("O3_KeyBios")      + (full ? oemKey!       : MaskKey(oemKey!)));
-                if (hasReg)       LogKey(L.Get("O3_KeyReg")       + (full ? regKey!       : MaskKey(regKey!)));
+                LogKey(L.Get("O3_KeyInstalled") + (showFull ? installedKey! : MaskKey(installedKey!)));
+                LogFetch(L.Get("Fetch_InstPidGenX"));
+                RunPidGenXAnalysis(installedKey!);
             }
 
-            // ── Mismatch detection ────────────────────────────────────────────
+            // ── Original Key (pre-upgrade) ─────────────────────────────────────────
+            LogFetch(L.Get("Fetch_OrigKey"));
+            try
+            {
+                using var dpk = Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey");
+                if (dpk?.GetValue("DigitalProductId") is byte[] origDpId)
+                {
+                    var origKey = DecodeProductKeyWin8AndUp(origDpId);
+                    if (!string.IsNullOrEmpty(origKey))
+                    {
+                        LogKey(L.Get("D_OriginalKey") + (ShowFullKey ? origKey : MaskKey(origKey)));
+                        LogFetch(L.Get("Fetch_OrigPidGenX"));
+                        RunPidGenXAnalysis(origKey);
+                    }
+                }
+            }
+            catch { }
+
+            // ── Save-key advisory (inline, right after installed key display) ──────
+            // Suppress only for DE (generic placeholder) and KMS (volume key).
+            // Do NOT suppress based on GVLK table match alone — a user may have a GVLK
+            // placeholder installed on a Standard-activated system and still need to save it.
+            bool saveKeyWarnNeeded = false;
+            if (warnBeforeReplace && hasInstalled)
+            {
+                bool isDE  = activationMethod == ActivationMethod.DE;
+                bool isKms = activationMethod == ActivationMethod.KMS;
+                saveKeyWarnNeeded = !isDE && !isKms;
+            }
+            if (saveKeyWarnNeeded)
+                LogWarn(L.Get("O2_SAVE_KEY_WARN"));
+            _saveKeyWarnNeeded = saveKeyWarnNeeded;
+
+            // ── Mismatch detection ────────────────────────────────────────────────
             if (hasReg && !string.IsNullOrEmpty(partialKey))
             {
                 LogBlank();
@@ -721,27 +904,6 @@ namespace WinLicApp
                 }
                 else { LogOk(L.Get("O3_KeyMatch")); }
             }
-
-            // ── slmgr /dli — License Channel info ────────────────────────────
-            LogBlank();
-            LogSep();
-            LogFetch(L.Get("Act1_DliHeader"));
-            LogInfo(L.Get("O2_Note"));
-            LogBlank();
-            var dliOutput = RunSlmgr("/dli");
-            if (string.IsNullOrWhiteSpace(dliOutput))
-                LogWarn(L.Get("O2_NoOutput"));
-            else
-                LogSlmgrOutput(dliOutput);
-
-            // ── Extended info: slmgr /dlv — show panel instead of MessageBox ────
-            DlvTitle.Text  = L.Get("DLV_PANEL_TITLE");
-            DlvDesc1.Text  = L.Get("DLV_DESC1");
-            DlvDesc2.Text  = L.Get("DLV_DESC2");
-            BtnDlvCancel.Content = L.Get("DLV_CANCEL");
-            BtnDlvRun.Content    = L.Get("DLV_RUN");
-            DlvPanel.Visibility  = Visibility.Visible;
-            EnsurePanelFits(DlvPanel);
         }
 
 
@@ -760,11 +922,254 @@ namespace WinLicApp
 
 
         // =========================================================================
+        // Option 2 — PidGenX key analysis
+        // Tier 1: format check (25 alphanum chars, 5×5).
+        // Tier 2: real PidGenX P/Invoke with correct struct layout.
+        //         Struct fix: all string fields in DigitalProductId2/4 are WCHAR.
+        //         Third param is MPC ("12345"), NOT the pkeyconfig path repeated.
+        //         Confirmed working on Win10/11 from live testing.
+        // No side effects, no network, no key replacement.
+        // =========================================================================
+
+        // ── Struct definitions ────────────────────────────────────────────────
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct DigitalProductId2
+        {
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 24)]
+            public string m_productId2;    // WCHAR[24]
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
+        private struct DigitalProductId3
+        {
+            public uint   m_length;
+            public ushort m_versionMajor;
+            public ushort m_versionMinor;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 24)]
+            public byte[] m_productId2;
+            public uint   m_keyIdx;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 16)]
+            public string m_sku;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
+            public byte[] m_abCdKey;
+            public uint m_cloneStatus, m_time, m_random, m_lt;
+            public uint m_licenseData0, m_licenseData1;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 8)]
+            public string m_oemId;
+            public uint m_bundleId;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 8)]
+            public string m_hardwareIdStatic;
+            public uint m_hardwareIdTypeStatic, m_biosChecksumStatic, m_volSerStatic;
+            public uint m_totalRamStatic, m_videoBiosChecksumStatic;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 8)]
+            public string m_hardwareIdDynamic;
+            public uint m_hardwareIdTypeDynamic, m_biosChecksumDynamic, m_volSerDynamic;
+            public uint m_totalRamDynamic, m_videoBiosChecksumDynamic;
+            public uint m_crc32;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct DigitalProductId4
+        {
+            public uint   m_length;
+            public ushort m_versionMajor;
+            public ushort m_versionMinor;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+            public string m_productId2Ex;    // WCHAR[64]
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+            public string m_sku;             // WCHAR[64]
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 8)]
+            public string m_oemId;           // WCHAR[8]
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+            public string m_editionId;       // WCHAR[260]
+            public byte   m_isUpgrade;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 7)]
+            public byte[] m_reserved;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
+            public byte[] m_abCdKey;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
+            public byte[] m_abCdKeySHA256Hash;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
+            public byte[] m_abSHA256Hash;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+            public string m_partNumber;      // WCHAR[64]
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+            public string m_productKeyType;  // WCHAR[64] — "Retail", "OEM:DM", "Volume:GVLK" …
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+            public string m_eulaType;        // WCHAR[64]
+        }
+
+        private static class PidGenXNative
+        {
+            [DllImport("pidgenx.dll", EntryPoint = "PidGenX",
+                       CallingConvention = CallingConvention.StdCall,
+                       CharSet = CharSet.Unicode)]
+            internal static extern int PidGenX(
+                string pk, string pkcPath, string mpc, string oemId,
+                ref DigitalProductId2 dpid2,
+                ref DigitalProductId3 dpid3,
+                ref DigitalProductId4 dpid4);
+        }
+
+        private static readonly string PkcPath = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.Windows),
+            "System32", "spp", "tokens", "pkeyconfig", "pkeyconfig.xrm-ms");
+
+        // ── Fields ───────────────────────────────────────────────────────────
+        // (bool Valid, string Channel, string Edition, string PartNumber, string WinVersion)
+        // Channel    = "Retail", "OEM:DM", "Volume:GVLK", etc. (empty = pkc miss)
+        // Edition    = "Professional", "Home", "Enterprise", etc.
+        // PartNumber = e.g. "[TH]X19-98841" — prefix encodes Windows version target
+        //              [TH]=Win10 Threshold, [RS]=Win10 RS, [CO]=Win11 Cobalt, etc.
+        // WinVersion = human-readable string decoded from PartNumber prefix
+        private (bool Valid, string Channel, string Edition, string PartNumber, string WinVersion,
+                 string OemId, string Sku, string EulaType, byte IsUpgrade, string ExtPid) _lastPidResult
+            = (false, "", "", "", "", "", "", "", 0, "");
+        private string _lastBannerKey = "";
+        private bool   _saveKeyWarnNeeded = false;
+
+        /// <summary>
+        /// Decodes a PidGenX part number prefix to a human-readable Windows release string.
+        /// e.g. "[TH]X19-98841" -> "Windows 10 Threshold (1507 / 1511)"
+        ///      "[CO]X22-81919" -> "Windows 11 Cobalt (21H2 / 22H2)"
+        /// Returns empty string when prefix is unknown or part number is empty.
+        /// </summary>
+        private static string GetPartNumberWinVersion(string partNumber)
+        {
+            if (string.IsNullOrEmpty(partNumber)) return "";
+            var m = System.Text.RegularExpressions.Regex.Match(partNumber, @"^\[([A-Z]{2,4})\]");
+            if (!m.Success) return "";
+            return m.Groups[1].Value.ToUpperInvariant() switch
+            {
+                "TH" => "Windows 10 Threshold (1507 / 1511)",
+                "RS" => "Windows 10 Redstone (1607 - 1909)",
+                "VB" => "Windows 10 Vibranium (2004 / 20H2 / 21H1)",
+                "CO" => "Windows 11 Cobalt (21H2 / 22H2)",
+                "NI" => "Windows 11 Nickel (23H2)",
+                "GE" => "Windows 11 Germanium (24H2)",
+                "CU" => "Windows 11 Copper (25H2+)",
+                var p => $"Windows (prefix: {p})"
+            };
+        }
+
+        /// <summary>
+        /// Validates a product key format (Tier 1) then calls pidgenx.dll (Tier 2)
+        /// to identify the channel, edition, Windows version target, and part number.
+        /// Returns (valid, channel, edition, partNumber, winVersion).
+        /// Channel    = "Retail" / "OEM:DM" / "OEM:NONSLP" / "Volume:GVLK" / "Volume:MAK" (empty = pkc miss)
+        /// Edition    = "Professional" / "Home" / "Enterprise" / etc.
+        /// PartNumber = "[TH]X19-98841" etc. — bracket prefix encodes Windows version:
+        ///              [TH]=Win10 Threshold, [RS]=Win10 Redstone, [CO]=Win11 Cobalt, [NI]=Win11 Nickel
+        /// WinVersion = human-readable string decoded from PartNumber prefix
+        /// No registry changes, no network, no key replacement.
+        /// </summary>
+        private static (bool Valid, string Channel, string Edition, string PartNumber, string WinVersion,
+                        string OemId, string Sku, string EulaType, byte IsUpgrade, string ExtPid)
+            CheckKeyChecksum(string key)
+        {
+            // ── Tier 1: format check ────────────────────────────────────────────
+            var stripped = key.Replace("-", "").ToUpperInvariant();
+            if (stripped.Length != 25) return (false, "", "", "", "", "", "", "", 0, "");
+            foreach (var ch in stripped)
+                if (!char.IsLetterOrDigit(ch)) return (false, "", "", "", "", "", "", "", 0, "");
+
+            // ── Tier 2: PidGenX P/Invoke ─────────────────────────────────────
+            // pkeyconfig not present: format-only mode, no gate (valid=true, empty details)
+            if (!System.IO.File.Exists(PkcPath)) return (true, "", "", "", "", "", "", "", 0, "");
+            try
+            {
+                var dpid2 = new DigitalProductId2();
+                var dpid3 = new DigitalProductId3();
+                dpid3.m_length = (uint)Marshal.SizeOf<DigitalProductId3>();
+                var dpid4 = new DigitalProductId4();
+                dpid4.m_length = (uint)Marshal.SizeOf<DigitalProductId4>();
+
+                int hr = PidGenXNative.PidGenX(key, PkcPath, "12345", null,
+                                               ref dpid2, ref dpid3, ref dpid4);
+                if (hr != 0) return (false, "", "", "", "", "", "", "", 0, "");  // not in pkeyconfig \u2014 REJECTED (e.g. Win8 key on Win10)
+
+                var pn  = dpid4.m_partNumber     ?? "";
+                // OEM ID: dpid4.m_oemId is often empty; dpid3.m_oemId holds "ASUS","DELL","LENOVO" etc.
+                var oemId = !string.IsNullOrEmpty(dpid4.m_oemId) ? dpid4.m_oemId
+                          : (dpid3.m_oemId ?? "");
+                return (true,
+                    dpid4.m_productKeyType ?? "",
+                    dpid4.m_editionId      ?? "",
+                    pn,
+                    GetPartNumberWinVersion(pn),
+                    oemId,
+                    dpid4.m_sku ?? "",
+                    dpid4.m_eulaType ?? "",
+                    dpid4.m_isUpgrade,
+                    dpid4.m_productId2Ex ?? "");
+            }
+            catch { return (true, "", "", "", "", "", "", "", 0, ""); }
+        }
+
+        /// <summary>
+        /// Show or update the PidBanner element in the key entry panel.
+        /// Call after CheckKeyChecksum completes.
+        /// valid=true  → green (OK)
+        /// valid=false, rejected=false → red (format fail)
+        /// valid=false, rejected=true  → orange (pidgenx rejected — format OK, wrong OS gen)
+        /// </summary>
+        private void ShowPidBanner(bool valid, string channel, string edition, string partNum, string winVer,
+                                   string oemId = "", string sku = "", string eulaType = "", byte isUpgrade = 0, string extPid = "",
+                                   bool rejected = false)
+        {
+            if (valid)
+            {
+                PidBanner.Background   = new SolidColorBrush(Color.FromRgb(0xf0, 0xfd, 0xf4));
+                PidBanner.BorderBrush  = new SolidColorBrush(Color.FromRgb(0x86, 0xef, 0xac));
+                PidBannerIcon.Text     = "✔";
+                PidBannerIcon.Foreground = new SolidColorBrush(Color.FromRgb(0x15, 0x80, 0x3d));
+                PidBannerText.Foreground = new SolidColorBrush(Color.FromRgb(0x16, 0x65, 0x34));
+
+                var sb = new System.Text.StringBuilder(L.Get("KP_PidValid"));
+                if (!string.IsNullOrEmpty(channel))
+                    sb.AppendLine().Append(L.Get("KP_PidChannel") + channel);
+                if (!string.IsNullOrEmpty(edition))
+                    sb.AppendLine().Append(L.Get("KP_PidEdition") + edition);
+                if (!string.IsNullOrEmpty(partNum))
+                    sb.AppendLine().Append(L.Get("KP_PidPartNo") + partNum);
+                if (!string.IsNullOrEmpty(winVer))
+                    sb.AppendLine().Append(L.Get("KP_PidWinVer") + winVer);
+                if (!string.IsNullOrEmpty(oemId))
+                    sb.AppendLine().Append(L.Get("OemPid_OemId") + oemId);
+                if (!string.IsNullOrEmpty(eulaType))
+                    sb.AppendLine().Append(L.Get("OemPid_EulaType") + eulaType);
+                PidBannerText.Text = sb.ToString();
+            }
+            else if (rejected)
+            {
+                // Format is valid but pidgenx says key not in pkeyconfig for this OS
+                PidBanner.Background   = new SolidColorBrush(Color.FromRgb(0xff, 0xf7, 0xed));
+                PidBanner.BorderBrush  = new SolidColorBrush(Color.FromRgb(0xfd, 0xba, 0x74));
+                PidBannerIcon.Text     = "⚠️";
+                PidBannerIcon.Foreground = new SolidColorBrush(Color.FromRgb(0xc2, 0x41, 0x00));
+                PidBannerText.Foreground = new SolidColorBrush(Color.FromRgb(0x9a, 0x34, 0x07));
+                PidBannerText.Text     = L.Get("KP_PidRejected");
+            }
+            else
+            {
+                // True format fail (wrong length or non-alphanumeric)
+                PidBanner.Background   = new SolidColorBrush(Color.FromRgb(0xfe, 0xf2, 0xf2));
+                PidBanner.BorderBrush  = new SolidColorBrush(Color.FromRgb(0xfc, 0xa5, 0xa5));
+                PidBannerIcon.Text     = "⚠";
+                PidBannerIcon.Foreground = new SolidColorBrush(Color.FromRgb(0xb9, 0x1c, 0x1c));
+                PidBannerText.Foreground = new SolidColorBrush(Color.FromRgb(0x99, 0x1b, 0x1b));
+                PidBannerText.Text     = L.Get("KP_PidInvalid");
+            }
+            PidBanner.Visibility = Visibility.Visible;
+        }
+
+        // =========================================================================
         // Option 2 — Test & Install New Product Key  (was Option 4)
         // Key entry uses inline segmented panel instead of InputDialog
         // =========================================================================
         private void BtnTestKey_Click(object sender, RoutedEventArgs e)
         {
+            CollapseAllPanels(); SetActiveButton(BtnTestKey);
             if (!RequireAdmin()) return;
 
             // Log the action header and pre-arm info to output FIRST
@@ -773,25 +1178,23 @@ namespace WinLicApp
             LogInfo(L.Get("O4_Info2"));
             LogWarn(L.Get("KP_Warn"));
 
-            // Channel awareness — warn if VOLUME_KMSCLIENT, VOLUME_KMS, or Subscription
-            try
-            {
-                using var licRes = WmiQuery(
-                    "SELECT Description FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL");
-                if (licRes != null)
-                    foreach (ManagementObject obj in licRes)
-                    {
-                        var desc = (obj["Description"]?.ToString() ?? "").ToUpperInvariant();
-                        if (!desc.Contains("WINDOWS") && !obj["Description"]!.ToString()!.ToUpperInvariant().StartsWith("WINDOWS")) { }
-                        if (desc.Contains("VOLUME_KMSCLIENT"))  { LogWarn(L.Get("O2_WARN_CHAN_KMS")); break; }
-                        if (desc.Contains("VOLUME_KMS") && !desc.Contains("KMSCLIENT")) { LogWarn(L.Get("O2_WARN_CHAN_KMSHOST")); break; }
-                        if (desc.Contains("SUBSCRIPTION"))      { LogWarn(L.Get("O2_WARN_CHAN_SUB")); break; }
-                        break;
-                    }
-            }
-            catch { /* non-fatal */ }
+            // Read and log current system state — full parity with Option 1 output
+            ShowSystemInfo(warnBeforeReplace: true);
+
+            // Show save-key advisory in dialog if needed (set by ShowSystemInfo)
+            if (_saveKeyWarnNeeded)
+                KpWarn.Text = L.Get("O2_SAVE_KEY_WARN") + "\n\n" + L.Get("KP_Warn");
+            else
+                KpWarn.Text = L.Get("KP_Warn");
 
             LogBlank();
+            LogInfo(L.Get("O2_NET_NOTICE"));
+            LogBlank();
+
+            // Log ABOUT note so user knows what Phase 1 will do
+            LogInfo(L.Get("O2_PIDGX_ABOUT"));
+            LogBlank();
+
 
             // Populate panel (also kept in sync by RefreshLanguage on lang switch)
             KpInfo1.Text        = L.Get("KP_Info1");
@@ -799,9 +1202,12 @@ namespace WinLicApp
             KpWarn.Text         = L.Get("KP_Warn");
             KpConfirmLabel.Text = L.Get("KP_TypeOk");
 
-            // Clear boxes and show the panel
+            // Clear boxes, reset PidBanner, and show the panel
             KBox1.Text = KBox2.Text = KBox3.Text = KBox4.Text = KBox5.Text = "";
             KpOkBox.Text = string.Empty;
+            PidBanner.Visibility = Visibility.Collapsed;
+            _lastPidResult  = (false, "", "", "", "", "", "", "", 0, "");
+            _lastBannerKey  = "";
             KeyEntryPanel.Visibility = Visibility.Visible;
             EnsurePanelFits(KeyEntryPanel);
             KBox1.Focus();
@@ -856,23 +1262,149 @@ namespace WinLicApp
             }
         }
 
+        private bool _textChangedGuard = false;
+
         private void KeyBox_TextChanged(object sender, TextChangedEventArgs e)
         {
+            if (_textChangedGuard) return;   // prevent re-entrant fire from tb.Text = clean
             if (sender is not TextBox tb) return;
-            int idx = int.Parse((string)tb.Tag) - 1;  // 0-based index
+            int idx = int.Parse((string)tb.Tag) - 1;  // 0-based
 
             // Strip non-alphanumeric chars that bypassed CharacterCasing
             var clean = new string(tb.Text.ToUpperInvariant()
                 .Where(c => char.IsLetterOrDigit(c)).ToArray());
             if (clean != tb.Text)
             {
+                _textChangedGuard = true;
                 tb.Text = clean;
                 tb.CaretIndex = clean.Length;
+                _textChangedGuard = false;
             }
 
             // Auto-jump to next box when this one is full (5 chars)
             if (tb.Text.Length == 5 && idx < 4)
                 KeyBoxes[idx + 1].Focus();
+
+            // Re-evaluate banner on every keystroke
+            EvaluateBannerFromBoxes();
+        }
+
+        /// <summary>
+        /// Assembles all 5 key segments and shows/hides the format banner.
+        /// When the key becomes complete (25 chars), also writes the full Phase 1
+        /// KEY ANALYSIS block to the main log immediately — before the user clicks
+        /// Install. This way Phase 1 results are always visible before Phase 2.
+        /// </summary>
+        private void EvaluateBannerFromBoxes()
+        {
+            var assembled = KBox1.Text + KBox2.Text + KBox3.Text + KBox4.Text + KBox5.Text;
+            if (assembled.Length == 25)
+            {
+                var fullKey = string.Join("-",
+                    KBox1.Text, KBox2.Text, KBox3.Text, KBox4.Text, KBox5.Text)
+                    .ToUpperInvariant();
+                var (valid, channel, edition, partNum, winVer, oemId, sku, eulaType, isUpgrade, extPid) = CheckKeyChecksum(fullKey);
+                _lastPidResult = (valid, channel, edition, partNum, winVer, oemId, sku, eulaType, isUpgrade, extPid);
+
+                // Determine if this is a pidgenx rejection vs format fail
+                // rejected = pkeyconfig present but hr!=0 (valid=false, but format IS correct)
+                bool pkcPresent = System.IO.File.Exists(PkcPath);
+                bool rejected   = !valid && pkcPresent;  // format passed but pidgenx rejected
+
+                // Show banner
+                ShowPidBanner(valid, channel, edition, partNum, winVer,
+                              oemId, sku, eulaType, isUpgrade, extPid, rejected: rejected);
+
+                // Write Phase 1 analysis to log only once per unique full key
+                if (fullKey != _lastBannerKey)
+                {
+                    _lastBannerKey = fullKey;
+                    LogSep();
+                    LogInfo(L.Get("O2_PIDGX_HDR"));
+
+                    bool pkcExists = System.IO.File.Exists(PkcPath);
+                    if (valid && !string.IsNullOrEmpty(channel))
+                    {
+                        // pkeyconfig found AND pidgenx recognized this key
+                        LogOk(L.Get("O2_PIDGX_VALID"));
+                        LogInfo(L.Get("KP_PidChannel") + channel);
+                        if (!string.IsNullOrEmpty(edition))
+                            LogInfo(L.Get("O2_PIDGX_EDITION") + edition);
+                        if (!string.IsNullOrEmpty(partNum))
+                            LogInfo(L.Get("O2_PIDGX_PARTNO") + partNum);
+                        if (!string.IsNullOrEmpty(winVer))
+                            LogInfo(L.Get("O2_PIDGX_WINVER") + winVer);
+                        if (!string.IsNullOrEmpty(oemId))
+                            LogInfo(L.Get("OemPid_OemId") + oemId);
+                        if (!string.IsNullOrEmpty(sku))
+                            LogInfo(L.Get("OemPid_Sku") + sku);
+                        if (!string.IsNullOrEmpty(eulaType))
+                            LogInfo(L.Get("OemPid_EulaType") + eulaType);
+                        LogInfo(L.Get("OemPid_IsUpgrade") + (isUpgrade != 0 ? L.Get("OemPid_UpgradeYes") : L.Get("OemPid_UpgradeNo")));
+                        if (!string.IsNullOrEmpty(extPid))
+                            LogInfo(L.Get("OemPid_ExtPid") + extPid);
+                    }
+                    else if (valid && string.IsNullOrEmpty(channel))
+                    {
+                        // pkeyconfig absent: format-only check, unknown validity
+                        LogOk(L.Get("O2_PIDGX_VALID"));
+                        LogInfo(L.Get("O2_PIDGX_SRC_CHK"));
+                    }
+                    else
+                    {
+                        // pkeyconfig present but pidgenx rejected key (hr != 0)
+                        LogOk(L.Get("O2_PIDGX_VALID"));       // format IS valid
+                        LogWarn(L.Get("O2_PIDGX_REJECTED"));  // but pidgenx says wrong OS gen
+                    }
+                    LogSep();
+                }
+            }
+            else if (PidBanner.Visibility == Visibility.Visible)
+            {
+                // Key is incomplete — hide stale result
+                PidBanner.Visibility = Visibility.Collapsed;
+                _lastPidResult = (false, "", "", "", "", "", "", "", 0, "");
+            }
+        }
+
+        private void KeyBox_Pasting(object sender, DataObjectPastingEventArgs e)
+        {
+            if (!e.DataObject.GetDataPresent(typeof(string))) return;
+            var raw = e.DataObject.GetData(typeof(string)) as string ?? "";
+
+            // Strip separators only (dashes, spaces, dots) — keep ALL alphanumeric chars.
+            // Do NOT filter by the Windows key alphabet here: invalid characters should
+            // reach the boxes intact so the red banner correctly reports the bad character.
+            // Alphabet validation happens in CheckKeyChecksum / EvaluateBannerFromBoxes.
+            var clean = new string(raw.ToUpperInvariant()
+                                      .Where(char.IsLetterOrDigit)
+                                      .ToArray());
+
+            // Only intercept when enough chars for a multi-box paste (> 5 means at least 2 blocks)
+            if (clean.Length <= 5) return;   // let normal single-box paste proceed
+
+            // Cancel the normal paste and distribute chars starting at box 0
+            e.CancelCommand();
+
+            _textChangedGuard = true;   // suppress per-assignment TextChanged evaluations
+            for (int b = 0; b < 5; b++)
+            {
+                int start = b * 5;
+                KeyBoxes[b].Text = start < clean.Length
+                    ? clean.Substring(start, Math.Min(5, clean.Length - start))
+                    : string.Empty;
+            }
+            _textChangedGuard = false;
+
+            // Single banner evaluation after all boxes are filled
+            EvaluateBannerFromBoxes();
+
+            // Move focus: if all 5 are full go to the OK box, otherwise last non-full box
+            var firstIncomplete = Array.FindIndex(KeyBoxes, bx => bx.Text.Length < 5);
+            if (firstIncomplete < 0)
+                KpOkBox.Focus();
+            else
+                KeyBoxes[firstIncomplete].Focus();
         }
 
         private void BtnKeyInstall_Click(object sender, RoutedEventArgs e)
@@ -918,8 +1450,42 @@ namespace WinLicApp
                 return;
             }
 
+            // ── Phase 1 gate: pidgenx must have validated this key ────────────────────
+            // _lastPidResult.Valid is false for Win8 keys, wrong-gen keys, or unrecognized keys.
+            // Block install with a warning dialog; user must explicitly choose to override.
+            if (!_lastPidResult.Valid)
+            {
+                // Show rejection warning in the banner
+                PidBanner.Background  = new SolidColorBrush(Color.FromRgb(0xfe, 0xf2, 0xf2));
+                PidBanner.BorderBrush = new SolidColorBrush(Color.FromRgb(0xfc, 0xa5, 0xa5));
+                PidBannerIcon.Text      = "⛔";
+                PidBannerIcon.Foreground = new SolidColorBrush(Color.FromRgb(0xb9, 0x1c, 0x1c));
+                PidBannerText.Foreground = new SolidColorBrush(Color.FromRgb(0x99, 0x1b, 0x1b));
+                PidBannerText.Text = L.Get("KP_PIDGX_REJECT_WARN");
+                PidBanner.Visibility = Visibility.Visible;
+
+                // Log the warning
+                LogBlank();
+                LogWarn(L.Get("KP_PIDGX_REJECT_WARN"));
+
+                // Ask user whether to override
+                bool proceed = AskConfirm(L.Get("KP_PIDGX_REJECT_TITLE") +
+                    "\n\n" + L.Get("KP_PIDGX_REJECT_WARN"));
+                if (!proceed)
+                {
+                    LogWarn(L.Get("KP_PIDGX_REJECT_ABORTED"));
+                    return;   // stay in panel — user can fix the key or cancel
+                }
+                LogWarn(L.Get("KP_PIDGX_REJECT_OVERRIDE"));
+            }
+
             // Hide the panel before running slmgr (which may take a moment)
             KeyEntryPanel.Visibility = Visibility.Collapsed;
+
+            // Phase 1 result was already written to the log by EvaluateBannerFromBoxes
+            // when the user finished typing the key. Add Phase 2 separator.
+            LogSep();
+            LogInfo(L.Get("O2_PHASE2_HDR"));
 
             bool full = ShowFullKey;
             LogInfo(L.Get("O4_Installing") + (full ? key : MaskKey(key)));
@@ -937,6 +1503,19 @@ namespace WinLicApp
 
                 // ── Auto online activation (/ato) ─────────────────────────────
                 LogBlank();
+                // ── Internet pre-check before /ato ───────────────────────────
+                bool netOk = false;
+                try
+                {
+                    using var tc  = new System.Net.Sockets.TcpClient();
+                    var ar = tc.BeginConnect("8.8.8.8", 53, null, null);
+                    netOk = ar.AsyncWaitHandle.WaitOne(1500) && tc.Connected;
+                    try { tc.EndConnect(ar); } catch { }
+                }
+                catch { }
+                if (!netOk)
+                    LogWarn(L.Get("O2_ATO_NO_INTERNET"));
+
                 LogInfo(L.Get("O2_ATO_AUTO"));
                 var atoOut = RunSlmgr("/ato");
                 LogSlmgrOutput(atoOut);
@@ -949,13 +1528,33 @@ namespace WinLicApp
                 else
                 {
                     LogError(L.Get("O2_ATO_FAIL") + " " + atoOut.Trim());
-                    if      (atoOut.Contains("0x80070490")) LogDiag(L.Get("O2_DIAG_DIDNTWORK"));
+                    if      (atoOut.Contains("0x80070005")) LogDiag(L.Get("O2_DIAG_ACCESS_DENIED"));
+                    else if (atoOut.Contains("0x80070490")) LogDiag(L.Get("O2_DIAG_DIDNTWORK"));
                     else if (atoOut.Contains("0xC004C001")) LogDiag(L.Get("O2_DIAG_SERVER_INVALID"));
+                    else if (atoOut.Contains("0xC004C008")) LogDiag(L.Get("O2_DIAG_KEY_LIMIT"));
                     else if (atoOut.Contains("0xC004C020") || atoOut.Contains("0xC004C021"))
                                                             LogDiag(L.Get("O2_DIAG_MAK_LIMIT"));
                     else if (atoOut.Contains("0xC004B100")) LogDiag(L.Get("O2_DIAG_SERVER_NOACT"));
+                    else if (atoOut.Contains("0xC004E003")) LogDiag(L.Get("O2_DIAG_LIC_EVAL_FAIL"));
                     else if (atoOut.Contains("0xC004F009")) LogDiag(L.Get("O2_DIAG_GRACE"));
+                    else if (atoOut.Contains("0xC004F00F")) LogDiag(L.Get("O2_DIAG_HW_CHANGED"));
+                    else if (atoOut.Contains("0xC004F038")) LogDiag(L.Get("O2_DIAG_KMS_COUNT"));
+                    else if (atoOut.Contains("0xC004F039")) LogDiag(L.Get("O2_DIAG_KMS_DISABLED"));
+                    else if (atoOut.Contains("0xC004F041")) LogDiag(L.Get("O2_DIAG_KMS_NOT_ACT"));
+                    else if (atoOut.Contains("0xC004F042")) LogDiag(L.Get("O2_DIAG_KMS_WRONG"));
+                    else if (atoOut.Contains("0xC004F064")) LogDiag(L.Get("O2_DIAG_NONGENUINE_EXP"));
+                    else if (atoOut.Contains("0xC004F065")) LogDiag(L.Get("O2_DIAG_NONGENUINE_GRC"));
+                    else if (atoOut.Contains("0xC004F06C")) LogDiag(L.Get("O2_DIAG_KMS_CLOCK"));
                     else if (atoOut.Contains("0x8004FE21")) LogDiag(L.Get("O2_DIAG_NOTGENUINE"));
+                    else if (atoOut.Contains("0x8007007B") || atoOut.Contains("0x80092328"))
+                                                            LogDiag(L.Get("O2_DIAG_DNS_NONAME"));
+                    else if (atoOut.Contains("0x800706BA")) LogDiag(L.Get("O2_DIAG_RPC_UNAVAIL"));
+                    else if (atoOut.Contains("0x8007232A") || atoOut.Contains("0x8007251D"))
+                                                            LogDiag(L.Get("O2_DIAG_DNS_FAIL"));
+                    else if (atoOut.Contains("0x8007232B")) LogDiag(L.Get("O2_DIAG_NO_NET"));
+                    else if (atoOut.Contains("0x80072EE2") || atoOut.Contains("0x80072EE7") || atoOut.Contains("0x80072EFD"))
+                                                            LogDiag(L.Get("O2_DIAG_NET_TIMEOUT"));
+                    else if (atoOut.Contains("0xC004F074")) LogDiag(L.Get("O2_DIAG_KMS_NO_SRV"));
                     LogBlank();
                     LogHelp(L.Get("O8KMS_REF_URL"));
                 }
@@ -963,9 +1562,14 @@ namespace WinLicApp
             else
             {
                 LogError(L.Get("O4_Fail"));
-                if (output.Contains("0xC004F069"))      LogDiag(L.Get("O4_DiagSku"));
+                if      (output.Contains("0x80070005")) LogDiag(L.Get("O2_DIAG_ACCESS_DENIED"));
+                else if (output.Contains("0xC004E016")) LogDiag(L.Get("O4_DiagGen"));
+                else if (output.Contains("0xC004F069")) LogDiag(L.Get("O4_DiagSku"));
                 else if (output.Contains("0xC004F050")) LogDiag(L.Get("O4_DiagInvalid"));
                 else if (output.Contains("0xC004C003")) LogDiag(L.Get("O4_DiagBlocked"));
+                else if (output.Contains("0xC004C008")) LogDiag(L.Get("O2_DIAG_KEY_LIMIT"));
+                else if (output.Contains("0xC004F035")) LogDiag(L.Get("O2_DIAG_VOL_LIC"));
+                else if (output.Contains("0xC004F051")) LogDiag(L.Get("O2_DIAG_KEY_BLOCKED_SLS"));
                 else                                     LogDiag(L.Get("O4_DiagGeneral"));
                 LogBlank();
                 LogHelp("https://support.microsoft.com/help/10738");
@@ -978,6 +1582,7 @@ namespace WinLicApp
         // =========================================================================
         private void BtnRemoveLicense_Click(object sender, RoutedEventArgs e)
         {
+            CollapseAllPanels(); SetActiveButton(BtnRemoveLicense);
             if (!RequireAdmin()) return;
 
             // Log the action header and pre-arm warnings to output FIRST
@@ -986,10 +1591,66 @@ namespace WinLicApp
             LogWarn(L.Get("O3_Remove_Warn2"));
             LogBlank();
 
+            // Show current key info so user can save it before removal
+            string? currentPartial = null;
+            try
+            {
+                using var licRes = WmiQuery(
+                    "SELECT PartialProductKey FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL AND Name LIKE 'Windows%'");
+                if (licRes != null)
+                    foreach (ManagementObject obj in licRes)
+                    { currentPartial = obj["PartialProductKey"]?.ToString(); break; }
+            }
+            catch { }
+
+            string? currentInstalled = null;
+            try
+            {
+                using var rk = Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+                if (rk?.GetValue("DigitalProductId") is byte[] dpId)
+                    currentInstalled = DecodeProductKeyWin8AndUp(dpId);
+            }
+            catch { }
+
+            bool isGenericForRemove = currentPartial != null
+                && AppSettings.AllGenericKeySuffixes.Contains(currentPartial);
+            if (!string.IsNullOrWhiteSpace(currentInstalled))
+            {
+                LogData(L.Get("D_InstalledKey"),
+                    ShowFullKey ? currentInstalled : MaskKey(currentInstalled));
+                RunPidGenXAnalysis(currentInstalled);
+                if (!isGenericForRemove)
+                    LogWarn(L.Get("O3_SAVE_KEY_WARN"));
+            }
+            LogBlank();
+
             // Populate panel text (localized)
             RcpTitle.Text        = L.Get("O3_Remove_Title");
             RcpWarn1.Text        = L.Get("O3_Remove_Warn1");
             RcpWarn2.Text        = L.Get("O3_Remove_Warn2");
+
+            // Show key info + save warning in the dialog itself
+            if (!string.IsNullOrWhiteSpace(currentInstalled))
+            {
+                RcpKeyInfo.Visibility = Visibility.Visible;
+                RcpKeyInfo.Text = L.Get("D_InstalledKey") + "    "
+                    + (ShowFullKey ? currentInstalled : MaskKey(currentInstalled));
+            }
+            else
+            {
+                RcpKeyInfo.Visibility = Visibility.Collapsed;
+            }
+            if (!isGenericForRemove && !string.IsNullOrWhiteSpace(currentInstalled))
+            {
+                RcpSaveWarn.Visibility = Visibility.Visible;
+                RcpSaveWarn.Text = L.Get("O3_SAVE_KEY_WARN");
+            }
+            else
+            {
+                RcpSaveWarn.Visibility = Visibility.Collapsed;
+            }
+
             RcpConfirmLabel.Text = L.Get("O3_Remove_TypeOk");
             RcpHint.Text         = L.Get("O3_Remove_Hint");
             BtnRemoveCancel.Content  = L.Get("O3_Remove_Cancel");
@@ -1004,6 +1665,7 @@ namespace WinLicApp
 
         private void BtnRemoveCancel_Click(object sender, RoutedEventArgs e)
         {
+            SetActiveButton(null);
             RemoveConfirmPanel.Visibility = Visibility.Collapsed;
             LogInfo(L.Get("O3_Cancelled"));
         }
@@ -1046,6 +1708,7 @@ namespace WinLicApp
         // =========================================================================
         private void BtnResetActivation_Click(object sender, RoutedEventArgs e)
         {
+            CollapseAllPanels(); SetActiveButton(BtnResetActivation);
             if (!RequireAdmin()) return;
 
             // WMI always has the live count; registry key only appears after first rearm
@@ -1096,6 +1759,7 @@ namespace WinLicApp
 
         private void BtnRpCancel_Click(object sender, RoutedEventArgs e)
         {
+            SetActiveButton(null);
             RearmPanel.Visibility = Visibility.Collapsed;
             LogInfo(L.Get("R4_CANCELLED"));
         }
@@ -1132,6 +1796,7 @@ namespace WinLicApp
         // =========================================================================
         private void BtnPiracyCheck_Click(object sender, RoutedEventArgs e)
         {
+            CollapseAllPanels(); SetActiveButton(BtnPiracyCheck);
             LogAction("Act5");
 
             // ── Verbose preamble: what this scan covers ────────────────────────
@@ -1765,7 +2430,7 @@ namespace WinLicApp
                 if (hasPublicIp)
                     LogError(L.Get("P7_KmsDnsPublic"));
                 else
-                    LogWarn("  Resolved to private/internal IP — unusual for a cloud KMS domain.");
+                    LogWarn(L.Get("P7_KmsDnsPrivate"));
             }
             catch
             {
@@ -1865,6 +2530,7 @@ namespace WinLicApp
 
         private void BtnKmsActivate_Click(object sender, RoutedEventArgs e)
         {
+            CollapseAllPanels(); SetActiveButton(BtnKmsActivate);
             if (!RequireAdmin()) return;
 
             // Log pre-arm to main output
@@ -1974,7 +2640,7 @@ namespace WinLicApp
                     _kmsGvlkNeeded = true;
                     _kmsGvlkKey    = gvlkKey;
                     KmsGvlkLabel.Text = L.Get("O8KMS_GVLK_FOUND_KEY") + "  " + gvlkEdition;
-                    KmsGvlkKey.Text   = gvlkKey;
+                    KmsGvlkKey.Text   = gvlkKey;  // GVLKs are public keys — always show full
                     KmsGvlkSection.Visibility = Visibility.Visible;
                     EnsurePanelFits(KmsPanel);
                 }
@@ -2151,15 +2817,24 @@ namespace WinLicApp
             else
             {
                 LogError(L.Get("O8KMS_FAIL"));
-                if      (atoOut.Contains("0xC004F038")) LogDiag(L.Get("O8KMS_DIAG_COUNT"));
+                if      (atoOut.Contains("0x80070005")) LogDiag(L.Get("O2_DIAG_ACCESS_DENIED"));
+                else if (atoOut.Contains("0xC004E003")) LogDiag(L.Get("O2_DIAG_LIC_EVAL_FAIL"));
+                else if (atoOut.Contains("0xC004F00F")) LogDiag(L.Get("O2_DIAG_HW_CHANGED"));
+                else if (atoOut.Contains("0xC004F038")) LogDiag(L.Get("O8KMS_DIAG_COUNT"));
                 else if (atoOut.Contains("0xC004F039")) LogDiag(L.Get("O8KMS_DIAG_NOTENABLED"));
                 else if (atoOut.Contains("0xC004F041")) LogDiag(L.Get("O8KMS_DIAG_HOSTNACT"));
                 else if (atoOut.Contains("0xC004F042")) LogDiag(L.Get("O8KMS_DIAG_WRONGHOST"));
+                else if (atoOut.Contains("0xC004F064")) LogDiag(L.Get("O2_DIAG_NONGENUINE_EXP"));
+                else if (atoOut.Contains("0xC004F065")) LogDiag(L.Get("O2_DIAG_NONGENUINE_GRC"));
                 else if (atoOut.Contains("0xC004F06C")) LogDiag(L.Get("O8KMS_DIAG_CLOCK"));
                 else if (atoOut.Contains("0xC004F074")) LogDiag(L.Get("O8KMS_DIAG_NOCONTACT"));
                 else if (atoOut.Contains("0x8007007B") || atoOut.Contains("0x8007232B") ||
                          atoOut.Contains("0x8007251D") || atoOut.Contains("0x80092328"))
                                                          LogDiag(L.Get("O8KMS_DIAG_DNS"));
+                else if (atoOut.Contains("0x800706BA")) LogDiag(L.Get("O2_DIAG_RPC_UNAVAIL"));
+                else if (atoOut.Contains("0x8007232A")) LogDiag(L.Get("O2_DIAG_DNS_FAIL"));
+                else if (atoOut.Contains("0x80072EE2") || atoOut.Contains("0x80072EE7") || atoOut.Contains("0x80072EFD"))
+                                                         LogDiag(L.Get("O2_DIAG_NET_TIMEOUT"));
                 else if (atoOut.Contains("0xC004F035")) LogDiag(L.Get("O8KMS_DIAG_VOLK"));
                 LogBlank();
                 LogHelp(L.Get("O8KMS_REF_URL"));
@@ -2168,6 +2843,7 @@ namespace WinLicApp
 
         private void BtnKmsCancel_Click(object sender, RoutedEventArgs e)
         {
+            SetActiveButton(null);
             KmsPanel.Visibility = Visibility.Collapsed;
             LogInfo(L.Get("O8KMS_CANCELED"));
         }
@@ -2180,6 +2856,7 @@ namespace WinLicApp
 
         private void BtnChangeChannel_Click(object sender, RoutedEventArgs e)
         {
+            CollapseAllPanels(); SetActiveButton(BtnChangeChannel);
             if (!RequireAdmin()) return;
 
             LogAction("Act6");
@@ -2214,7 +2891,19 @@ namespace WinLicApp
             ChLblEdition.Text  = L.Get("O6CH_CURRENT_EDITION");
             ChValEdition.Text  = edition;
             ChLblKey.Text      = L.Get("O6CH_CURRENT_KEY");
-            ChValKey.Text      = partKey;
+            // Show full installed key (decoded from registry) instead of WMI partial
+            string? chFullKey = null;
+            try
+            {
+                using var rk = Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+                if (rk?.GetValue("DigitalProductId") is byte[] dpId)
+                    chFullKey = DecodeProductKeyWin8AndUp(dpId);
+            }
+            catch { }
+            ChValKey.Text = chFullKey != null
+                ? (ShowFullKey ? chFullKey : MaskKey(chFullKey))
+                : partKey;
 
             BtnChToKms.Content    = L.Get("O6CH_TO_KMS");
             BtnChToRetail.Content = L.Get("O6CH_TO_RETAIL");
@@ -2266,7 +2955,7 @@ namespace WinLicApp
             if (_chGvlkKey != null)
             {
                 ChGvlkLabel.Text        = L.Get("O6CH_GVLK_LABEL") + "  " + gvlkEdition;
-                ChGvlkKey.Text          = _chGvlkKey;
+                ChGvlkKey.Text          = _chGvlkKey;  // GVLKs are public keys — always show full
                 ChGvlkConfirmLabel.Text = L.Get("O6CH_GVLK_CONFIRM");
                 ChGvlkSection.Visibility = Visibility.Visible;
                 BtnChProceed.IsEnabled   = true;
@@ -2294,6 +2983,7 @@ namespace WinLicApp
 
         private void BtnChCancel_Click(object sender, RoutedEventArgs e)
         {
+            SetActiveButton(null);
             ChangeChannelPanel.Visibility = Visibility.Collapsed;
             LogInfo(L.Get("O6CH_CANCELLED"));
         }
@@ -2360,6 +3050,7 @@ namespace WinLicApp
 
         private void BtnKmsSettings_Click(object sender, RoutedEventArgs e)
         {
+            CollapseAllPanels(); SetActiveButton(BtnKmsSettings);
             LogAction("Act7");
             LogInfo(L.Get("O7KMS_DESC"));
             LogBlank();
@@ -2370,10 +3061,10 @@ namespace WinLicApp
             try
             {
                 using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
-                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareLicensingService");
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform");
                 if (key != null)
                 {
-                    var h = key.GetValue("KeyManagementServiceMachine") as string;
+                    var h = key.GetValue("KeyManagementServiceName") as string;
                     var p = key.GetValue("KeyManagementServicePort") as string;
                     if (!string.IsNullOrWhiteSpace(h)) regHost = h;
                     if (!string.IsNullOrWhiteSpace(p)) regPort = p;
@@ -2381,24 +3072,17 @@ namespace WinLicApp
             }
             catch { }
 
-            // Read slmgr /dlv for KMS host
+            // Read KMS host from WMI (locale-independent)
             string dlvHost = L.Get("O7KMS_NOT_SET");
             try
             {
-                var psi = new System.Diagnostics.ProcessStartInfo("cscript")
+                var wql = "SELECT DiscoveredKeyManagementServiceMachineName FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL AND Name LIKE 'Windows%'";
+                var col = new ManagementObjectSearcher(wql).Get();
+                foreach (var mo in col)
                 {
-                    Arguments              = "//NoLogo %windir%\\System32\\slmgr.vbs /dlv",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError  = true,
-                    UseShellExecute        = false,
-                    CreateNoWindow         = true,
-                };
-                using var proc = System.Diagnostics.Process.Start(psi);
-                string dlvOut = proc!.StandardOutput.ReadToEnd();
-                proc.WaitForExit();
-                var m = System.Text.RegularExpressions.Regex.Match(
-                    dlvOut, @"KMS machine name[^:]*:\s*(.+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                if (m.Success) dlvHost = m.Groups[1].Value.Trim();
+                    var h = mo["DiscoveredKeyManagementServiceMachineName"]?.ToString();
+                    if (!string.IsNullOrWhiteSpace(h)) { dlvHost = h; break; }
+                }
             }
             catch { }
 
@@ -2488,7 +3172,396 @@ namespace WinLicApp
 
         private void BtnKs7Close_Click(object sender, RoutedEventArgs e)
         {
+            SetActiveButton(null);
             KmsSettingsPanel.Visibility = Visibility.Collapsed;
+        }
+
+        // =========================================================================
+        // Full System License Log
+        // =========================================================================
+
+        private void BtnFullLog_Click(object sender, RoutedEventArgs e)
+        {
+            // Populate and show mode selection panel
+            FlTitle.Text       = L.Get("FL_PANEL_TITLE");
+            FlModeDesc.Text    = L.Get("FL_MODE_DESC");
+
+            // TextBlocks inside ControlTemplate can't be accessed by x:Name,
+            // so set button Content directly as a StackPanel.
+            BtnFlRaw.Content      = BuildModeButton(L.Get("FL_MODE_RAW"), L.Get("FL_MODE_RAW_DESC"));
+            BtnFlEnriched.Content = BuildModeButton(L.Get("FL_MODE_ENRICHED"), L.Get("FL_MODE_ENRICHED_DESC"));
+            BtnFlCancel.Content   = L.Get("FL_CANCEL");
+
+            FullLogModePanel.Visibility = Visibility.Visible;
+            EnsurePanelFits(FullLogModePanel);
+        }
+
+        private static System.Windows.Controls.StackPanel BuildModeButton(string title, string desc)
+        {
+            var sp = new System.Windows.Controls.StackPanel();
+            sp.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                Text = title,
+                FontFamily = new System.Windows.Media.FontFamily("Segoe UI Semibold"),
+                FontSize = 13
+            });
+            sp.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                Text = desc,
+                FontFamily = new System.Windows.Media.FontFamily("Segoe UI"),
+                FontSize = 10.5,
+                Foreground = new System.Windows.Media.SolidColorBrush(
+                    System.Windows.Media.Color.FromRgb(0x64, 0x74, 0x8b)),
+                TextWrapping = TextWrapping.Wrap,
+                MaxWidth = 380,
+                Margin = new Thickness(0, 4, 0, 0)
+            });
+            return sp;
+        }
+
+        private void BtnFlRaw_Click(object sender, RoutedEventArgs e)
+        {
+            FullLogModePanel.Visibility = Visibility.Collapsed;
+            StatusBar.Text = L.Get("FL_GENERATING");
+            Dispatcher.BeginInvoke(new Action(() => GenerateAndShowFullLog(enriched: false)));
+        }
+
+        private void BtnFlEnriched_Click(object sender, RoutedEventArgs e)
+        {
+            FullLogModePanel.Visibility = Visibility.Collapsed;
+            StatusBar.Text = L.Get("FL_GENERATING");
+            Dispatcher.BeginInvoke(new Action(() => GenerateAndShowFullLog(enriched: true)));
+        }
+
+        private void BtnFlCancel_Click(object sender, RoutedEventArgs e)
+        {
+            FullLogModePanel.Visibility = Visibility.Collapsed;
+        }
+
+        private void GenerateAndShowFullLog(bool enriched)
+        {
+            bool full = ShowFullKey;
+            var sb = new System.Text.StringBuilder(8192);
+            string sep  = new string('═', 60);
+            string sec  = new string('─', 60);
+            string mode = enriched ? L.Get("FL_ENRICHED") : L.Get("FL_RAW");
+
+            sb.AppendLine(sep);
+            sb.AppendLine($" FULL SYSTEM LICENSE LOG — {mode}");
+            sb.AppendLine($" {L.Get("FL_MODE_LABEL")}{mode}");
+            sb.AppendLine(sep);
+            sb.AppendLine();
+
+            // ── Section 1: OS Information ──────────────────────────────────────
+            sb.AppendLine($"── {L.Get("FL_SEC_OS")} {sec.Substring(0, 40)}");
+            try
+            {
+                using var rk = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+                if (rk != null)
+                {
+                    void RegLine(string label, string name) {
+                        var v = rk.GetValue(name)?.ToString();
+                        if (!string.IsNullOrEmpty(v)) sb.AppendLine($"  {label,-28}: {v}");
+                    }
+                    RegLine("Product Name",      "ProductName");
+                    RegLine("Product ID",         "ProductId");
+                    RegLine("Edition ID",         "EditionID");
+                    RegLine("Current Build",      "CurrentBuild");
+                    RegLine("Build Branch",       "BuildBranch");
+                    RegLine("Registered Owner",   "RegisteredOwner");
+                    RegLine("Install Type",       "InstallationType");
+                    // InstallDate is a DWORD (Unix timestamp)
+                    var instDate = rk.GetValue("InstallDate");
+                    if (instDate is int unixTs && unixTs > 0)
+                    {
+                        var dt = DateTimeOffset.FromUnixTimeSeconds(unixTs).LocalDateTime;
+                        sb.AppendLine($"  {"Install Date",-28}: {dt:yyyy-MM-dd HH:mm:ss}");
+                    }
+                }
+                using var osRes = WmiQuery("SELECT Caption,Version,OSArchitecture FROM Win32_OperatingSystem");
+                if (osRes != null)
+                    foreach (ManagementObject obj in osRes)
+                    {
+                        sb.AppendLine($"  {"OS Caption",-28}: {obj["Caption"]}");
+                        sb.AppendLine($"  {"Version",-28}: {obj["Version"]}");
+                        sb.AppendLine($"  {"Architecture",-28}: {obj["OSArchitecture"]}");
+                    }
+                // System Manufacturer / Model (ASUS, DELL, LENOVO, HP, etc.)
+                using var csRes = WmiQuery("SELECT Manufacturer,Model FROM Win32_ComputerSystem");
+                if (csRes != null)
+                    foreach (ManagementObject obj in csRes)
+                    {
+                        var mfr = obj["Manufacturer"]?.ToString();
+                        var mdl = obj["Model"]?.ToString();
+                        if (!string.IsNullOrEmpty(mfr)) sb.AppendLine($"  {"System Manufacturer",-28}: {mfr}");
+                        if (!string.IsNullOrEmpty(mdl))  sb.AppendLine($"  {"System Model",-28}: {mdl}");
+                    }
+                // BIOS info
+                using var biosRes = WmiQuery("SELECT Manufacturer,SMBIOSBIOSVersion,SerialNumber FROM Win32_BIOS");
+                if (biosRes != null)
+                    foreach (ManagementObject obj in biosRes)
+                    {
+                        var bmfr = obj["Manufacturer"]?.ToString();
+                        var bver = obj["SMBIOSBIOSVersion"]?.ToString();
+                        var bsn  = obj["SerialNumber"]?.ToString();
+                        if (!string.IsNullOrEmpty(bmfr)) sb.AppendLine($"  {"BIOS Manufacturer",-28}: {bmfr}");
+                        if (!string.IsNullOrEmpty(bver)) sb.AppendLine($"  {"BIOS Version",-28}: {bver}");
+                        if (!string.IsNullOrEmpty(bsn))  sb.AppendLine($"  {"BIOS Serial Number",-28}: {bsn}");
+                    }
+            }
+            catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
+            sb.AppendLine();
+
+            // ── Section 2: Product Keys ────────────────────────────────────────
+            sb.AppendLine($"── {L.Get("FL_SEC_KEYS")} {sec.Substring(0, 40)}");
+            string? flOemKey = null, flRegKey = null, flInstKey = null, flOrigKey = null;
+            string? flOa3xDesc = null;
+            try
+            {
+                // BIOS OEM Key
+                using var slsRes = WmiQuery(
+                    "SELECT OA3xOriginalProductKey,OA3xOriginalProductKeyDescription FROM SoftwareLicensingService");
+                if (slsRes != null)
+                    foreach (ManagementObject obj in slsRes)
+                    {
+                        flOemKey  = obj["OA3xOriginalProductKey"]?.ToString();
+                        flOa3xDesc = obj["OA3xOriginalProductKeyDescription"]?.ToString();
+                    }
+                sb.AppendLine($"  {"BIOS OEM Key",-28}: {(string.IsNullOrEmpty(flOemKey) ? "(not found)" : (full ? flOemKey : MaskKey(flOemKey!)))}");
+                if (!string.IsNullOrEmpty(flOa3xDesc))
+                    sb.AppendLine($"  {"OA3x Description",-28}: {flOa3xDesc}");
+
+                // Registry Backup Key
+                using var spp = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform");
+                flRegKey = spp?.GetValue("BackupProductKeyDefault")?.ToString();
+                sb.AppendLine($"  {"Registry Backup Key",-28}: {(string.IsNullOrEmpty(flRegKey) ? "(not found)" : (full ? flRegKey : MaskKey(flRegKey!)))}");
+
+                // Installed Key (decoded from DigitalProductId)
+                using var cvRk = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+                if (cvRk?.GetValue("DigitalProductId") is byte[] dpId)
+                {
+                    flInstKey = DecodeProductKeyWin8AndUp(dpId);
+                    sb.AppendLine($"  {"Installed Key",-28}: {(string.IsNullOrEmpty(flInstKey) ? "(decode failed)" : (full ? flInstKey : MaskKey(flInstKey!)))}");
+                }
+                else
+                    sb.AppendLine($"  {"Installed Key",-28}: (not found)");
+
+                // Original Key (pre-upgrade)
+                using var dpk = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey");
+                if (dpk?.GetValue("DigitalProductId") is byte[] origDpId)
+                {
+                    flOrigKey = DecodeProductKeyWin8AndUp(origDpId);
+                    if (!string.IsNullOrEmpty(flOrigKey))
+                        sb.AppendLine($"  {"Original Key (pre-upgrade)",-28}: {(full ? flOrigKey : MaskKey(flOrigKey!))}");
+                }
+            }
+            catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
+            sb.AppendLine();
+
+            // ── Section 3: PidGenX Analysis ────────────────────────────────────
+            sb.AppendLine($"── {L.Get("FL_SEC_PIDGENX")} {sec.Substring(0, 40)}");
+            void AppendPidGenX(string label, string? key)
+            {
+                if (string.IsNullOrEmpty(key)) return;
+                sb.AppendLine($"  [{label}]");
+                var (valid, channel, edition, partNum, winVer, oemId, sku, eulaType, isUpgrade, extPid) = CheckKeyChecksum(key!);
+                if (valid && !string.IsNullOrEmpty(channel))
+                {
+                    sb.AppendLine($"    Channel     : {channel}");
+                    if (!string.IsNullOrEmpty(edition))   sb.AppendLine($"    Edition     : {edition}");
+                    if (!string.IsNullOrEmpty(partNum))    sb.AppendLine($"    Part No.    : {partNum}");
+                    if (!string.IsNullOrEmpty(winVer))     sb.AppendLine($"    Win Ver.    : {winVer}");
+                    if (!string.IsNullOrEmpty(oemId))      sb.AppendLine($"    OEM ID      : {oemId}");
+                    if (!string.IsNullOrEmpty(sku))        sb.AppendLine($"    Activation ID: {sku}");
+                    if (!string.IsNullOrEmpty(eulaType))   sb.AppendLine($"    EULA        : {eulaType}");
+                    sb.AppendLine($"    Is Upgrade  : {(isUpgrade != 0 ? "Yes" : "No")}");
+                    if (!string.IsNullOrEmpty(extPid))     sb.AppendLine($"    Ext. PID    : {extPid}");
+                    if (enriched)
+                        sb.AppendLine($"    Source      : pidgenx.dll + pkeyconfig.xrm-ms");
+                }
+                else if (!valid && System.IO.File.Exists(PkcPath))
+                {
+                    sb.AppendLine($"    PidGenX     : Key not found in pkeyconfig (possibly pre-Windows 10)");
+                }
+                else
+                {
+                    sb.AppendLine($"    PidGenX     : format check only (pkeyconfig not found)");
+                }
+            }
+            AppendPidGenX("BIOS OEM Key", flOemKey);
+            AppendPidGenX("Registry Backup Key", flRegKey);
+            AppendPidGenX("Installed Key", flInstKey);
+            AppendPidGenX("Original Key", flOrigKey);
+            sb.AppendLine();
+
+            // ── Section 4: WMI License Status ──────────────────────────────────
+            sb.AppendLine($"── {L.Get("FL_SEC_WMI_LIC")} {sec.Substring(0, 40)}");
+            try
+            {
+                using var licRes = WmiQuery(
+                    "SELECT Name,Description,PartialProductKey,ProductKeyChannel," +
+                    "LicenseStatus,LicenseStatusReason,ID,ApplicationId," +
+                    "ProductKeyID,GracePeriodRemaining,EvaluationEndDate," +
+                    "DiscoveredKeyManagementServiceMachineName,KeyManagementServiceCurrentCount " +
+                    "FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL");
+                if (licRes != null)
+                    foreach (ManagementObject mo in licRes)
+                    {
+                        void W(string l, object? v) { if (v != null) sb.AppendLine($"  {l,-28}: {v}"); }
+                        W("Name",               mo["Name"]);
+                        W("Description",         mo["Description"]);
+                        W("Partial Product Key", mo["PartialProductKey"]);
+                        W("Product Key Channel", mo["ProductKeyChannel"]);
+                        var ls = mo["LicenseStatus"];
+                        if (ls != null)
+                        {
+                            var lsi = Convert.ToInt32(ls);
+                            string lsText = enriched ? $"{lsi} ({GetLicenseStatusText(lsi)})" : lsi.ToString();
+                            W("License Status", lsText);
+                        }
+                        var lsr = mo["LicenseStatusReason"];
+                        if (lsr != null) W("License Status Reason", $"0x{Convert.ToUInt32(lsr):X8}");
+                        W("Activation ID",       mo["ID"]);
+                        W("Application ID",      mo["ApplicationId"]);
+                        W("Product Key ID (ExtPID)", mo["ProductKeyID"]);
+                        W("Grace Period Remaining", mo["GracePeriodRemaining"] + " min");
+                        W("Evaluation End Date",  mo["EvaluationEndDate"]);
+                        W("Discovered KMS",      mo["DiscoveredKeyManagementServiceMachineName"]);
+                        W("KMS Current Count",   mo["KeyManagementServiceCurrentCount"]);
+                        sb.AppendLine();
+                    }
+            }
+            catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
+            sb.AppendLine();
+
+            // ── Section 5: WMI Service Properties ──────────────────────────────
+            sb.AppendLine($"── {L.Get("FL_SEC_WMI_SVC")} {sec.Substring(0, 40)}");
+            try
+            {
+                using var svcRes = WmiQuery(
+                    "SELECT OA3xOriginalProductKey,OA3xOriginalProductKeyDescription," +
+                    "ClientMachineID,RemainingWindowsREARMCount," +
+                    "KeyManagementServiceMachine,KeyManagementServicePort,Version " +
+                    "FROM SoftwareLicensingService");
+                if (svcRes != null)
+                    foreach (ManagementObject mo in svcRes)
+                    {
+                        void W(string l, object? v) { if (v != null) sb.AppendLine($"  {l,-28}: {v}"); }
+                        W("OA3x Key",            full ? mo["OA3xOriginalProductKey"]?.ToString() : "(use Show Full Key)");
+                        W("OA3x Description",    mo["OA3xOriginalProductKeyDescription"]);
+                        W("Client Machine ID",   mo["ClientMachineID"]);
+                        W("Remaining Rearm",     mo["RemainingWindowsREARMCount"]);
+                        W("KMS Machine",         mo["KeyManagementServiceMachine"]);
+                        W("KMS Port",            mo["KeyManagementServicePort"]);
+                        W("Version",             mo["Version"]);
+                    }
+            }
+            catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
+            sb.AppendLine();
+
+            // ── Section 6: Registry Dump ───────────────────────────────────────
+            sb.AppendLine($"── {L.Get("FL_SEC_REG")} {sec.Substring(0, 40)}");
+            void DumpRegKey(string path)
+            {
+                sb.AppendLine($"  [{path}]");
+                try
+                {
+                    using var rk = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(path);
+                    if (rk == null) { sb.AppendLine("    (not found)"); return; }
+                    foreach (var name in rk.GetValueNames())
+                    {
+                        var val = rk.GetValue(name);
+                        if (val is byte[]) continue; // skip binary blobs
+                        sb.AppendLine($"    {name,-36} = {val}");
+                    }
+                }
+                catch (Exception ex) { sb.AppendLine($"    [Error: {ex.Message}]"); }
+            }
+            DumpRegKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+            DumpRegKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform");
+            sb.AppendLine();
+
+            // ── Section 7: slmgr /dli ──────────────────────────────────────────
+            sb.AppendLine($"── {L.Get("FL_SEC_DLI")} {sec.Substring(0, 40)}");
+            try { sb.AppendLine(RunSlmgr("/dli")); }
+            catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
+            sb.AppendLine();
+
+            // ── Section 8: slmgr /dlv ──────────────────────────────────────────
+            sb.AppendLine($"── {L.Get("FL_SEC_DLV")} {sec.Substring(0, 40)}");
+            try { sb.AppendLine(RunSlmgr("/dlv")); }
+            catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
+            sb.AppendLine();
+
+            // ── Section 9: Digital Entitlement Analysis (enriched only) ────────
+            if (enriched)
+            {
+                sb.AppendLine($"── {L.Get("FL_SEC_DE")} {sec.Substring(0, 40)}");
+                try
+                {
+                    // Check if installed key is a generic GVLK
+                    bool isGvlk = false;
+                    if (!string.IsNullOrEmpty(flInstKey))
+                        isGvlk = GvlkTable.Any(t => t.Key.Equals(flInstKey, StringComparison.OrdinalIgnoreCase));
+
+                    sb.AppendLine($"  Installed Key is GVLK    : {(isGvlk ? "Yes" : "No")}");
+
+                    // Compare BIOS vs Installed
+                    if (!string.IsNullOrEmpty(flOemKey) && !string.IsNullOrEmpty(flInstKey))
+                    {
+                        bool same = flOemKey!.Equals(flInstKey, StringComparison.OrdinalIgnoreCase);
+                        sb.AppendLine($"  BIOS == Installed        : {(same ? "Yes (OEM activation)" : "No (key was changed)")}");
+                    }
+
+                    // Check for Digital Entitlement indicators
+                    using var licRes2 = WmiQuery(
+                        "SELECT LicenseStatus,Description,PartialProductKey FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL");
+                    if (licRes2 != null)
+                        foreach (ManagementObject mo in licRes2)
+                        {
+                            var n = mo["Description"]?.ToString() ?? "";
+                            if (!n.StartsWith("Windows", StringComparison.OrdinalIgnoreCase)) continue;
+                            var status = Convert.ToInt32(mo["LicenseStatus"]);
+                            bool deCandidate = isGvlk && status == 1;
+                            sb.AppendLine($"  Digital Entitlement      : {(deCandidate ? "Likely (GVLK + Licensed)" : "Not detected")}");
+                        }
+                }
+                catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
+                sb.AppendLine();
+            }
+
+            sb.AppendLine(sep);
+            sb.AppendLine($" END OF LOG — Generated by WinLic Manager {AboutDialog.AppVersion}");
+            sb.AppendLine(sep);
+
+            StatusBar.Text = L.Get("Ready");
+
+            // Open in FullLogWindow
+            var win = new FullLogWindow(
+                sb.ToString(),
+                L.Get("FL_WIN_TITLE"),
+                L.Get("FL_MODE_LABEL") + mode);
+            win.Owner = this;
+            win.Show();
+        }
+
+        private string GetLicenseStatusText(int status)
+        {
+            return status switch
+            {
+                0 => L.Get("LS_0"),
+                1 => L.Get("LS_1"),
+                2 => L.Get("LS_2"),
+                3 => L.Get("LS_3"),
+                4 => L.Get("LS_4"),
+                5 => L.Get("LS_5"),
+                6 => L.Get("LS_6"),
+                _ => $"Unknown ({status})"
+            };
         }
     }
 }

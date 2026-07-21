@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace WinLicApp
 {
@@ -24,7 +24,6 @@ namespace WinLicApp
             // ── About dialog ─────────────────────────────────────────────────────
             ["About_Title"]         = ("About — WinLic Manager",
                                       "Giới thiệu — WinLic Manager"),
-            ["About_Version"]           = ("v1.5",              "v1.5"),
             ["About_Author"]        = ("Author",                    "Tác giả"),
             ["About_GitHub"]        = ("GitHub",                    "GitHub"),
             ["About_Repo"]          = ("Repository",                "Kho mã nguồn"),
@@ -38,8 +37,6 @@ namespace WinLicApp
             ["About_VerError"]      = ("Could not check for updates.", "Không thể kiểm tra cập nhật."),
 
             // ── Sidebar button labels ─────────────────────────────────────────────
-            ["LblReadOnly"]      = ("READ-ONLY",        "CHỈ ĐỌC"),
-            ["LblAdmin"]         = ("REQUIRES ADMIN",   "CẦN QUYỀN ADMIN"),
             ["Btn1"]             = ("1 — Full System & License Info",              "1 — Thông tin Hệ thống & Bản quyền"),
             ["Btn2"]             = ("2 — Test & Install New Product Key",          "2 — Kiểm thử & Cài Key Mới"),
             ["Btn3"]             = ("3 — Remove Activation",                       "3 — Gỡ Kích Hoạt"),
@@ -54,8 +51,6 @@ namespace WinLicApp
                                     "Tùy chọn 1 — Thông tin Hệ thống & Bản quyền"),
             ["Act1_DliHeader"]   = ("License Channel Info  (slmgr /dli)",
                                     "Thông tin Kênh Bản Quyền  (slmgr /dli)"),
-            ["Act1_ExtendedTitle"] = ("Extended Information (slmgr /dlv)",
-                                    "Thông tin Mở rộng (slmgr /dlv)"),
             ["Act2"]             = ("Option 2 — Test & Install New Product Key",
                                     "Tùy chọn 2 — Kiểm thử & Cài Key Mới"),
             ["Act3"]             = ("Option 3 — Remove Activation",
@@ -66,21 +61,13 @@ namespace WinLicApp
                                     "Tùy chọn 5 — Kiểm Tra Kích Hoạt Bên Thứ Ba"),
 
             // ── Elevation / admin ─────────────────────────────────────────────────
-            ["ElevateQ"]         = ("This tool works best with Administrator privileges.\n\nRelaunch as Administrator now?\n\nChoose No to continue in read-only mode.",
-                                    "Công cụ này cần quyền Quản trị viên để hoạt động đầy đủ.\n\nKhởi chạy lại với quyền Quản trị viên ngay bây giờ?\n\nChọn Không để tiếp tục ở chế độ chỉ đọc."),
             ["ElevateTitle"]     = ("Elevation Required", "Yêu Cầu Quyền Admin"),
-            ["AdminReqMsg"]      = ("Please use the '⚡ Relaunch as Admin' button in the header.",
-                                    "Vui lòng dùng nút '⚡ Khởi Chạy Lại Với Quyền Admin' ở đầu trang."),
-            ["AdminReqTitle"]    = ("Admin Required", "Cần Quyền Admin"),
             ["ElevateFail"]      = ("Elevation failed: ", "Không thể yêu cầu nâng quyền: "),
             ["ElevateFromOption"] = ("This option requires Administrator privileges.\n\nRelaunch WinLic Manager as Administrator now?\n\nNote: The previous session log will be preserved.",
                                     "Tùy chọn này yêu cầu quyền Quản trị viên.\n\nKhởi chạy lại WinLic Manager với quyền Admin ngay bây giờ?\n\nLưu ý: Nhật ký phiên trước sẽ được giữ lại."),
 
             // ── Dialog titles (shared) ────────────────────────────────────────────
             ["Confirm_Title"]    = ("Confirm",      "Xác nhận"),
-            ["ShowKey_Title"]    = ("Key Display",  "Hiển thị Key Bản Quyền"),
-            ["ShowKey_Q"]        = ("Show the full product key?\n(No = show last 5 chars only)",
-                                    "Hiển thị đầy đủ Key Bản Quyền?\n(Không = chỉ hiện 5 ký tự cuối)"),
 
             // ── Status bar / general ──────────────────────────────────────────────
             ["Ready"]            = ("Ready",        "Sẵn sàng"),
@@ -103,8 +90,8 @@ namespace WinLicApp
                                     "Đang kiểm tra Key Bản Quyền OEM trên BIOS/UEFI…"),
             ["Fetch_License"]    = ("Querying active Windows license (WMI)…",
                                     "Đang truy vấn bản quyền Windows đang hoạt động (WMI)…"),
-            ["Fetch_BiosKey2"]   = ("Checking BIOS/UEFI OEM key…",
-                                    "Đang kiểm tra Key Bản Quyền OEM trên BIOS/UEFI…"),
+            ["Fetch_SlmgrNotFound"] = ("slmgr.vbs not found: {0}",
+                                       "Không tìm thấy slmgr.vbs: {0}"),
             ["Fetch_RegKey"]     = ("Reading registry backup key…",
                                     "Đang đọc Key Bản Quyền dự phòng từ Registry…"),
 
@@ -113,15 +100,53 @@ namespace WinLicApp
             ["D_Version"]        = ("Version:",              "Số phiên bản:"),
             ["D_Build"]          = ("Build:",                "Số build:"),
             ["D_Arch"]           = ("Architecture:",         "Kiến trúc hệ thống:"),
+            ["D_ProductId"]      = ("Product ID:",           "Mã sản phẩm:"),
             ["D_Edition"]        = ("Edition:",              "Ấn bản:"),
             ["D_Channel"]        = ("Channel:",              "Kênh phân phối:"),
             ["D_PartialKey"]     = ("Partial Key:",          "Key một phần:"),
+            ["D_ProdKeyChannel"] = ("Key Channel:",          "Kênh key:"),
+            ["D_LicStatusReason"]= ("Status Reason:",        "Lý do trạng thái:"),
+            ["D_GracePeriod"]    = ("Grace Period:",         "Thời hạn gia hạn:"),
+            ["D_GracePeriodMin"] = ("{0} minutes remaining","{0} phút còn lại"),
             ["D_BiosOemKey"]     = ("BIOS OEM Key:",         "Key Bản Quyền OEM BIOS:"),
+            ["D_OA3xDesc"]       = ("BIOS Key Desc.:",       "Mô tả Key BIOS:"),
             ["D_RegBackupKey"]   = ("Registry Backup Key:",  "Key Dự phòng (Registry):"),
-            ["D_InstalledKey"]   = ("Installed Key:",        "Key Đã Cài đặt:"),
+            ["D_InstalledKey"]   = ("Installed Key:",        "Key Đã cài đặt:"),
+            ["D_OriginalKey"]    = ("Original Key (pre-upgrade):", "Key Gốc (trước nâng cấp):"),
             ["Fetch_InstalledKey"] = ("Decoding installed key from registry…",
                                       "Đang giải mã Key Bản Quyền từ Registry…"),
-            ["D_Activation"]     = ("Activation:",           "Kích hoạt:"),
+            ["Fetch_RegPidGenX"]  = ("Analyzing Registry Backup Key via pidgenx...",
+                                     "Đang phân tích Key Dự phòng qua pidgenx..."),
+            ["Fetch_InstPidGenX"] = ("Analyzing Installed Key via pidgenx...",
+                                     "Đang phân tích Key Đã Cài Đặt qua pidgenx..."),
+
+            // ── BIOS OEM key inline pidgenx analysis ──────────────────────────────────────
+            ["Fetch_OemPidGenX"]    = ("Running Phase 1 analysis on BIOS OEM key…",
+                                      "Đang phân tích Giai đoạn 1 trên Key OEM BIOS…"),
+            ["OemPid_Channel"]      = ("  Channel  : ",   "  Kênh     : "),
+            ["OemPid_Edition"]      = ("  Edition  : ",   "  Ấn bản   : "),
+            ["OemPid_PartNo"]       = ("  Part No. : ",   "  Mã SP    : "),
+            ["OemPid_WinVer"]       = ("  Win Ver. : ",   "  Phiên bản: "),
+            ["OemPid_OemId"]        = ("  OEM ID   : ",   "  Mã OEM   : "),
+            ["OemPid_Sku"]          = ("  Activation ID: ",   "  Mã kích hoạt : "),
+            ["OemPid_EulaType"]     = ("  EULA     : ",   "  EULA     : "),
+            ["OemPid_IsUpgrade"]    = ("  Upgrade  : ",   "  Nâng cấp : "),
+            ["OemPid_ExtPid"]       = ("  Ext. PID : ",   "  PID mở rộng: "),
+            ["OemPid_UpgradeYes"]   = ("Yes (upgrade license)",  "Có (key nâng cấp)"),
+            ["OemPid_UpgradeNo"]    = ("No (full license)",      "Không (key đầy đủ)"),
+            ["OemPid_Rejected"]     = ("  PidGenX  : Key not found in pkeyconfig.xrm-ms (possibly a pre-Windows 10 OEM key)",
+                                      "  PidGenX  : Key không tìm thấy trong pkeyconfig.xrm-ms (có thể là key OEM trước Windows 10)"),
+            ["OemPid_FormatOnly"]   = ("  Source   : format check only (pkeyconfig.xrm-ms not found)",
+                                      "  Nguồn    : chỉ kiểm tra định dạng (không tìm thấy pkeyconfig.xrm-ms)"),
+
+            ["Sys_Manufacturer"]    = ("  OEM      : ",   "  OEM      : "),
+            ["Sys_Model"]           = ("  Model    : ",   "  Mẫu máy  : "),
+
+            // ── Original Key (pre-upgrade) fetch labels ─────
+            ["Fetch_OrigKey"]       = ("Checking for pre-upgrade original key...",
+                                       "Đang kiểm tra key gốc trước nâng cấp..."),
+            ["Fetch_OrigPidGenX"]   = ("Analyzing Original Key via pidgenx...",
+                                       "Đang phân tích Key Gốc qua pidgenx..."),
 
             // ── License status texts ──────────────────────────────────────────────
             ["LS_0"]             = ("Unlicensed",                     "Chưa được cấp phép"),
@@ -133,14 +158,6 @@ namespace WinLicApp
             ["LS_6"]             = ("Extended Grace Period",          "Thời gian ân hạn mở rộng"),
             ["LS_Unknown"]       = ("Unknown",                        "Không xác định"),
 
-            // ── BIOS OEM key edition detection ─────────────────────────────────────
-            ["Fetch_OemEdition"]    = ("Identifying edition from BIOS OEM key…",
-                                      "Đang xác định ấn bản từ Key Bản Quyền OEM BIOS…"),
-            ["OemEd_Found"]         = ("Edition match found:",         "Phát hiện ấn bản tương ứng:"),
-            ["OemEd_NoMatch"]       = ("Edition could not be determined from key alone.",
-                                      "Không thể xác định ấn bản chỉ từ Key Bản Quyền."),
-            ["OemEd_Hint"]          = ("Tip: install the key (Option 4) to let Windows confirm the edition.",
-                                      "Gợi ý: cài đặt Key (Tùy chọn 4) để Windows xác nhận ấn bản."),
 
             // ── Digital Entitlement detection ────────────────────────────────────
             ["DE_Confirmed"]        = ("Activation method:  Digital Entitlement (HWID / DE)",
@@ -149,10 +166,16 @@ namespace WinLicApp
                                       "Windows được kích hoạt qua Digital Entitlement lưu trên máy chủ Microsoft."),
             ["DE_Explain2"]         = ("Bound to your hardware fingerprint and Microsoft Account.",
                                       "Gắn với dấu vân tay phần cứng và tài khoản Microsoft của bạn."),
-            ["DE_Explain3"]         = ("The active key is a generic placeholder -- the actual entitlement lives in the cloud.",
-                                      "Key đang dùng là key chung thay thế -- quyền kích hoạt thực sự nằm trên cloud."),
-            ["DE_KeyMismatch"]      = ("The BIOS OEM key and Registry Backup key may differ from the active key -- this is normal for DE-activated systems.",
-                                      "Key OEM BIOS và dự phòng có thể khác Key đang dùng -- điều này bình thường với hệ thống kích hoạt bằng DE."),
+            ["DE_Explain3"]         = ("The active key is a generic placeholder — the actual entitlement lives in the cloud.",
+                                      "Key đang dùng là key chung thay thế — quyền kích hoạt thực sự nằm trên cloud."),
+            ["DE_Explain3_Real"]    = ("The installed key appears to be a real retail/OEM key — not a generic placeholder. " +
+                                      "Microsoft likely cloud-assigned a Digital Entitlement tied to your hardware and account, " +
+                                      "while the original key was preserved.",
+                                      "Key đã cài đặt có vẻ là key thực (bán lẻ/OEM) — không phải key chung thay thế. " +
+                                      "Microsoft có thể đã gán Digital Entitlement qua đám mây gắn với phần cứng " +
+                                      "và tài khoản của bạn, trong khi key gốc được giữ nguyên."),
+            ["DE_KeyMismatch"]      = ("The BIOS OEM key and Registry Backup key may differ from the active key. The Registry Backup key (BackupProductKeyDefault) is a pre-existing value placed by Windows Setup, OEM provisioning, or a prior upgrade — it is NOT the key displaced by your most recent install. slmgr /ipk does not reliably update this value. You may be seeing it for the first time because WinLic reads and exposes it.",
+                                       "Key OEM BIOS và Key Dự phòng có thể khác Key đang dùng. Key Dự phòng (BackupProductKeyDefault) là giá trị có sẵn từ trước, được đặt bởi Windows Setup, OEM, hoặc lần nâng cấp trước — KHÔNG phải key bị thay thế trong lần cài đặt vừa rồi. slmgr /ipk không cập nhật giá trị này một cách đáng tin cậy. Đây có thể là lần đầu tiên bạn thấy nó vì WinLic đọc và hiển thị nó."),
             ["DE_Verify"]           = ("To verify: Settings > System > Activation > look for Digital license",
                                       "Để xác nhận: Cài đặt > Hệ thống > Kích hoạt > tìm 'Giấy phép kỹ thuật số'"),
             ["DE_NotActivated"]     = ("Activation method:  Digital Entitlement placeholder key detected — but status is NOT Licensed.",
@@ -171,17 +194,11 @@ namespace WinLicApp
             ["O2_LicenseStatus"]   = ("License Status:  ", "Trạng thái bản quyền:  "),
 
             // ── Option 3 ──────────────────────────────────────────────────────────
-            ["O3_DigitalLic"]      = ("Digital License detected — key is a generic setup key:",
-                                      "Phát hiện Digital License — Key đang dùng là Key Bản Quyền chung:"),
-            ["O3_DigitalLicInfo"]  = ("Windows is activated via a Digital License tied to your hardware / Microsoft Account.",
-                                      "Windows được kích hoạt qua Digital License gắn với phần cứng / tài khoản Microsoft của bạn."),
             ["O3_NoLicense"]       = ("No active Windows product license found via WMI.",
                                       "Không tìm thấy bản quyền Windows đang hoạt động qua WMI."),
             ["O3_BiosNone"]        = ("None detected",  "Không phát hiện"),
             ["O3_BiosDetected"]    = ("Detected",     "Đã phát hiện"),
             ["O3_RegNone"]         = ("None found",     "Không tìm thấy"),
-            ["O3_KeysFoundCtx"]    = ("Keys were found in BIOS and/or Registry.",
-                                      "Phát hiện Key Bản Quyền trong BIOS và/hoặc Registry."),
             ["O3_KeyBios"]         = ("BIOS OEM Key:          ",  "Key OEM BIOS:          "),
             ["O3_KeyReg"]          = ("Registry Backup Key:   ",  "Key Dự phòng (Registry):  "),
             ["O3_KeyInstalled"]    = ("Installed Key:         ",  "Key Đã cài đặt:        "),
@@ -201,44 +218,31 @@ namespace WinLicApp
             ["O3_RegReadErr"]      = ("Registry read error: ",          "Lỗi đọc Registry: "),
             ["O3_KeyMatch"]        = ("Registry Backup Key matches the active product key.",
                                       "Key Dự phòng trong Registry khớp với Key Bản Quyền đang hoạt động."),
-            ["O3_DlvQ"]            = ("Also run the full slmgr /dlv extended report?\n\nThis reveals:\n  • License channel & sub-channel (Retail / OEM / Volume)\n  • Full SKU ID and description\n  • KMS server configuration & client count\n  • Remaining rearm (reset) count\n  • Activation expiry / grace-period deadline\n  • Unique machine ID (CMID)\n\nUseful for diagnosing activation issues in detail.",
-                                      "Có muốn chạy báo cáo mở rộng slmgr /dlv không?\n\nBáo cáo này hiển thị:\n  • Kênh & kênh phụ bản quyền (Retail / OEM / Volume)\n  • SKU ID đầy đủ và mô tả\n  • Cấu hình máy chủ KMS & số lượng client\n  • Số lần rearm (đặt lại) còn lại\n  • Thời hạn kích hoạt / thời gian ân hạn\n  • ID máy duy nhất (CMID)\n\nHữu ích để chẩn đoán chi tiết vấn đề kích hoạt."),
-            ["O3_DlvTitle"]        = ("slmgr /dlv — Extended License Report",
-                                      "slmgr /dlv — Báo cáo Bản quyền Mở rộng"),
             ["O3_Activation"]      = ("Activation:  ", "Kích hoạt:  "),
 
-            // ── Option 1 ──────────────────────────────────────────────────────────
-            ["O1_BiosDetectedCtx"] = ("A BIOS/UEFI OEM key was found embedded in your firmware.",
-                                      "Phát hiện Key Bản Quyền OEM được nhúng trong firmware BIOS/UEFI."),
-            ["O1_BiosKey"]         = ("BIOS OEM Key:  ",  "Key Bản Quyền OEM BIOS:  "),
-            ["O1_BiosNone"]        = ("No OEM key detected in BIOS/UEFI firmware.",
-                                      "Không phát hiện Key Bản Quyền OEM trên firmware BIOS/UEFI."),
 
             // ── Option 4 ──────────────────────────────────────────────────────────
-            ["O4_Info1"]           = ("Key testing works by attempting local installation of the entered key.",
-                                      "Kiểm thử Key Bản Quyền bằng cách thử cài đặt key đã nhập trên máy."),
-            ["O4_Info2"]           = ("Your existing activation will NOT be harmed if the key is rejected or belongs to a different edition.",
-                                      "Trạng thái kích hoạt hiện tại sẽ KHÔNG bị ảnh hưởng nếu key bị từ chối hoặc thuộc ấn bản khác."),
-            ["O4_Prompt"]          = ("Enter the 25-character product key:\n\nFormat:  XXXXX-XXXXX-XXXXX-XXXXX-XXXXX",
-                                      "Nhập Key Bản Quyền gồm 25 ký tự:\n\nĐịnh dạng:  XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"),
-            ["O4_PromptTitle"]     = ("Enter Product Key",  "Nhập Key Bản Quyền"),
+            ["O4_Info1"]           = ("Phase 1 (offline, instant): Key structure is checked immediately — no network, no registry changes.",
+                                      "Giai đoạn 1 (ngoại tuyến, tức thì): Cấu trúc key được kiểm tra ngay — không mạng, không thay đổi registry."),
+            ["O4_Info2"]           = ("Phase 2 (online): slmgr /ipk runs only after you confirm — this is the real key install.",
+                                      "Giai đoạn 2 (trực tuyến): slmgr /ipk chỉ chạy sau khi bạn xác nhận — đây mới là thao tác cài key thực sự."),
             ["O4_Cancelled"]       = ("Canceled — no key entered.",
                                       "Đã hủy — không nhập Key Bản Quyền."),
             ["O4_BadFormat"]       = ("Invalid format. Key must be  XXXXX-XXXXX-XXXXX-XXXXX-XXXXX",
                                       "Định dạng không hợp lệ. Key phải có dạng  XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"),
-            ["O4_ShowKeyCtx"]      = ("About to install the product key.",
-                                      "Sắp cài đặt Key Bản Quyền."),
             ["O4_Installing"]      = ("Installing key:  ",  "Đang cài đặt key:  "),
             ["O4_Success1"]        = ("Key accepted! Windows will attempt online activation automatically.",
                                       "Key Bản Quyền được chấp nhận! Windows sẽ tự động kích hoạt trực tuyến."),
             ["O4_Success2"]        = ("Check activation status with Option 3 or Option 2.",
                                       "Kiểm tra trạng thái kích hoạt ở Tùy chọn 3 hoặc Tùy chọn 2."),
             ["O4_Fail"]            = ("Key was rejected by Windows.",  "Key Bản Quyền bị Windows từ chối."),
-            ["O4_DiagSku"]         = ("SKU Mismatch — key belongs to a different Windows edition (e.g. Home vs Pro).",
-                                      "SKU không khớp — Key thuộc ấn bản Windows khác (ví dụ: Home và Pro)."),
+            ["O4_DiagGen"]         = ("Generation Mismatch (0xC004E016) — this key is for a different Windows generation (e.g. a Windows 8 key cannot be installed on Windows 10/11). Microsoft does not allow cross-generation installs via slmgr /ipk.",
+                                      "Không khớp thế hệ (0xC004E016) — Key này dành cho thế hệ Windows khác (ví dụ: key Windows 8 không cài được trên Windows 10/11). Microsoft không cho phép cài key khác thế hệ qua slmgr /ipk."),
+            ["O4_DiagSku"]         = ("Edition Mismatch (0xC004F069) — this key belongs to a different Windows edition (e.g. Home vs Pro). Use a key for the currently installed edition.",
+                                      "Không khớp ấn bản (0xC004F069) — Key này thuộc ấn bản Windows khác (ví dụ: Home và Pro). Hãy dùng key đúng với ấn bản đang cài."),
             ["O4_DiagInvalid"]     = ("Invalid Key — the key is invalid or mistyped.",
                                       "Key không hợp lệ — Key Bản Quyền bị sai hoặc nhập nhầm."),
-            ["O4_DiagBlocked"]     = ("Blocked Key — this key has been blacklisted by Microsoft.",
+            ["O4_DiagBlocked"]     = ("Blocked Key — this key has been blocklisted by Microsoft.",
                                       "Key bị chặn — Key Bản Quyền này đã bị Microsoft thu hồi."),
             ["O4_DiagGeneral"]     = ("Check the error code for more information.",
                                       "Kiểm tra mã lỗi để biết thêm thông tin."),
@@ -259,7 +263,7 @@ namespace WinLicApp
             ["O3_Remove_Confirm"]  = ("Remove Key", "Gỡ Key"),
             ["O3_Remove_BadInput"] = ("Type OK (uppercase) to confirm.", "Nhập OK (chữ hoa) để xác nhận."),
             // Action result keys (shared with log output)
-            ["O5_Cancelled"]       = ("Canceled.", "Đã hủy."),
+            ["O3_Cancelled"]     = ("Canceled.", "Đã hủy."),
             ["O5_Uninstalling"]    = ("Uninstalling product key  (slmgr /upk)…",
                                       "Đang gỡ cài đặt Key Bản Quyền  (slmgr /upk)…"),
             ["O5_Clearing"]        = ("Clearing key from registry  (slmgr /cpky)…",
@@ -268,13 +272,9 @@ namespace WinLicApp
                                       "Đã gỡ cài đặt Key Bản Quyền và xóa khỏi Registry."),
 
             // ── Option 6 ──────────────────────────────────────────────────────────
-            ["O6_Confirm"]         = ("⚠  WARNING\n\nThis resets the licensing status and activation timers (rearm).\n\nA computer restart is required for changes to take effect.\n\nContinue?",
-                                      "⚠  CẢNH BÁO\n\nThao tác này đặt lại trạng thái bản quyền và bộ đếm kích hoạt (rearm).\n\nCần khởi động lại máy tính để áp dụng thay đổi.\n\nTiếp tục?"),
-            ["O6_Cancelled"]       = ("Canceled.", "Đã hủy."),
             ["O6_Rearming"]        = ("Executing  slmgr /rearm…",  "Đang thực thi  slmgr /rearm…"),
             ["O6_Done"]            = ("Rearm complete. Restart your computer for changes to take effect.",
                                       "Rearm hoàn tất. Khởi động lại máy tính để áp dụng thay đổi."),
-            ["O6_RestartQ"]        = ("Restart the computer now?", "Khởi động lại máy tính ngay bây giờ?"),
             ["O6_Restarting"]      = ("Restarting in 5 seconds…",  "Đang khởi động lại sau 5 giây…"),
 
             // ── Option 1 — /dlv Extended Scan panel ──────────────────────────────
@@ -349,8 +349,6 @@ namespace WinLicApp
                                     "Một số công cụ kích hoạt để lại tiến trình thường trú. Kiểm tra này liệt kê các tiến trình đang chạy có tên trùng với công cụ đã biết."),
 
             // scan step labels
-            ["P7_Intro"]         = ("Starting scan…",
-                                    "Bắt đầu quét…"),
             ["Fetch_KmsHost"]    = ("① Checking KMS server name (registry + WMI)…",
                                     "① Kiểm tra tên máy chủ KMS (registry + WMI)…"),
             ["Fetch_Port1688"]   = ("② Probing configured KMS port(s) on localhost…",
@@ -365,8 +363,6 @@ namespace WinLicApp
                                     "⑥ Quét tiến trình đang chạy…"),
             ["Fetch_ActChannel"] = ("⑦ Checking activation channel and key type (WMI)…",
                                     "⑦ Kiểm tra kênh kích hoạt và loại khóa (WMI)…"),
-            ["Fetch_SppStore"]   = ("⑧ Checking SPP store file timestamps…",
-                                    "⑧ Kiểm tra dấu thời gian tệp kho SPP…"),
             ["Fetch_SppEvents"]  = ("⑨ Checking SPP activation event log…",
                                     "⑨ Kiểm tra nhật ký sự kiện kích hoạt SPP…"),
 
@@ -375,8 +371,6 @@ namespace WinLicApp
                                     "KMS GIẢ LẬP CỤC BỘ — Máy chủ KMS trỏ đến localhost/127.x.x.x!"),
             ["P7_KmsName"]       = ("KMS server configured:",    "Máy chủ KMS đã cấu hình:"),
             ["P7_KmsNone"]       = ("No KMS server configured.", "Không có máy chủ KMS nào được cấu hình."),
-            ["P7_KmsExternal"]   = ("KMS server is an external address — consistent with a legitimate corporate deployment.",
-                                    "Máy chủ KMS là địa chỉ bên ngoài — phù hợp triển khai doanh nghiệp hợp lệ."),
             ["P7_KmsCloudPiracy"] = ("CLOUD KMS PIRACY SERVICE DETECTED — this is a public internet KMS server and is NOT operated by Microsoft! Microsoft does not provide public KMS servers. This is an unauthorized third-party activation service.",
                                      "PHÁT HIỆN DỊCH VỤ KMS LẬU TRÊN CLOUD — đây là máy chủ KMS công cộng trên internet và KHÔNG do Microsoft vận hành! Microsoft không cung cấp máy chủ KMS công cộng. Đây là dịch vụ kích hoạt trái phép của bên thứ ba."),
             ["P7_KmsKnownPiracy"] = ("KNOWN PIRACY KMS DOMAIN — this is a recognized third-party activation service, not a Microsoft server!",
@@ -413,8 +407,8 @@ namespace WinLicApp
                                             "Microsoft grants this through the activation server; it is indistinguishable from a retail license here.",
                                           "Phát hiện khóa HWID placeholder '{0}' với kênh '{1}' và kích hoạt vĩnh viễn — phù hợp với kích hoạt Digital Entitlement (HWID/DE) hợp lệ. " +
                                           "Microsoft cấp qua máy chủ kích hoạt; không thể phân biệt với bản quyền mua chính hãng."),
-            ["P7_GvlkWithKms"]         = ("GVLK key detected with active KMS renewal — consistent with legitimate enterprise KMS activation. Verify the KMS server above.",
-                                          "Phát hiện khóa GVLK với gia hạn KMS đang hoạt động — phù hợp với kích hoạt KMS doanh nghiệp hợp lệ. Xác minh máy chủ KMS ở trên."),
+            ["P7_GvlkWithKms"]         = ("GVLK key '{0}' detected with active KMS renewal — consistent with legitimate enterprise KMS activation. Verify the KMS server above.",
+                                          "Phát hiện khóa GVLK '{0}' với gia hạn KMS đang hoạt động — phù hợp với kích hoạt KMS doanh nghiệp hợp lệ. Xác minh máy chủ KMS ở trên."),
             ["P7_NoGvlk"]              = ("Installed key is NOT a known GVLK or placeholder key.",
                                           "Khóa đã cài đặt KHÔNG phải là GVLK hoặc khóa placeholder đã biết."),
             ["P7_NoKeyWmi"]             = ("No licensed Windows product key found via WMI.",
@@ -469,6 +463,8 @@ namespace WinLicApp
             // ── Summary indicator count ────────────────────────────────────
             ["P7_IndicatorCount"]  = ("  Total indicators flagged: {0}",
                                       "  Tổng số dấu hiệu bị đánh dấu: {0}"),
+            ["P7_PhoneChannel"]  = ("ANOMALOUS PHONE ACTIVATION — Windows reports Phone activation channel with no record of a phone activation flow. This is a characteristic indicator of TSforge ZeroCID sub-method.",
+                                    "KÍCH HOẠT ĐIỆN THOẠI BẤT THƯỜNG — Windows báo cáo kênh kích hoạt Điện thoại mà không có bản ghi quy trình kích hoạt qua điện thoại. Đây là dấu hiệu đặc trưng của phương thức con TSforge ZeroCID."),
 
             // ── Legal notice ───────────────────────────────────────────────────
             ["P7_LegalHeader"]   = ("══ ACTIVATION AUDIT — LEGAL NOTICE ══",
@@ -499,6 +495,8 @@ namespace WinLicApp
                                        "Tên miền KMS lậu trong lần quét: {0} mặc định + {1} từ settings.ini  (tổng: {2})"),
             ["P7_CheckDns"]         = ("Checking internet access and resolving host via DNS...",
                                        "Đang kiểm tra kết nối internet và phân giải tên miền qua DNS..."),
+            ["P7_KmsDnsPrivate"]    = ("  Resolved to private/internal IP — unusual for a cloud KMS domain.",
+                                       "  Phân giải thành IP nội bộ/riêng — bất thường cho miền KMS đám mây."),
             ["P7_KmsDnsResolved"]   = ("Resolves to: ",
                                        "Phân giải thành: "),
             ["P7_KmsDnsPublic"]     = ("Confirmed active: domain resolves to a public IP address.",
@@ -507,11 +505,6 @@ namespace WinLicApp
                                        "Không thể phân giải tên miền — dịch vụ có thể ngoại tuyến hoặc bị chặn DNS."),
             ["P7_NoInternet"]       = ("No internet access — DNS verification skipped.",
                                        "Không có kết nối internet — bỏ qua bước xác minh DNS."),
-            // legacy keys kept for reference
-            ["P7_Port1688Open"]  = ("Port 1688 OPEN on localhost — a local KMS listener is actively running!",
-                                    "Cổng 1688 ĐANG MỞ trên localhost — có dịch vụ KMS cục bộ đang chạy!"),
-            ["P7_Port1688Closed"] = ("Port 1688 on localhost is closed (no local KMS listener).",
-                                    "Cổng 1688 trên localhost đã đóng — không có dịch vụ KMS cục bộ."),
             ["P7_ServiceFound"]   = ("Suspicious service detected:",        "Phát hiện dịch vụ đáng ngờ:"),
             ["P7_NoServices"]     = ("No suspicious services found.",       "Không phát hiện dịch vụ đáng ngờ."),
             ["P7_TaskFound"]      = ("Suspicious scheduled task detected:", "Phát hiện tác vụ định kỳ đáng ngờ:"),
@@ -546,9 +539,6 @@ namespace WinLicApp
                                "Lưu vào settings.ini cạnh ứng dụng."),
             ["SD_Save"]     = ("Save",  "Lưu"),
             ["SD_Saved"]    = ("Settings saved to:", "Đã lưu cài đặt vào:"),
-            ["SD_Gvlk"]    = ("GVLK / Suspicious Key Suffixes", "Hậu tố Khóa GVLK / Đáng ngờ"),
-            ["SD_GvlkNote"] = ("Full GVLK table is loaded from settings.ini [GvlkKeys]. Add custom key suffixes (last 5 chars) in [UserGvlkKeys] via the settings file.",
-                               "Bảng GVLK đầy đủ được tải từ settings.ini [GvlkKeys]. Thêm hậu tố khóa tùy chỉnh (5 ký tự cuối) trong [UserGvlkKeys] qua tệp cài đặt."),
             ["SD_GvlkCount"] = ("{0} GVLK key entries loaded from settings.ini",
                                 "{0} mục khóa GVLK đã tải từ settings.ini"),
 
@@ -564,10 +554,10 @@ namespace WinLicApp
 
             // ── Key Entry Panel (segmented key input, Option 2) ───────────────────
             ["KP_Title"]   = ("Enter Product Key", "Nhập Key Bản Quyền"),
-            ["KP_Info1"]   = ("Key testing works by attempting a local installation of the entered key via slmgr /ipk.",
-                              "Kiểm tra key bằng cách thử cài đặt cục bộ qua lệnh slmgr /ipk."),
-            ["KP_Info2"]   = ("Your existing activation will NOT be harmed if the key is rejected or belongs to a different edition.",
-                              "Kích hoạt hiện tại KHÔNG bị ảnh hưởng nếu key bị từ chối hoặc thuộc ấn bản khác."),
+            ["KP_Info1"]   = ("Phase 1 (offline, instant): Key structure is checked as you type — no network, no registry changes.",
+                              "Giai đoạn 1 (ngoại tuyến, tức thì): Cấu trúc key được kiểm tra ngay khi nhập — không mạng, không thay đổi registry."),
+            ["KP_Info2"]   = ("Phase 2 (online): slmgr /ipk runs only after you type OK and click Install — this is the real key install.",
+                              "Giai đoạn 2 (trực tuyến): slmgr /ipk chỉ chạy sau khi bạn nhập OK và nhấn Cài đặt — đây mới là thao tác cài key thực sự."),
             ["KP_Warn"]    = ("⚠  If the key is compatible, it WILL overwrite your current product key immediately.",
                               "⚠  Nếu key tương thích, nó SẼ ghi đè key bản quyền hiện tại ngay lập tức."),
             ["KP_TypeOk"]  = ("Type  OK  below to confirm you understand:",
@@ -579,13 +569,75 @@ namespace WinLicApp
             ["KP_Install"] = ("Install Key", "Cài đặt Key"),
             ["KP_Cancel"]  = ("Cancel", "Hủy"),
 
-            // ── Option 2 — channel warnings (shown in pre-arm) ───────────────────
-            ["O2_WARN_CHAN_KMS"]    = ("⚠  Current channel is VOLUME_KMSCLIENT — this option is for Retail/OEM/MAK keys. For KMS activation use Option 6.",
-                                       "⚠  Kênh hiện tại là VOLUME_KMSCLIENT — tùy chọn này dành cho key Retail/OEM/MAK. Dùng Tùy chọn 6 để kích hoạt KMS."),
-            ["O2_WARN_CHAN_KMSHOST"] = ("⚠  This machine appears to be a KMS HOST (VOLUME_KMS channel). Use Option 6 only for KMS client activation.",
-                                        "⚠  Máy này có vẻ là KMS HOST (kênh VOLUME_KMS). Dùng Tùy chọn 6 chỉ để kích hoạt KMS client."),
-            ["O2_WARN_CHAN_SUB"]    = ("⚠  Subscription-based activation is not managed by this option.",
-                                       "⚠  Kích hoạt theo đăng ký không được quản lý bởi tùy chọn này."),
+            // ── Key Entry Panel -- PidGenX decode banner ──────────────────────────
+            ["KP_PidValid"]    = ("Phase 1 OK — format valid",
+                                  "Giai đoạn 1 OK — định dạng hợp lệ"),
+            ["KP_PidInvalid"]  = ("Phase 1 FAIL — must be 25 alphanumeric chars in 5x5 groups",
+                                  "Giai đoạn 1 THẤT BẠI — phải có 25 ký tự chữ-số chia thành 5 nhóm 5"),
+            ["KP_PidRejected"] = ("Phase 1 WARNING — key not recognized by pidgenx for this Windows version",
+                                  "Giai đoạn 1 CẢNH BÁO — key không được pidgenx nhận diện cho phiên bản Windows này"),
+            ["KP_PidEdition"]  = ("  Edition  : ", "  Ấn bản   : "),
+            ["KP_PidChannel"]  = ("  Channel  : ", "  Kênh     : "),
+            ["KP_PidPartNo"]   = ("  Part No. : ", "  Mã SP    : "),
+            ["KP_PidWinVer"]   = ("  Win Ver. : ", "  Phiên bản: "),
+
+            // ── Option 2 — Phase 1 PidGenX strings ───────────────────────────────
+            ["O2_PIDGX_ABOUT"]       = ("Phase 1 — Offline Key Analysis (instant, no network, no registry change): " +
+                                        "calls pidgenx.dll (present on all Win10/11) with pkeyconfig.xrm-ms to validate " +
+                                        "the key checksum and identify its Channel. Phase 2 (slmgr /ipk) is the final " +
+                                        "authority on whether the key actually works for this system.",
+                                        "Giai đoạn 1 — Phân tích key ngoại tuyến (tức thì, không mạng, không thay đổi registry): " +
+                                        "gọi pidgenx.dll (có sẵn trên mọi Win10/11) với pkeyconfig.xrm-ms để xác thực checksum " +
+                                        "và xác định kênh phân phối của key. Giai đoạn 2 (slmgr /ipk) mới là bước kiểm tra thực sự quyết định key có hoạt động trên hệ thống này không."),
+            ["O2_PIDGX_HDR"]         = ("-- KEY ANALYSIS -- (Phase 1: Offline)",
+                                        "-- PHÂN TÍCH KEY -- (Giai đoạn 1: Ngoại tuyến)"),
+            ["O2_PIDGX_VALID"]       = ("Format   : OK (25 alphanumeric chars, 5x5 groups)",
+                                        "Định dạng: HỢP LỆ (25 ký tự chữ-số, 5 nhóm 5)"),
+            ["O2_PIDGX_REJECTED"]    = ("PidGenX  : REJECTED — key not found in pkeyconfig.xrm-ms for this Windows version",
+                                        "PidGenX  : TỪ CHỐI — key không tìm thấy trong pkeyconfig.xrm-ms cho phiên bản Windows này"),
+            ["O2_PIDGX_SRC_PIDGENX"] = ("Source   : pidgenx.dll + pkeyconfig.xrm-ms (real key group lookup)",
+                                        "Nguồn    : pidgenx.dll + pkeyconfig.xrm-ms (tra cứu key group thực sự)"),
+            ["O2_PIDGX_EDITION"]     = ("  Edition  : ",
+                                         "  Ấn bản   : "),
+            ["O2_PIDGX_PARTNO"]      = ("  Part No. : ",
+                                         "  Mã SP    : "),
+            ["O2_PIDGX_WINVER"]      = ("  Win Ver. : ",
+                                         "  Phiên bản: "),
+            ["O2_PIDGX_SRC_CHK"]     = ("Source   : format check only (pidgenx.dll unavailable or key not in pkeyconfig)",
+                                        "Nguồn    : chỉ kiểm tra định dạng (pidgenx.dll không khả dụng hoặc key không trong pkeyconfig)"),
+            ["O2_PHASE2_HDR"]        = ("── Phase 2: Installing key via slmgr /ipk ──────────────────────────",
+                                        "── Giai đoạn 2: Cài đặt key qua slmgr /ipk ──────────────────────"),
+
+            // ── Option 2 — pidgenx-rejected warning dialog ──────────────────
+            ["KP_PIDGX_REJECT_TITLE"]   = ("Key Not Recognized — Possible Wrong Windows Version",
+                                           "Key Không Được Nhận Diện — Sai Phiên Bản Windows?"),
+            ["KP_PIDGX_REJECT_WARN"]    = ("Phase 1 WARNING: This key was NOT found in pkeyconfig.xrm-ms on this system.\n\n" +
+                                           "This usually means the key belongs to a different Windows generation (e.g. Windows 7 or 8) " +
+                                           "and cannot be installed on Windows 10/11 via slmgr /ipk.\n\n" +
+                                           "Do you want to attempt the install anyway? (It will likely fail with 0xC004E016)",
+                                           "Cảnh báo Giai đoạn 1: Key KHÔNG tìm thấy trong pkeyconfig.xrm-ms trên hệ thống này.\n\n" +
+                                           "Điều này thường có nghĩa key thuộc phiên bản Windows khác (ví dụ Windows 7 hoặc 8) " +
+                                           "và không thể cài trên Windows 10/11 qua slmgr /ipk.\n\n" +
+                                           "Bạn vẫn muốn thử cài đặt không? (Có thể sẽ thất bại với lỗi 0xC004E016)"),
+            ["KP_PIDGX_REJECT_ABORTED"] = ("Install aborted — key not recognized in pkeyconfig for this Windows version.",
+                                           "Đã hủy cài đặt — key không được nhận diện trong pkeyconfig cho phiên bản Windows này."),
+            ["KP_PIDGX_REJECT_OVERRIDE"]= ("Proceeding at user's request — key was not recognized by pidgenx for this Windows version.",
+                                           "Tiếp tục theo yêu cầu người dùng — key không được nhận diện bởi pidgenx cho phiên bản Windows này."),
+
+
+            // ── Option 2 — save-key advisory for non-generic Retail/MAK/OEM keys ──
+            ["O2_SAVE_KEY_WARN"] = ("This appears to be a unique Retail / MAK / OEM key. " +
+                                    "Save it now before installing a new key — " +
+                                    "you will NOT be able to recover it afterwards.",
+                                    "Đây có vẻ là key Retail / MAK / OEM riêng. " +
+                                    "Hãy lưu lại trước khi cài key mới — " +
+                                    "bạn sẽ KHÔNG thể khôi phục sau này."),
+            ["O3_SAVE_KEY_WARN"] = ("This appears to be a unique Retail / MAK / OEM key. " +
+                                    "Save it now before removing — " +
+                                    "you will NOT be able to recover it afterwards.",
+                                    "Đây có vẻ là key Retail / MAK / OEM riêng. " +
+                                    "Hãy lưu lại trước khi gỡ — " +
+                                    "bạn sẽ KHÔNG thể khôi phục sau này."),
 
             // ── Option 2 — auto /ato after successful /ipk ───────────────────────
             ["O2_ATO_AUTO"]          = ("Attempting online activation automatically (slmgr /ato)...",
@@ -607,6 +659,60 @@ namespace WinLicApp
             ["O2_DIAG_NOTGENUINE"]   = ("Diagnosis: Not Genuine Windows (0x8004FE21) — system files may be modified or corrupted. Reinstall Windows.",
                                         "Chẩn đoán: Windows Không Chính Hãng (0x8004FE21) — tệp hệ thống có thể bị thay đổi hoặc hỏng. Cài lại Windows."),
 
+            ["O2_DIAG_NO_NET"]      = ("Diagnosis: No Internet / Server Unreachable (0x8007232B) — Windows could not reach Microsoft activation servers. Check your internet connection and try again.",
+                                        "Chẩn đoán: Không Có Internet / Không Kết Được Máy Chủ (0x8007232B) — Windows không thể kết nối đến máy chủ kích hoạt Microsoft. Kiểm tra kết nối internet và thử lại."),
+            ["O2_DIAG_KMS_NO_SRV"] = ("Diagnosis: KMS Server Unavailable (0xC004F074) — no KMS host could be contacted. If using a Retail/MAK key, switch to Retail channel first (Option 6). If using KMS, use Option 8 to diagnose.",
+                                        "Chẩn đoán: Máy Chủ KMS Không Khả Dụng (0xC004F074) — không thể liên hệ máy chủ KMS. Nếu dùng key Retail/MAK, hãy đổi kênh sang Retail trước (Tùy chọn 6). Nếu dùng KMS, dùng Tùy chọn 8 để chẩn đoán."),
+            ["O2_ATO_NO_INTERNET"]  = ("Offline: No internet detected — online activation may fail. Ensure you have an active connection before proceeding.",
+                                        "Ngoại tuyến: Không phát hiện kết nối internet — kích hoạt trực tuyến có thể thất bại. Hãy đảm bảo có kết nối trước khi tiếp tục."),
+            ["O2_NET_NOTICE"]      = ("Retail / MAK / OEM keys require internet access to activate with Microsoft servers.",
+                                       "Key Retail / MAK / OEM yêu cầu kết nối internet để kích hoạt với máy chủ Microsoft."),
+
+            // ── Option 2 — additional /ipk error diagnoses ────────────────────────
+            ["O2_DIAG_ACCESS_DENIED"]    = ("Diagnosis: Access Denied (0x80070005) — slmgr requires Administrator privileges. Ensure WinLicApp is running as Administrator.",
+                                             "Chẩn đoán: Bị Từ Chối Truy Cập (0x80070005) — slmgr cần quyền Quản trị viên. Đảm bảo WinLicApp đang chạy với quyền Quản trị viên."),
+            ["O2_DIAG_KEY_LIMIT"]        = ("Diagnosis: Key Activation Limit Exceeded (0xC004C008) — this key has reached its maximum number of activations. Contact Microsoft Licensing or obtain a new key.",
+                                             "Chẩn đoán: Vượt Giới Hạn Kích Hoạt Key (0xC004C008) — key này đã đạt số lần kích hoạt tối đa. Liên hệ Microsoft Licensing hoặc lấy key mới."),
+            ["O2_DIAG_VOL_LIC"]          = ("Diagnosis: Volume License Key Requires OEM BIOS Marker (0xC004F035) — this computer's UEFI firmware lacks the required ACPI/SLIC table for a Volume License key. Use a Retail or MAK key instead.",
+                                             "Chẩn đoán: Key Volume License Yêu Cầu Dấu Hiệu BIOS OEM (0xC004F035) — firmware UEFI của máy này thiếu bảng ACPI/SLIC cần thiết cho key Volume License. Hãy dùng key Retail hoặc MAK thay thế."),
+            ["O2_DIAG_KEY_BLOCKED_SLS"]  = ("Diagnosis: Product Key Blocked at Licensing Level (0xC004F051) — Microsoft's Software Licensing Service has blocklisted this key. Obtain a new key from an authorized source.",
+                                             "Chẩn đoán: Key Sản Phẩm Bị Chặn Ở Cấp Cấp Phép (0xC004F051) — Dịch vụ Cấp phép Phần mềm Microsoft đã chặn key này. Lấy key mới từ nguồn được ủy quyền."),
+
+            // ── Option 2 — additional /ato error diagnoses ────────────────────────
+            ["O2_DIAG_DNS_NONAME"]       = ("Diagnosis: KMS Server Not Found in DNS (0x8007007B / 0x80092328) — the KMS SRV record is missing. If using Retail/MAK key switch to Retail channel first (Option 6). If enterprise KMS, contact your IT administrator to verify DNS SRV records.",
+                                             "Chẩn đoán: Không Tìm Thấy Máy Chủ KMS Trong DNS (0x8007007B / 0x80092328) — bản ghi SRV KMS không tồn tại. Nếu dùng key Retail/MAK hãy chuyển sang kênh Retail trước (Tùy chọn 6). Nếu KMS doanh nghiệp, liên hệ quản trị viên IT kiểm tra bản ghi DNS SRV."),
+            ["O2_DIAG_RPC_UNAVAIL"]      = ("Diagnosis: RPC Server Unavailable (0x800706BA) — the KMS host is unreachable or TCP port 1688 is blocked by a firewall. Check network connectivity and firewall rules on both client and server.",
+                                             "Chẩn đoán: Máy Chủ RPC Không Khả Dụng (0x800706BA) — máy chủ KMS không thể kết nối hoặc cổng TCP 1688 bị tường lửa chặn. Kiểm tra kết nối mạng và quy tắc tường lửa trên cả client và server."),
+            ["O2_DIAG_DNS_FAIL"]         = ("Diagnosis: DNS Server Failure (0x8007232A / 0x8007251D) — the DNS server could not resolve the KMS hostname. Check DNS settings and network connectivity.",
+                                             "Chẩn đoán: Lỗi Máy Chủ DNS (0x8007232A / 0x8007251D) — máy chủ DNS không thể phân giải tên máy chủ KMS. Kiểm tra cài đặt DNS và kết nối mạng."),
+            ["O2_DIAG_NET_TIMEOUT"]      = ("Diagnosis: Connection Timeout (0x80072EE2 / 0x80072EE7 / 0x80072EFD) — Windows could not reach the activation server. Check internet, disable VPN/proxy, or use phone activation: run 'slui 4'.",
+                                             "Chẩn đoán: Hết Thời Gian Kết Nối (0x80072EE2 / 0x80072EE7 / 0x80072EFD) — Windows không thể kết nối đến máy chủ kích hoạt. Kiểm tra internet, tắt VPN/proxy, hoặc dùng kích hoạt qua điện thoại: chạy 'slui 4'."),
+            ["O2_DIAG_HW_CHANGED"]       = ("Diagnosis: Hardware Changed (0xC004F00F) — significant hardware changes were detected. Use the Activation Troubleshooter (Settings → Activation) or phone activation ('slui 4'). For digital licenses sign in with the linked Microsoft account.",
+                                             "Chẩn đoán: Phần Cứng Đã Thay Đổi (0xC004F00F) — phát hiện thay đổi phần cứng đáng kể. Dùng Trình Khắc Phục Sự Cố Kích Hoạt (Cài đặt → Kích hoạt) hoặc kích hoạt qua điện thoại ('slui 4'). Với giấy phép số, đăng nhập bằng tài khoản Microsoft đã liên kết."),
+            ["O2_DIAG_LIC_EVAL_FAIL"]    = ("Diagnosis: License Evaluation Failed (0xC004E003) — the Software Licensing Service cannot evaluate the license. Run 'slmgr /rilc' as Administrator to reinstall license files, then retry activation.",
+                                             "Chẩn đoán: Đánh Giá Giấy Phép Thất Bại (0xC004E003) — Dịch vụ Cấp phép Phần mềm không thể đánh giá giấy phép. Chạy 'slmgr /rilc' với quyền Quản trị viên để cài lại tệp giấy phép, sau đó thử kích hoạt lại."),
+            ["O2_DIAG_KMS_COUNT"]        = ("Diagnosis: KMS Activation Count Insufficient (0xC004F038) — your KMS server requires at least 25 Windows client activation requests before it will activate any client. Contact your IT administrator.",
+                                             "Chẩn đoán: Số Lượng Kích Hoạt KMS Chưa Đủ (0xC004F038) — máy chủ KMS cần ít nhất 25 yêu cầu kích hoạt từ client Windows trước khi kích hoạt bất kỳ máy nào. Liên hệ quản trị viên IT."),
+            ["O2_DIAG_KMS_DISABLED"]     = ("Diagnosis: KMS Service Not Enabled / Not Responding (0xC004F039) — the KMS host service is not running or is not responding. Ensure TCP port 1688 is not blocked and the KMS host service is active.",
+                                             "Chẩn đoán: Dịch Vụ KMS Chưa Được Bật / Không Phản Hồi (0xC004F039) — dịch vụ KMS trên máy chủ chưa chạy hoặc không phản hồi. Đảm bảo cổng TCP 1688 không bị chặn và dịch vụ KMS đang hoạt động."),
+            ["O2_DIAG_KMS_NOT_ACT"]      = ("Diagnosis: KMS Host Not Activated (0xC004F041) — the KMS host server itself has not been activated with Microsoft. The IT administrator must activate the KMS host before clients can activate.",
+                                             "Chẩn đoán: Máy Chủ KMS Chưa Được Kích Hoạt (0xC004F041) — bản thân máy chủ KMS chưa được kích hoạt với Microsoft. Quản trị viên IT phải kích hoạt máy chủ KMS trước khi các client có thể kích hoạt."),
+            ["O2_DIAG_KMS_WRONG"]        = ("Diagnosis: Wrong KMS Host for This Product (0xC004F042) — the configured KMS server cannot activate this Windows version. Ensure the KMS host version is compatible. Contact your IT administrator.",
+                                             "Chẩn đoán: Máy Chủ KMS Sai Cho Sản Phẩm Này (0xC004F042) — máy chủ KMS được cấu hình không thể kích hoạt phiên bản Windows này. Đảm bảo phiên bản máy chủ KMS tương thích. Liên hệ quản trị viên IT."),
+            ["O2_DIAG_NONGENUINE_EXP"]   = ("Diagnosis: Non-Genuine Grace Period Expired (0xC004F064) — Windows was not activated in time and has entered Notification state. Enter a valid genuine product key immediately.",
+                                             "Chẩn đoán: Hết Thời Gian Ân Hạn Không Chính Hãng (0xC004F064) — Windows chưa được kích hoạt kịp thời và đã vào trạng thái Thông báo. Hãy nhập ngay key sản phẩm chính hãng hợp lệ."),
+            ["O2_DIAG_NONGENUINE_GRC"]   = ("Diagnosis: Running in Non-Genuine Grace Period (0xC004F065) — Windows has detected this copy may not be genuine. Activate with a valid key before the grace period ends.",
+                                             "Chẩn đoán: Đang Chạy Trong Thời Gian Ân Hạn Không Chính Hãng (0xC004F065) — Windows phát hiện bản sao này có thể không chính hãng. Kích hoạt bằng key hợp lệ trước khi hết thời gian ân hạn."),
+            ["O2_DIAG_KMS_CLOCK"]        = ("Diagnosis: KMS Clock Skew Too Large (0xC004F06C) — the system clock differs from the KMS server by more than 4 hours. Synchronize time by running 'w32tm /resync' as Administrator, then retry activation.",
+                                             "Chẩn đoán: Đồng Hồ Hệ Thống Lệch Quá Lớn So Với KMS (0xC004F06C) — đồng hồ hệ thống chênh lệch với máy chủ KMS hơn 4 giờ. Đồng bộ hóa thời gian bằng cách chạy 'w32tm /resync' với quyền Quản trị viên, sau đó thử kích hoạt lại."),
+
+            // ── Option 2 — Key Analysis log block (aligned to PS1 output) ─────────
+            ["O2_PIDGX_HDR"]     = ("-- KEY ANALYSIS -- (Phase 1: Offline)",
+                                    "-- PHÂN TÍCH KEY -- (Giai đoạn 1: Ngoại tuyến)"),
+            ["O2_PIDGX_EDITION"] = ("  Edition  : ",  "  Ấn bản   : "),
+            ["O2_PIDGX_VALID"]   = ("  Format   : OK (25 alphanumeric chars, 5x5 groups)",
+                                    "  Định dạng: HỢP LỆ (25 ký tự chữ-số, 5 nhóm 5)"),
+
             // ── Sidebar button — Option 6 ─────────────────────────────────────────
             ["Btn6"]             = ("6 — Change Activation Channel",               "6 — Thay Đổi Kênh Kích Hoạt"),
             ["Btn7"]             = ("7 — Check & Remove KMS Settings",             "7 — Kiểm Tra & Xóa Cài Đặt KMS"),
@@ -619,14 +725,11 @@ namespace WinLicApp
             ["TAB_OFFICE_DESC"]  = ("Office 2019/2021/2024 activation management is planned for a future release. Stay tuned!",
                                      "Quản lý kích hoạt Office 2019/2021/2024 đang được lên kế hoạch cho phiên bản tương lai. Hãy đón chờ!"),
 
-            ["AdminWarn6"]  = ("⚠  Not running as Administrator — options 2, 3, 4, 6, 8 require elevation",
-                                "⚠  Chưa có quyền Quản trị viên — tùy chọn 2, 3, 4, 6, 8 cần nâng quyền"),
 
             // ── Option 6 — KMS Activation ─────────────────────────────────────────
             ["Act6"]             = ("Option 6 — Change Activation Channel",  "Tùy chọn 6 — Thay Đổi Kênh Kích Hoạt"),
             ["Act7"]             = ("Option 7 — Check & Remove KMS Settings", "Tùy chọn 7 — Kiểm Tra & Xóa Cài Đặt KMS"),
             ["Act8"]             = ("Option 8 — KMS Activation", "Tùy chọn 8 — Kích Hoạt KMS"),
-            ["O8KMS_OPT_HDR"]    = ("Option 8 — KMS Activation", "Tùy chọn 8 — Kích Hoạt KMS"),
             ["O8KMS_DESC1"]      = ("KMS (Key Management Service) is an enterprise volume-licensing activation channel. A KMS client contacts a KMS host on the corporate network to activate.",
                                     "KMS (Dịch Vụ Quản Lý Key) là kênh kích hoạt cấp phép doanh nghiệp. KMS client liên hệ KMS host trên mạng nội bộ để kích hoạt."),
             ["O8KMS_DESC2"]      = ("Requirements: GVLK key installed · KMS host reachable on TCP 1688 · DNS SRV record (_VLMCS._TCP) or manual host · System clock within 4 hours of KMS host.",
@@ -668,14 +771,12 @@ namespace WinLicApp
                                         "Tìm kiếm DNS tự động thất bại. Không tìm thấy bản ghi SRV _VLMCS._TCP."),
             ["O8KMS_MANUAL_LABEL"]   = ("Enter KMS server hostname or IP:",   "Nhập hostname hoặc IP của KMS server:"),
             ["O8KMS_MANUAL_HINT"]    = ("Leave blank to cancel.",              "Để trống để hủy."),
-            ["O8KMS_SKMS_SET"]       = ("KMS server set to: ",                "Đã đặt KMS server thành: "),
             ["O8KMS_SKMS_PERSIST"]   = ("TCP 1688 reachable — setting KMS server permanently (slmgr /skms).",
                                         "TCP 1688 truy cập được — đặt KMS server vĩnh viễn (slmgr /skms)."),
             ["O8KMS_SKMS_NOPERSIST"] = ("TCP 1688 unreachable — KMS server NOT persisted. Try again when server is reachable.",
                                         "TCP 1688 không truy cập được — KMS server KHÔNG được lưu. Thử lại khi server truy cập được."),
             ["O8KMS_PORT_OK"]        = ("TCP 1688 reachable on ",             "TCP 1688 truy cập được trên "),
             ["O8KMS_PORT_FAIL"]      = ("⚠  TCP 1688 unreachable on ",        "⚠  TCP 1688 không truy cập được trên "),
-            ["O8KMS_CLOCK_OK"]       = ("System clock appears synchronized.", "Đồng hồ hệ thống có vẻ được đồng bộ."),
             ["O8KMS_CLOCK_WARN"]     = ("⚠  Could not verify clock sync. If activation fails with 0xC004F06C, check your system time.",
                                         "⚠  Không thể xác minh đồng bộ đồng hồ. Nếu kích hoạt thất bại với 0xC004F06C, hãy kiểm tra đồng hồ hệ thống."),
 
@@ -708,14 +809,12 @@ namespace WinLicApp
             ["O8KMS_PROCEED"]         = ("Proceed with Activation",          "Tiến Hành Kích Hoạt"),
             ["O8KMS_CANCEL"]          = ("Cancel",                            "Hủy"),
             ["O8KMS_CANCELED"]        = ("KMS activation canceled.",          "Đã hủy kích hoạt KMS."),
-            ["O8KMS_RUNNING"]         = ("Running pre-flight checks...",      "Đang chạy kiểm tra trước..."),
 
             // ── Option 6 — Change Activation Channel ─────────────────────────────
-            ["O6CH_OPT_HDR"]         = ("Option 6 — Change Activation Channel",     "Tùy chọn 6 — Thay Đổi Kênh Kích Hoạt"),
             ["O6CH_DESC"]            = ("Switch your Windows licensing channel. Switching to KMS installs the GVLK for your edition. Switching to RETAIL/MAK opens the key installation flow.",
                                          "Chuyển đổi kênh bản quyền Windows. Chuyển sang KMS sẽ cài GVLK cho ấn bản của bạn. Chuyển sang RETAIL/MAK mở luồng cài key."),
             ["O6CH_CURRENT_CHANNEL"] = ("Current channel:",                         "Kênh hiện tại:"),
-            ["O6CH_CURRENT_KEY"]     = ("Current partial key:",                      "Key một phần hiện tại:"),
+            ["O6CH_CURRENT_KEY"]     = ("Current key:",                          "Key hiện tại:"),
             ["O6CH_CURRENT_EDITION"] = ("Edition:",                                  "Ấn bản:"),
             ["O6CH_TO_KMS"]          = ("→ Switch to VOLUME_KMSCLIENT (KMS)",        "→ Chuyển sang VOLUME_KMSCLIENT (KMS)"),
             ["O6CH_TO_RETAIL"]       = ("→ Switch to RETAIL / MAK",                  "→ Chuyển sang RETAIL / MAK"),
@@ -726,25 +825,20 @@ namespace WinLicApp
                                          "Đã cài GVLK. Đang chuyển sang Kích Hoạt KMS (Tùy chọn 8)…"),
             ["O6CH_GVLK_NOMAP"]      = ("No GVLK found for this edition. Contact your IT administrator.",
                                          "Không tìm thấy GVLK cho ấn bản này. Liên hệ quản trị viên IT."),
-            ["O6CH_RETAIL_MSG"]      = ("To switch to RETAIL or MAK, install your product key using Option 2 — Test & Install New Key.",
-                                         "Để chuyển sang RETAIL hoặc MAK, hãy cài key sản phẩm qua Tùy chọn 2 — Kiểm thử & Cài Key Mới."),
+            ["O6CH_RETAIL_MSG"]      = ("To switch to RETAIL or MAK, install your product key using Option 2 — Test & Install New Key. Note: activation requires internet access to reach Microsoft servers.",
+                                         "Để chuyển sang RETAIL hoặc MAK, hãy cài key sản phẩm qua Tùy chọn 2 — Kiểm thử & Cài Key Mới. Lưu ý: cần kết nối internet để kích hoạt với máy chủ Microsoft."),
             ["O6CH_REDIRECT_OPT2"]   = ("Redirecting to Option 2 — Test & Install New Key…",
                                          "Đang chuyển sang Tùy chọn 2 — Kiểm thử & Cài Key Mới…"),
             ["O6CH_REDIRECT_OPT8"]   = ("Redirecting to Option 8 — KMS Activation…",
                                          "Đang chuyển sang Tùy chọn 8 — Kích Hoạt KMS…"),
             ["O6CH_HOST_WARN"]       = ("⚠  This machine is a KMS HOST (VOLUME_KMS channel). This tool targets KMS clients only.",
                                          "⚠  Máy này là KMS HOST (kênh VOLUME_KMS). Công cụ này chỉ dành cho KMS client."),
-            ["O6CH_ALREADY_KMS"]     = ("This machine is already on the VOLUME_KMSCLIENT channel.",
-                                         "Máy này đã ở kênh VOLUME_KMSCLIENT."),
-            ["O6CH_ALREADY_RETAIL"]  = ("This machine is already on a RETAIL/MAK channel.",
-                                         "Máy này đã ở kênh RETAIL/MAK."),
             ["O6CH_CANCELLED"]       = ("Channel change cancelled.",                 "Đã hủy thay đổi kênh."),
             ["O6CH_PANEL_TITLE"]     = ("Change Activation Channel",                 "Thay Đổi Kênh Kích Hoạt"),
             ["O6CH_CANCEL"]          = ("Cancel",                                    "Hủy"),
             ["O6CH_PROCEED"]         = ("Proceed",                                   "Tiến Hành"),
 
             // ── Option 7 — Check & Remove KMS Settings ────────────────────────────
-            ["O7KMS_OPT_HDR"]        = ("Option 7 — Check & Remove KMS Settings",   "Tùy chọn 7 — Kiểm Tra & Xóa Cài Đặt KMS"),
             ["O7KMS_DESC"]           = ("View the currently configured KMS server settings and optionally clear them to restore DNS auto-discovery.",
                                          "Xem cài đặt KMS server hiện tại và tùy chọn xóa để khôi phục tự động phát hiện DNS."),
             ["O7KMS_REG_HOST"]       = ("KMS Host (registry):",                      "KMS Host (registry):"),
@@ -768,11 +862,42 @@ namespace WinLicApp
                                          "→ Dùng Tùy chọn 6 để thay đổi kênh kích hoạt"),
             ["O7KMS_NEXT_DNS"]       = ("→ Windows will attempt DNS SRV auto-discovery on next activation",
                                          "→ Windows sẽ thử tự động phát hiện DNS SRV trong lần kích hoạt tiếp theo"),
-            ["O7KMS_CANCELLED"]      = ("No changes made.",                          "Không có thay đổi nào."),
             ["O7KMS_PANEL_TITLE"]    = ("KMS Settings",                             "Cài Đặt KMS"),
             ["O7KMS_CLOSE"]          = ("Close",                                    "Đóng"),
             ["O7KMS_CLEAR_BTN"]      = ("Clear KMS Server",                         "Xóa KMS Server"),
-            ["O7KMS_READING"]        = ("Reading KMS settings…",                    "Đang đọc cài đặt KMS…"),
+
+            // =========================================================================
+            // Full System License Log (GUI only)
+            // =========================================================================
+            ["FL_BTN"]              = ("Full System License Log",                  "Nhật Ký Bản Quyền Đầy Đủ"),
+            ["FL_PANEL_TITLE"]      = ("Full System License Log",                  "Nhật Ký Bản Quyền Đầy Đủ"),
+            ["FL_MODE_DESC"]        = ("Choose output mode:",                      "Chọn chế độ xuất:"),
+            ["FL_MODE_RAW"]         = ("Raw System Data",                          "Dữ Liệu Hệ Thống Thô"),
+            ["FL_MODE_RAW_DESC"]    = ("Dumps all fields as-is from Windows tools (Registry, WMI, PidGenX, slmgr). No interpretation.",
+                                       "Xuất tất cả trường dữ liệu nguyên bản từ công cụ Windows (Registry, WMI, PidGenX, slmgr). Không giải thích."),
+            ["FL_MODE_ENRICHED"]    = ("Enriched with Analysis",                  "Có Phân Tích Bổ Sung"),
+            ["FL_MODE_ENRICHED_DESC"]= ("Includes WinLic analysis: PidGenX decoding, key type explanations, Digital Entitlement detection.",
+                                        "Bao gồm phân tích WinLic: giải mã PidGenX, giải thích loại key, phát hiện Quyền Kỹ Thuật Số."),
+            ["FL_CANCEL"]           = ("Cancel",                                  "Hủy"),
+            ["FL_WIN_TITLE"]        = ("Full System License Log",                  "Nhật Ký Bản Quyền Đầy Đủ"),
+            ["FL_BTN_SAVE"]         = ("Save to File",                             "Lưu ra Tệp"),
+            ["FL_BTN_COPY"]         = ("Copy to Clipboard",                        "Sao chép vào Clipboard"),
+            ["FL_BTN_CLOSE"]        = ("Close",                                   "Đóng"),
+            ["FL_COPIED"]           = ("Copied to clipboard!",                     "Đã sao chép vào clipboard!"),
+            ["FL_SAVED"]            = ("Saved to: ",                               "Đã lưu tại: "),
+            ["FL_GENERATING"]       = ("Generating full system license log…",      "Đang tạo nhật ký bản quyền đầy đủ…"),
+            ["FL_SEC_OS"]           = ("OS Information",                           "Thông Tin Hệ Điều Hành"),
+            ["FL_SEC_KEYS"]         = ("Product Keys",                             "Key Bản Quyền"),
+            ["FL_SEC_PIDGENX"]      = ("PidGenX Analysis",                         "Phân Tích PidGenX"),
+            ["FL_SEC_WMI_LIC"]      = ("WMI License Status",                       "Trạng Thái Bản Quyền WMI"),
+            ["FL_SEC_WMI_SVC"]      = ("WMI Service Properties",                   "Thuộc Tính Dịch Vụ WMI"),
+            ["FL_SEC_REG"]          = ("Registry Dump",                             "Kết Xuất Registry"),
+            ["FL_SEC_DLI"]          = ("slmgr /dli Output",                        "Kết Quả slmgr /dli"),
+            ["FL_SEC_DLV"]          = ("slmgr /dlv Output",                        "Kết Quả slmgr /dlv"),
+            ["FL_SEC_DE"]           = ("Digital Entitlement Analysis",              "Phân Tích Quyền Kỹ Thuật Số"),
+            ["FL_MODE_LABEL"]       = ("Mode: ",                                   "Chế độ: "),
+            ["FL_RAW"]              = ("RAW",                                      "THÔ"),
+            ["FL_ENRICHED"]         = ("ENRICHED",                                 "CÓ PHÂN TÍCH"),
         };
 
 

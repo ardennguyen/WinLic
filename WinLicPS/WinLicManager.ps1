@@ -1,5 +1,5 @@
 ﻿# =============================================================================
-# WinLicManager.ps1  --  Windows Licensing & Information Manager  v1.3-beta3
+# WinLicManager.ps1  --  Windows Licensing & Information Manager  $SCRIPT_VERSION
 # =============================================================================
 # Mirrors the WinLic Manager GUI application for power-user / CLI usage.
 #
@@ -39,7 +39,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 $OutputEncoding           = [System.Text.Encoding]::UTF8
 
 # ---- Globals ----------------------------------------------------------------
-$SCRIPT_VERSION = "v1.5"
+$SCRIPT_VERSION = "v1.6"
 $SCRIPT_DIR     = Split-Path -Parent $MyInvocation.MyCommand.Path
 $SETTINGS_FILE  = Join-Path $SCRIPT_DIR "settings.ini"
 $slmgrPath      = Join-Path $env:SystemRoot "System32\slmgr.vbs"
@@ -71,8 +71,8 @@ $Str = @{
     # -- Header / status --
     'HDR_ADMIN'    = @('[ADMIN] Running as Administrator -- all options available',
                        '[ADMIN] Đang chạy với quyền Administrator -- tất cả tùy chọn khả dụng')
-    'HDR_NOADMIN'  = @('[NO ADMIN] Options 1,5 available -- 2,3,4 will prompt for elevation',
-                       '[KHÔNG ADMIN] Tùy chọn 1,5 khả dụng -- 2,3,4 yêu cầu quyền nâng cao')
+    'HDR_NOADMIN'  = @('[NO ADMIN] Options 1,5,7 available -- 2,3,4,6,8 will prompt for elevation',
+                       '[KHÔNG ADMIN] Tùy chọn 1,5,7 khả dụng -- 2,3,4,6,8 yêu cầu quyền nâng cao')
     # -- About section --
     'ABOUT_HDR'    = @('ABOUT', 'GIỚI THIỆU')
     'ABOUT_OPT1'   = @('Option 1 is read-only and safe for any user.',
@@ -98,19 +98,21 @@ $Str = @{
                        '7 -- Kiểm Tra & Xóa Cài Đặt KMS')
 
     'MENU_8'       = @('8 -- KMS Activation                    [!]',
-                       '6 -- Kích Hoạt KMS                     [!]')
+                       '8 -- Kích Hoạt KMS                     [!]')
     'MENU_U'       = @('U -- Update Scan Defaults from GitHub',
                        'U -- Cập nhật Tự động từ GitHub')
     'MENU_Q'       = @('Q -- Quit', 'Q -- Thoát')
     'MENU_WARN'    = @('[!] These options make REAL changes to your Windows license.',
                        '[!] Các tùy chọn này thay đổi THẬT SỰ bản quyền Windows của bạn.')
     'MENU_SELECT'  = @('Select option (1-8, U, Q to quit)',
-                       'Chọn tùy chọn (1-6, U, Q để thoát)')
+                       'Chọn tùy chọn (1-8, U, Q để thoát)')
     # -- Shared prompts --
     'PRESS_ENTER'  = @('Press Enter to return to menu...', 'Nhấn Enter để quay lại menu...')
+    'SLMGR_NOTFOUND' = @('slmgr.vbs not found at: {0}', 'Không tìm thấy slmgr.vbs tại: {0}')
+    'SLMGR_NOOUTPUT' = @('No output from slmgr {0}', 'Không có kết quả từ slmgr {0}')
     'GOODBYE'      = @('Goodbye!', 'Tạm biệt!')
-    'INVALID_OPT'  = @('Invalid option -- choose 1-6, U, or Q.',
-                       'Lựa chọn không hợp lệ -- chọn 1-6, U, hoặc Q.')
+    'INVALID_OPT'  = @('Invalid option -- choose 1-8, U, or Q.',
+                       'Lựa chọn không hợp lệ -- chọn 1-8, U, hoặc Q.')
     'ELEVATE_WARN' = @('This option requires Administrator privileges.',
                        'Tùy chọn này yêu cầu quyền Administrator.')
     'ELEVATE_ASK'  = @('Relaunch WinLic Manager as Administrator now?',
@@ -127,7 +129,6 @@ $Str = @{
     'PS7_DOING'    = @('Relaunching in PowerShell 7...', 'Đang khởi chạy lại bằng PowerShell 7...')
     'PS7_SKIP'     = @('Continuing in PowerShell 5.', 'Tiếp tục với PowerShell 5.')
     'CANCEL_BACK'  = @('Canceled. Returning to menu.', 'Đã hủy. Quay lại menu.')
-    'YES_NO'       = @('(y/n)', '(y/n)')
 
     # =========================================================================
     # Option 1 -- Full System & License Info
@@ -138,13 +139,20 @@ $Str = @{
                         'Hiển thị bản dựng HĐH, Key OEM BIOS, bản quyền đang hoạt động qua WMI, key dự phòng registry,')
     'O1_OPT_DESC2' = @('installed key (from DigitalProductId), and optionally the full slmgr /dlv report.',
                         'key đã cài đặt (từ DigitalProductId) và tùy chọn báo cáo đầy đủ slmgr /dlv.')
-    'O1_STEP_OS'   = @('Querying OS information...', 'Đang truy vấn thông tin hệ điều hành...')
-    'O1_STEP_REG'  = @('Checking Registry Backup Key...', 'Đang kiểm tra Key Dự phòng Registry...')
-    'O1_STEP_LIC'  = @('Querying active Windows license (WMI)...', 'Đang truy vấn bản quyền Windows đang hoạt động (WMI)...')
-    'O1_STEP_BIOS' = @('Checking BIOS/UEFI OEM key...', 'Đang kiểm tra Key OEM BIOS/UEFI...')
-    'O1_STEP_INST' = @('Decoding installed key from registry...', 'Đang giải mã Key đã cài đặt từ Registry...')
+    'O1_STEP_OS'        = @('Querying OS information...', 'Đang truy vấn thông tin hệ điều hành...')
+    'O1_STEP_REG'       = @('Checking Registry Backup Key...', 'Đang kiểm tra Key Dự phòng Registry...')
+    'O1_STEP_LIC'       = @('Querying active Windows license (WMI)...', 'Đang truy vấn bản quyền Windows đang hoạt động (WMI)...')
+    'O1_STEP_BIOS'      = @('Checking BIOS/UEFI OEM key...', 'Đang kiểm tra Key OEM BIOS/UEFI...')
+    'O1_STEP_INST'      = @('Decoding installed key from registry...', 'Đang giải mã Key đã cài đặt từ Registry...')
+    'O1_STEP_OEM_PID'   = @('Running Phase 1 analysis on BIOS OEM key...', 'Đang phân tích Giai đoạn 1 trên Key OEM BIOS...')
+    'O1_OEM_PID_REJECTED' = @('  PidGenX  : Key not found in pkeyconfig.xrm-ms (possibly a pre-Windows 10 OEM key)',
+                              '  PidGenX  : Key không tìm thấy trong pkeyconfig.xrm-ms (có thể là key OEM trước Windows 10)')
+    'O1_OEM_PID_FMTONLY'  = @('  Source   : format check only (pkeyconfig.xrm-ms not found)',
+                              '  Nguồn    : chỉ kiểm tra định dạng (không tìm thấy pkeyconfig.xrm-ms)')
     # Data labels (mirror GUI D_* keys)
     'O1_LBL_OS'    = @('OS Edition:', 'Phiên bản Windows:')
+    'O1_SYS_MFR'   = @('  OEM      : ', '  OEM      : ')
+    'O1_SYS_MODEL' = @('  Model    : ', '  Mẫu máy  : ')
     'O1_LBL_VER'   = @('Version:', 'Số phiên bản:')
     'O1_LBL_BUILD' = @('Build:', 'Số build:')
     'O1_LBL_ARCH'  = @('Architecture:', 'Kiến trúc hệ thống:')
@@ -152,10 +160,16 @@ $Str = @{
     'O1_LBL_CHAN'  = @('License Channel:', 'Kênh phân phối:')
     'O1_LBL_PARTIAL' = @('Active Partial Key:', 'Key một phần:')
     'O1_LBL_ACT'   = @('Activation:', 'Kích hoạt:')
-    'O1_LBL_BIOS'  = @('BIOS OEM Key:', 'Key Bản Quyền OEM BIOS:')
-    'O1_LBL_REG'   = @('Registry Backup Key:', 'Key Dự phòng (Registry):')
-    'O1_LBL_INST'  = @('Installed Key:', 'Key Đã Cài đặt:')
     'O1_LBL_KMS'   = @('KMS Server:', 'Máy chủ KMS:')
+    'O1_LBL_PRODUCTID'     = @('Product ID:', 'Mã sản phẩm:')
+    'O1_LBL_OA3XDESC'      = @('BIOS Key Desc.:', 'Mô tả Key BIOS:')
+    'O1_LBL_ORIGKEY'       = @('Original Key (pre-upgrade):', 'Key Gốc (trước nâng cấp):')
+    'O1_LBL_KEYCHANNEL'    = @('Key Channel:', 'Kênh key:')
+    'O1_LBL_STATUSREASON'  = @('Status Reason:', 'Lý do trạng thái:')
+    'O1_LBL_GRACEPERIOD'   = @('Grace Period:', 'Thời hạn gia hạn:')
+    'O1_GRACE_MIN'         = @('{0} minutes remaining', '{0} phút còn lại')
+    'O1_FETCH_ORIGKEY'     = @('Checking for pre-upgrade original key...', 'Đang kiểm tra key gốc trước nâng cấp...')
+    'O1_FETCH_ORIGPIDGENX' = @('Analyzing Original Key via pidgenx...', 'Đang phân tích Key Gốc qua pidgenx...')
     # Status messages
     'O1_BIOS_DETECT' = @('BIOS OEM Key: Detected', 'Key OEM BIOS: Đã phát hiện')
     'O1_BIOS_NONE'   = @('BIOS OEM Key: None detected', 'Key OEM BIOS: Không phát hiện')
@@ -178,8 +192,6 @@ $Str = @{
                         'Key đang dùng là key chung thay thế -- quyền kích hoạt thực sự nằm trên cloud.')
     'O1_DE_VFY'    = @('To verify: Settings > System > Activation > look for Digital license',
                         'Xác nhận: Cài đặt > Hệ thống > Kích hoạt > tìm Giấy phép kỹ thuật số')
-    'O1_DE_MISMATCH' = @('The BIOS OEM key and Registry Backup key may differ from the active key -- this is normal for DE-activated systems.',
-                          'Key OEM BIOS và dự phòng có thể khác Key đang dùng -- điều này bình thường với hệ thống kích hoạt bằng DE.')
     'O1_KMS_OK'    = @('Activation method:  KMS (Volume / Corporate License)',
                         'Phương thức kích hoạt:  KMS (Bản quyền Doanh nghiệp/Tập thể)')
     'O1_MAK_OK'    = @('Activation method:  MAK / Retail / OEM key (standard activation)',
@@ -193,26 +205,21 @@ $Str = @{
     'O1_LS_5'      = @('Notification Mode', 'Chế độ thông báo')
     'O1_LS_6'      = @('Extended Grace Period', 'Thời gian ân hạn mở rộng')
     'O1_LS_UNK'    = @('Unknown', 'Không xác định')
-    # OEM edition match
-    'O1_ED_MATCH'  = @('Edition match found:', 'Phát hiện ấn bản tương ứng:')
     # Key detail section
-    'O1_KEYS_HDR'  = @('-- KEY DETAILS --', '-- CHI TIẾT KEY BẢN QUYỀN --')
     'O1_SHOWFULL'  = @('Show full product key(s)? No = last 5 chars only',
                         'Hiển thị đầy đủ key? No = chỉ 5 ký tự cuối')
-    'O1_SHOWBIOS'  = @('Show full BIOS OEM key?',
-                        'Hiển thị đầy đủ Key OEM BIOS?')
     'O1_KEY_INST'  = @('Installed Key:         ', 'Key Đã cài đặt:        ')
     'O1_KEY_BIOS'  = @('BIOS OEM Key:          ', 'Key OEM BIOS:          ')
     'O1_KEY_REG'   = @('Registry Backup Key:   ', 'Key Dự phòng (Registry):  ')
     # Mismatch detection
     'O1_MISMATCH'  = @('Registry Backup Key does NOT match the currently active license key.',
                         'Key Dự phòng trong Registry KHÔNG khớp với Key Bản Quyền đang hoạt động.')
-    'O1_MISMATCH_REASON' = @('This can happen after an edition upgrade or a change in activation method.',
-                              'Điều này có thể xảy ra sau khi nâng cấp ấn bản hoặc thay đổi phương thức kích hoạt.')
     'O1_ACTIVE_ENDS' = @('  Active key ends with:         ', '  Key đang dùng kết thúc với:  ')
     'O1_BACKUP_ENDS' = @('  Registry Backup Key ends with: ', '  Key Dự phòng Registry kết thúc với:  ')
-    'O1_STALE_NOTE'  = @('This is a stale backup from a previous activation or edition upgrade.',
-                          'Đây là key dự phòng cũ từ lần kích hoạt hoặc nâng cấp ấn bản trước đó.')
+    'O1_STALE_NOTE'  = @('This backup key is stale -- it pre-dates or was not updated by the most recent key install. slmgr /ipk does not reliably update BackupProductKeyDefault.',
+                          'Key dự phòng này đã cũ -- nó có từ trước hoặc không được cập nhật bởi lần cài key gần nhất. slmgr /ipk không cập nhật BackupProductKeyDefault một cách đáng tin cậy.')
+    'O1_DE_MISMATCH_REG' = @('For DE-activated systems: BackupProductKeyDefault is a pre-existing registry value placed by Windows Setup, OEM provisioning, or a prior upgrade -- it is NOT the key displaced by your most recent slmgr /ipk. You may be seeing it for the first time because WinLic reads and exposes it.',
+                              'Với hệ thống kích hoạt DE: BackupProductKeyDefault là giá trị registry có sẵn từ trước, được đặt bởi Windows Setup, OEM hoặc lần nâng cấp trước đó -- KHÔNG phải key bị thay thế bởi slmgr /ipk gần đây. Bạn thấy nó lần đầu vì WinLic đọc và hiển thị nó.')
     'O1_ACTIVE_SAFE' = @('Your active Windows activation is NOT affected.',
                           'Trạng thái kích hoạt Windows hiện tại KHÔNG bị ảnh hưởng.')
     'O1_REMOVE_ASK'  = @('Remove the stale Registry Backup Key?',
@@ -235,12 +242,11 @@ $Str = @{
     # slmgr /dlv section
     'O1_DLV_HDR'    = @('-- EXTENDED LICENSE REPORT (slmgr /dlv) --',
                          '-- BÁO CÁO BẢN QUYỀN MỞ RỘNG (slmgr /dlv) --')
-    'O1_DLV_REVEAL' = @('Reveals: license channel, SKU, KMS server config, rearm count, expiry, CMID.',
-                         'Hiển thị: kênh bản quyền, SKU, cấu hình KMS, số lần rearm, thời hạn, CMID.')
+    'O1_DLV_REVEAL' = @('Reveals: license channel, Activation ID, KMS server config, rearm count, expiry, CMID.',
+                         'Hiển thị: kênh bản quyền, Mã kích hoạt, cấu hình KMS, số lần rearm, thời hạn, CMID.')
     'O1_DLV_ASK'    = @('Also run the full slmgr /dlv extended report?',
                          'Có muốn chạy báo cáo mở rộng slmgr /dlv không?')
     'O1_RUNNING_DLV' = @('Running slmgr /dlv...', 'Đang chạy slmgr /dlv...')
-    'O1_LIC_STATUS_PFX' = @('License Status:  ', 'Trạng thái bản quyền:  ')
     'O1_WMI_FAIL'    = @('Failed to query WMI: ', 'Truy vấn WMI thất bại: ')
 
     # =========================================================================
@@ -252,45 +258,38 @@ $Str = @{
                          'Kiểm thử key bằng cách thử cài đặt cục bộ qua slmgr /ipk.')
     'O2_DESC2'      = @('If the key matches the installed edition and is valid, it will be accepted.',
                          'Nếu key khớp với ấn bản đã cài và hợp lệ, nó sẽ được chấp nhận.')
-    'O2_DESC3'      = @('If rejected (SKU mismatch / invalid / blocked), an error code is returned.',
-                         'Nếu bị từ chối (sai SKU / không hợp lệ / bị chặn), mã lỗi sẽ được trả về.')
-    'O2_READ_LIC'   = @('Reading current active license...', 'Đang đọc bản quyền đang hoạt động...')
-    'O2_CUR_ED'     = @('  Current edition:', '  Ấn bản hiện tại:')
-    'O2_CUR_KEY'    = @('  Current partial key:', '  Key một phần hiện tại:')
-    'O2_CUR_STATUS' = @('  Current status:', '  Trạng thái hiện tại:')
-    'O2_NO_LIC'     = @('  No active license detected.', '  Không phát hiện bản quyền đang hoạt động.')
-    'O2_INFO1'      = @('Key testing works by attempting local installation of the entered key.',
-                         'Kiểm thử Key bằng cách thử cài đặt key đã nhập trên máy.')
-    'O2_INFO2'      = @('Your existing activation will NOT be harmed if the key is rejected or belongs to a different edition.',
-                         'Trạng thái kích hoạt hiện tại sẽ KHÔNG bị ảnh hưởng nếu key bị từ chối hoặc thuộc ấn bản khác.')
+    'O2_DESC3'      = @('If rejected (edition mismatch / invalid / blocked), an error code is returned.',
+                         'Nếu bị từ chối (sai ấn bản / không hợp lệ / bị chặn), mã lỗi sẽ được trả về.')
+    'O2_INFO1'      = @('Phase 1 (offline, instant): Key structure is checked immediately -- no network, no registry changes.',
+                         'Giai đoạn 1 (ngoại tuyến, tức thì): Cấu trúc key được kiểm tra ngay -- không mạng, không thay đổi registry.')
+    'O2_INFO2'      = @('Phase 2 (online): slmgr /ipk runs only after you confirm -- this is the real key install.',
+                         'Giai đoạn 2 (trực tuyến): slmgr /ipk chỉ chạy sau khi bạn xác nhận -- đây mới là thao tác cài key thực sự.')
     'O2_PROMPT'     = @('  Enter the new 25-character product key (XXXXX-XXXXX-XXXXX-XXXXX-XXXXX)',
                          '  Nhập Key Bản Quyền mới gồm 25 ký tự (XXXXX-XXXXX-XXXXX-XXXXX-XXXXX)')
-    'O2_SHOW_KEY'   = @('Show full key in the command log?', 'Hiển thị đầy đủ key trong nhật ký lệnh?')
     'O2_CONFIRM_HDR' = @('CONFIRM INSTALLATION', 'XÁC NHẬN CÀI ĐẶT')
     'O2_NEW_KEY'    = @('  New key  : ', '  Key mới : ')
     'O2_REPLACES'   = @('  Replaces : ...', '  Thay thế : ...')
     'O2_CONFIRM_WARN' = @('If accepted, this key will REPLACE your current product key immediately.',
                            'Nếu được chấp nhận, key này sẽ THAY THẾ key bản quyền hiện tại ngay lập tức.')
-    'O2_CONFIRM_ASK' = @('Install this key now?', 'Cài đặt key này ngay bây giờ?')
     'O2_WARN_OVERWRITE' = @('WARNING: If the key is compatible, it WILL overwrite your current product key immediately.',
                              'CẢNH BÁO: Nếu key tương thích, nó SẼ ghi đè key bản quyền hiện tại ngay lập tức.')
     'O2_CONFIRM_TYPE_OK' = @('  Type OK (then Enter) to confirm installation, or press Enter to cancel: ',
                               '  Nhập OK rồi Enter để xác nhận, hoặc Enter để hủy: ')
     'O2_CONFIRM_BAD_INPUT' = @('Input not recognized -- installation canceled.',
                                 'Đầu vào không hợp lệ -- đã hủy cài đặt.')
-    'O2_CANCELED_NO' = @('Canceled -- no changes made.', 'Đã hủy -- không có thay đổi.')
     'O2_INSTALLING' = @('Installing product key...', 'Đang cài đặt key bản quyền...')
     'O2_CANCEL'     = @('Canceled -- no key entered.', 'Đã hủy -- không nhập Key Bản Quyền.')
     'O2_BADFMT'     = @('Invalid format. Key must be XXXXX-XXXXX-XXXXX-XXXXX-XXXXX',
                          'Định dạng không hợp lệ. Key phải có dạng XXXXX-XXXXX-XXXXX-XXXXX-XXXXX')
-    'O2_INSTALL'    = @('Installing key:  ', 'Đang cài đặt key:  ')
     'O2_SUCCESS'    = @('Key accepted! Windows will attempt online activation automatically.',
                          'Key được chấp nhận! Windows sẽ tự động kích hoạt trực tuyến.')
     'O2_SUCCESS2'   = @('Check activation status with Option 1.',
                          'Kiểm tra trạng thái kích hoạt ở Tùy chọn 1.')
     'O2_FAIL'       = @('Key was rejected by Windows.', 'Key Bản Quyền bị Windows từ chối.')
-    'O2_DIAG_SKU'   = @('Diagnosis: SKU Mismatch (0xC004F069) -- key belongs to a different edition.',
-                         'Chẩn đoán: Sai SKU (0xC004F069) -- key thuộc ấn bản Windows khác.')
+    'O2_DIAG_GEN'   = @('Diagnosis: Generation Mismatch (0xC004E016) -- this key is for a different Windows generation (e.g. a Windows 8 key cannot be installed on Windows 10/11 and vice versa). Microsoft does not allow cross-generation installs via slmgr /ipk.',
+                         'Chẩn đoán: Không khớp thế hệ (0xC004E016) -- Key này dành cho thế hệ Windows khác (ví dụ: key Windows 8 không cài được trên Windows 10/11 và ngược lại). Microsoft không cho phép cài key khác thế hệ qua slmgr /ipk.')
+    'O2_DIAG_SKU'   = @('Diagnosis: Edition Mismatch (0xC004F069) -- key belongs to a different Windows edition (e.g. Home vs Pro). Use a key matching the currently installed edition.',
+                         'Chẩn đoán: Không khớp ấn bản (0xC004F069) -- key thuộc ấn bản Windows khác (ví dụ: Home và Pro). Hãy dùng key đúng ấn bản đang cài.')
     'O2_DIAG_INVALID' = @('Diagnosis: Invalid Key (0xC004F050) -- key is invalid or mistyped.',
                            'Chẩn đoán: Key không hợp lệ (0xC004F050) -- key sai hoặc nhập nhầm.')
     'O2_DIAG_BLOCKED' = @('Diagnosis: Blocked Key (0xC004C003) -- key has been blacklisted by Microsoft.',
@@ -307,12 +306,22 @@ $Str = @{
                                 '[!] Máy này có vẻ là KMS HOST (kênh VOLUME_KMS). Dùng Tùy chọn 6 để kích hoạt KMS client.')
     'O2_WARN_CHAN_SUB'  = @('[!] Subscription-based activation is not managed by this option.',
                              '[!] Kích hoạt theo đăng ký không được quản lý bởi tùy chọn này.')
+    'O2_SAVE_KEY_WARN'  = @('[!] This appears to be a unique Retail / MAK / OEM key. Save it now before installing a new key -- you will NOT be able to recover it afterwards.',
+                             '[!] Đây có vẻ là key Retail / MAK / OEM riêng. Hãy lưu lại trước khi cài key mới -- bạn sẽ KHÔNG thể khôi phục sau này.')
 
     # -- Option 2 -- auto /ato results --
     'O2_ATO_AUTO'          = @('Attempting online activation automatically (slmgr /ato)...',
                                 'Đang tự động kích hoạt trực tuyến (slmgr /ato)...')
     'O2_ATO_SUCCESS'       = @('Online activation succeeded.', 'Kích hoạt trực tuyến thành công.')
     'O2_ATO_FAIL'          = @('Online activation failed.', 'Kích hoạt trực tuyến thất bại.')
+    'O2_DIAG_NO_NET'       = @('Diagnosis: No Internet / Server Unreachable (0x8007232B) -- Windows could not reach Microsoft activation servers. Check your internet connection and try again.',
+                                'Chẩn đoán: Không Có Internet / Không Kết Được Máy Chủ (0x8007232B) -- Windows không thể kết nối đến máy chủ kích hoạt Microsoft. Kiểm tra kết nối internet và thử lại.')
+    'O2_DIAG_KMS_NO_SRV'   = @('Diagnosis: KMS Server Unavailable (0xC004F074) -- no KMS host could be contacted. If using a Retail/MAK key, switch to Retail channel first (Option 6). If using KMS, use Option 8 to diagnose.',
+                                'Chẩn đoán: Máy Chủ KMS Không Khả Dụng (0xC004F074) -- không thể liên hệ máy chủ KMS. Nếu dùng key Retail/MAK, hãy đổi kênh sang Retail trước (Tùy chọn 6). Nếu dùng KMS, dùng Tùy chọn 8 để chẩn đoán.')
+    'O2_ATO_NO_INTERNET'   = @('Offline: No internet detected -- online activation may fail. Ensure you have an active connection before proceeding.',
+                                'Ngoại tuyến: Không phát hiện kết nối internet -- kích hoạt trực tuyến có thể thất bại. Hãy đảm bảo có kết nối trước khi tiếp tục.')
+    'O2_NET_NOTICE'        = @('Retail / MAK / OEM keys require internet access to activate with Microsoft servers.',
+                                'Key Retail / MAK / OEM yêu cầu kết nối internet để kích hoạt với máy chủ Microsoft.')
     'O2_DIAG_DIDNTWORK'    = @('Diagnosis: Key Did Not Work (0x80070490) -- key may be invalid or not accepted by this edition.',
                                 'Chẩn đoán: Key Không Hoạt Động (0x80070490) -- key có thể không hợp lệ hoặc không được chấp nhận bởi ấn bản này.')
     'O2_DIAG_SERVER_INVALID' = @('Diagnosis: Server Reports Key Invalid (0xC004C001) -- Microsoft activation server rejected this MAK. Verify the key.',
@@ -325,6 +334,81 @@ $Str = @{
                                 'Chẩn đoán: Hết Thời Gian Ân Hạn (0xC004F009) -- thời gian ân hạn kích hoạt đã kết thúc. Liên hệ Microsoft Licensing.')
     'O2_DIAG_NOTGENUINE'   = @('Diagnosis: Not Genuine Windows (0x8004FE21) -- system files may be modified or corrupted. Reinstall Windows.',
                                 'Chẩn đoán: Windows Không Chính Hãng (0x8004FE21) -- tệp hệ thống có thể bị thay đổi hoặc hỏng. Cài lại Windows.')
+
+    # -- Additional /ipk error diagnoses --
+    'O2_DIAG_ACCESS_DENIED'   = @('Diagnosis: Access Denied (0x80070005) -- slmgr requires Administrator privileges. Ensure the script is running as Administrator.',
+                                   'Chẩn đoán: Bị Từ Chối Truy Cập (0x80070005) -- slmgr cần quyền Quản trị viên. Đảm bảo script đang chạy với quyền Quản trị viên.')
+    'O2_DIAG_KEY_LIMIT'       = @('Diagnosis: Key Activation Limit Exceeded (0xC004C008) -- this key has reached its maximum number of activations. Contact Microsoft Licensing or obtain a new key.',
+                                   'Chẩn đoán: Vượt Giới Hạn Kích Hoạt Key (0xC004C008) -- key này đã đạt số lần kích hoạt tối đa. Liên hệ Microsoft Licensing hoặc lấy key mới.')
+    'O2_DIAG_VOL_LIC'         = @('Diagnosis: Volume License Key Requires OEM BIOS Marker (0xC004F035) -- this UEFI firmware lacks the required ACPI/SLIC table. Use a Retail or MAK key instead.',
+                                   'Chẩn đoán: Key Volume License Yêu Cầu Dấu Hiệu BIOS OEM (0xC004F035) -- firmware UEFI thiếu bảng ACPI/SLIC cần thiết. Hãy dùng key Retail hoặc MAK thay thế.')
+    'O2_DIAG_KEY_BLOCKED_SLS' = @('Diagnosis: Product Key Blocked at Licensing Level (0xC004F051) -- Microsoft Software Licensing Service has blocklisted this key. Obtain a new key from an authorized source.',
+                                   'Chẩn đoán: Key Sản Phẩm Bị Chặn Ở Cấp Cấp Phép (0xC004F051) -- Dịch vụ Cấp phép Phần mềm Microsoft đã chặn key này. Lấy key mới từ nguồn được ủy quyền.')
+
+    # -- Additional /ato error diagnoses --
+    'O2_DIAG_DNS_NONAME'      = @('Diagnosis: KMS Server Not Found in DNS (0x8007007B / 0x80092328) -- the KMS SRV record is missing. If using Retail/MAK key, switch to Retail channel first. If enterprise KMS, contact IT admin.',
+                                   'Chẩn đoán: Không Tìm Thấy Máy Chủ KMS Trong DNS (0x8007007B / 0x80092328) -- bản ghi SRV KMS không tồn tại. Nếu dùng key Retail/MAK hãy chuyển sang kênh Retail trước. Nếu KMS doanh nghiệp, liên hệ quản trị viên IT.')
+    'O2_DIAG_RPC_UNAVAIL'     = @('Diagnosis: RPC Server Unavailable (0x800706BA) -- the KMS host is unreachable or TCP port 1688 is blocked. Check network connectivity and firewall rules.',
+                                   'Chẩn đoán: Máy Chủ RPC Không Khả Dụng (0x800706BA) -- máy chủ KMS không thể kết nối hoặc cổng TCP 1688 bị chặn. Kiểm tra kết nối mạng và quy tắc tường lửa.')
+    'O2_DIAG_DNS_FAIL'        = @('Diagnosis: DNS Server Failure (0x8007232A / 0x8007251D) -- the DNS server could not resolve the KMS hostname. Check DNS settings and network connectivity.',
+                                   'Chẩn đoán: Lỗi Máy Chủ DNS (0x8007232A / 0x8007251D) -- máy chủ DNS không thể phân giải tên máy chủ KMS. Kiểm tra cài đặt DNS và kết nối mạng.')
+    'O2_DIAG_NET_TIMEOUT'     = @('Diagnosis: Connection Timeout (0x80072EE2 / 0x80072EE7 / 0x80072EFD) -- Windows could not reach the activation server. Check internet, disable VPN/proxy, or use phone activation: run slui 4.',
+                                   'Chẩn đoán: Hết Thời Gian Kết Nối (0x80072EE2 / 0x80072EE7 / 0x80072EFD) -- Windows không thể kết nối đến máy chủ kích hoạt. Kiểm tra internet, tắt VPN/proxy, hoặc dùng kích hoạt qua điện thoại: chạy slui 4.')
+    'O2_DIAG_HW_CHANGED'      = @('Diagnosis: Hardware Changed (0xC004F00F) -- significant hardware changes were detected. Use the Activation Troubleshooter or phone activation (slui 4). For digital licenses sign in with the linked Microsoft account.',
+                                   'Chẩn đoán: Phần Cứng Đã Thay Đổi (0xC004F00F) -- phát hiện thay đổi phần cứng đáng kể. Dùng Trình Khắc Phục Sự Cố Kích Hoạt hoặc kích hoạt qua điện thoại (slui 4). Với giấy phép số, đăng nhập bằng tài khoản Microsoft đã liên kết.')
+    'O2_DIAG_LIC_EVAL_FAIL'   = @('Diagnosis: License Evaluation Failed (0xC004E003) -- the Software Licensing Service cannot evaluate the license. Run slmgr /rilc as Administrator to reinstall license files, then retry.',
+                                   'Chẩn đoán: Đánh Giá Giấy Phép Thất Bại (0xC004E003) -- Dịch vụ Cấp phép Phần mềm không thể đánh giá giấy phép. Chạy slmgr /rilc với quyền Quản trị viên để cài lại tệp giấy phép, sau đó thử lại.')
+    'O2_DIAG_KMS_COUNT'       = @('Diagnosis: KMS Activation Count Insufficient (0xC004F038) -- your KMS server requires at least 25 Windows client activation requests before it will activate any client. Contact your IT administrator.',
+                                   'Chẩn đoán: Số Lượng Kích Hoạt KMS Chưa Đủ (0xC004F038) -- máy chủ KMS cần ít nhất 25 yêu cầu kích hoạt từ client Windows. Liên hệ quản trị viên IT.')
+    'O2_DIAG_KMS_DISABLED'    = @('Diagnosis: KMS Service Not Enabled / Not Responding (0xC004F039) -- the KMS host service is not running or is not responding. Ensure TCP port 1688 is not blocked and the KMS host service is active.',
+                                   'Chẩn đoán: Dịch Vụ KMS Chưa Được Bật / Không Phản Hồi (0xC004F039) -- dịch vụ KMS trên máy chủ chưa chạy hoặc không phản hồi. Đảm bảo cổng TCP 1688 không bị chặn và dịch vụ KMS đang hoạt động.')
+    'O2_DIAG_KMS_NOT_ACT'     = @('Diagnosis: KMS Host Not Activated (0xC004F041) -- the KMS host server itself has not been activated with Microsoft. IT administrator must activate the KMS host first.',
+                                   'Chẩn đoán: Máy Chủ KMS Chưa Được Kích Hoạt (0xC004F041) -- bản thân máy chủ KMS chưa được kích hoạt với Microsoft. Quản trị viên IT phải kích hoạt máy chủ KMS trước.')
+    'O2_DIAG_KMS_WRONG'       = @('Diagnosis: Wrong KMS Host for This Product (0xC004F042) -- the configured KMS server cannot activate this Windows version. Ensure the KMS host version is compatible. Contact IT administrator.',
+                                   'Chẩn đoán: Máy Chủ KMS Sai Cho Sản Phẩm Này (0xC004F042) -- máy chủ KMS không thể kích hoạt phiên bản Windows này. Đảm bảo phiên bản máy chủ KMS tương thích. Liên hệ quản trị viên IT.')
+    'O2_DIAG_NONGENUINE_EXP'  = @('Diagnosis: Non-Genuine Grace Period Expired (0xC004F064) -- Windows was not activated in time and has entered Notification state. Enter a valid genuine product key immediately.',
+                                   'Chẩn đoán: Hết Thời Gian Ân Hạn Không Chính Hãng (0xC004F064) -- Windows chưa được kích hoạt kịp thời và đã vào trạng thái Thông báo. Hãy nhập ngay key sản phẩm chính hãng hợp lệ.')
+    'O2_DIAG_NONGENUINE_GRC'  = @('Diagnosis: Running in Non-Genuine Grace Period (0xC004F065) -- Windows has detected this copy may not be genuine. Activate with a valid key before the grace period ends.',
+                                   'Chẩn đoán: Đang Chạy Trong Thời Gian Ân Hạn Không Chính Hãng (0xC004F065) -- Windows phát hiện bản sao này có thể không chính hãng. Kích hoạt bằng key hợp lệ trước khi hết thời gian ân hạn.')
+    'O2_DIAG_KMS_CLOCK'       = @('Diagnosis: KMS Clock Skew Too Large (0xC004F06C) -- the system clock differs from the KMS server by more than 4 hours. Synchronize time by running w32tm /resync as Administrator, then retry.',
+                                   'Chẩn đoán: Đồng Hồ Hệ Thống Lệch Quá Lớn So Với KMS (0xC004F06C) -- đồng hồ hệ thống chênh lệch với máy chủ KMS hơn 4 giờ. Đồng bộ hóa thời gian bằng cách chạy w32tm /resync với quyền Quản trị viên, sau đó thử lại.')
+
+    # -- Option 2 -- Key Analysis (Phase 1: Offline structure check) --
+    'O2_PIDGX_HDR'         = @('-- KEY ANALYSIS -- (Phase 1: Offline)', '-- PHÂN TÍCH KEY -- (Giai đoạn 1: Ngoại tuyến)')
+    'O2_PIDGX_ABOUT'       = @('Phase 1 -- Offline Key Analysis (instant, no network, no registry change): calls pidgenx.dll (present on all Win10/11) with pkeyconfig.xrm-ms to validate the key checksum and identify its Edition and Channel. Phase 2 (slmgr /ipk) is the final authority on whether the key actually works for this system.',
+                                'Giai đoạn 1 -- Phân tích key ngoại tuyến (tức thì, không mạng, không thay đổi registry): gọi pidgenx.dll (có sẵn trên mọi Win10/11) với pkeyconfig.xrm-ms để xác thực checksum và xác định kênh phân phối của key. Giai đoạn 2 (slmgr /ipk) mới là bước kiểm tra thực sự quyết định key có hoạt động trên hệ thống này không.')
+    'O2_PIDGX_EDITION'     = @('  Edition  : ', '  Ấn bản   : ')
+    'O2_PIDGX_CHANNEL'     = @('  Channel  : ', '  Kênh     : ')
+    'O2_PIDGX_PARTNO'      = @('  Part No. : ', '  Mã SP    : ')
+    'O2_PIDGX_WINVER'      = @('  Win Ver. : ', '  Phiên bản Windows: ')
+    'O2_PIDGX_OEMID'       = @('  OEM ID   : ', '  Mã OEM   : ')
+    'O2_PIDGX_SKU'         = @('  Activation ID: ', '  Mã kích hoạt : ')
+    'O2_PIDGX_EULA'        = @('  EULA     : ', '  EULA     : ')
+    'O2_PIDGX_ISUPGRADE'   = @('  Upgrade  : ', '  Nâng cấp : ')
+    'O2_PIDGX_EXTPID'      = @('  Ext. PID : ', '  PID mở rộng: ')
+    'O2_PIDGX_UPG_YES'     = @('Yes (upgrade license)', 'Có (key nâng cấp)')
+    'O2_PIDGX_UPG_NO'      = @('No (full license)', 'Không (key đầy đủ)')
+    'O2_PIDGX_CHKSUM_OK'   = @('  Format   : OK (25 alphanumeric chars, 5x5 groups)',
+                                '  Định dạng: HỢP LỆ (25 ký tự chữ-số, 5 nhóm 5)')
+    'O2_PIDGX_CHKSUM_FAIL' = @('  Format   : FAIL (must be 25 alphanumeric chars in 5x5 groups)',
+                                '  Định dạng: THẤT BẠI (phải có 25 ký tự chữ-số chia 5 nhóm 5)')
+    'O2_PIDGX_WARN_FAIL'   = @('[!] Key structure is invalid -- check length and ensure only letters/digits are used. Proceed at own risk.',
+                                '[!] Cấu trúc key không hợp lệ -- kiểm tra độ dài và đảm bảo chỉ dùng chữ cái/số. Tiếp tục theo trách nhiệm của bạn.')
+    'O2_PIDGX_SRC_PIDGENX' = @('  Source   : pidgenx.dll + pkeyconfig.xrm-ms (real key group lookup)',
+                                '  Nguồn    : pidgenx.dll + pkeyconfig.xrm-ms (tra cứu key group thực sự)')
+    'O2_PIDGX_SRC_CHK'     = @('  Source   : format check only (pidgenx.dll unavailable or key not in pkeyconfig)',
+                                '  Nguồn    : chỉ kiểm tra định dạng (pidgenx.dll không khả dụng hoặc key không trong pkeyconfig)')
+    'O2_PIDGX_REJECTED'    = @('  PidGenX  : REJECTED -- key not found in pkeyconfig.xrm-ms for this Windows version',
+                                '  PidGenX  : TỪ CHỐI -- key không tìm thấy trong pkeyconfig.xrm-ms cho phiên bản Windows này')
+    'O2_PIDGX_REJECT_WARN' = @('[!] This key was NOT found in pkeyconfig.xrm-ms -- it likely belongs to a different Windows generation (e.g. Windows 7/8) and cannot be installed on this system. Attempting /ipk may fail with 0xC004E016.',
+                                '[!] Key NÀY KHÔNG tìm thấy trong pkeyconfig.xrm-ms -- có thể thuộc phiên bản Windows khác (ví dụ Windows 7/8) và không thể cài trên hệ thống này. Thử /ipk có thể thất bại với lỗi 0xC004E016.')
+    'O2_PIDGX_OVERRIDE'    = @('Proceeding at user request -- key was rejected by pidgenx for this Windows version.',
+                                'Tiếp tục theo yêu cầu người dùng -- key bị pidgenx từ chối cho phiên bản Windows này.')
+    'O2_INSTALL_ASK'       = @('Install this key now? (replaces current key + runs /ato)',
+                                'Cài đặt key này ngay? (thay key hiện tại + chạy /ato)')
+    'O2_INSPECT_ONLY'      = @('Key info noted. No changes made.', 'Đã ghi nhận thông tin key. Không có thay đổi nào được thực hiện.')
+    'O2_PROCEED_ANYWAY'    = @('Proceed with installation despite invalid format?',
+                                'Tiếp tục cài đặt dù định dạng không hợp lệ?')
 
     # =========================================================================
     # Option 3 -- Remove Activation
@@ -342,10 +426,21 @@ $Str = @{
     'O3_DONE'     = @('Product key uninstalled and registry cleared.',
                        'Đã gỡ cài đặt Key Bản Quyền và xóa khỏi Registry.')
 
+    'O1_DE_REAL'        = @('The installed key appears to be a real retail/OEM key -- not a generic placeholder. Microsoft likely cloud-assigned a Digital Entitlement tied to your hardware and account, while the original key was preserved.',
+                        'Key đã cài đặt có vẻ là key thực (bán lẻ/OEM) -- không phải key chung thay thế. Microsoft có thể đã gán Digital Entitlement qua đám mây gắn với phần cứng và tài khoản của bạn, trong khi key gốc được giữ nguyên.')
+    'O1_REG_PIDGENX'    = @('Analyzing Registry Backup Key via pidgenx...', 'Đang phân tích Key Dự phòng qua pidgenx...')
+    'O1_INST_PIDGENX'   = @('Analyzing Installed Key via pidgenx...', 'Đang phân tích Key Đã Cài Đặt qua pidgenx...')
+    'O3_CURRENT_KEY'    = @('Current installed key:', 'Key đang cài đặt:')
+    'O3_SAVE_WARN'      = @('This appears to be a unique Retail / MAK / OEM key. Save it now before removing -- you will NOT be able to recover it afterwards.',
+                            'Đây có vẻ là key Retail / MAK / OEM riêng. Hãy lưu lại trước khi gỡ -- bạn sẽ KHÔNG thể khôi phục sau này.')
+
+
     # =========================================================================
     # Option 4 -- Reset Activation (Rearm)
     # =========================================================================
     'O4_OPT_HDR'      = @('Option 4 -- Reset Activation (Rearm)', 'Tùy chọn 4 -- Đặt Lại Kích Hoạt (Rearm)')
+    'O4_REARM_COUNT'  = @('Remaining rearm count: {0}', 'Số lần rearm còn lại: {0}')
+    'O4_REARM_ZERO'   = @('No rearms remaining -- cannot reset activation.', 'Không còn lần rearm nào -- không thể đặt lại kích hoạt.')
     'O4_WARN1'        = @('WARNING -- This resets the licensing status and activation timers (rearm).',
                            'CẢNH BÁO -- Thao tác này đặt lại trạng thái bản quyền và bộ đếm kích hoạt (rearm).')
     'O4_WARN2'        = @('           A computer restart is required for changes to take effect.',
@@ -665,7 +760,7 @@ $Str = @{
     # =========================================================================
     # Option 6 -- KMS Activation
     # =========================================================================
-    'O8KMS_OPT_HDR'    = @('Option 8 -- KMS Activation', 'Tùy chọn 6 -- Kích Hoạt KMS')
+    'O8KMS_OPT_HDR'    = @('Option 8 -- KMS Activation', 'Tùy chọn 8 -- Kích Hoạt KMS')
     'O8KMS_DESC1'      = @('KMS (Key Management Service) is an enterprise volume-licensing activation channel.',
                             'KMS (Dịch Vụ Quản Lý Key) là kênh kích hoạt cấp phép doanh nghiệp.')
     'O8KMS_DESC2'      = @('Requirements: GVLK key installed, KMS host reachable on TCP 1688, DNS SRV (_VLMCS._TCP) or manual host, clock within 4 h of KMS host.',
@@ -739,10 +834,11 @@ $Str = @{
     'O6CH_DESC'            = @('Switch your Windows licensing channel. To KMS: installs the GVLK for your edition. To RETAIL/MAK: redirects to Option 2.',
                                 'Chuyển đổi kênh bản quyền Windows. Sang KMS: cài GVLK cho ấn bản. Sang RETAIL/MAK: chuyển đến Tùy chọn 2.')
     'O6CH_CURRENT_CHANNEL' = @('Current channel:',                'Kênh hiện tại:')
-    'O6CH_CURRENT_KEY'     = @('Current partial key:',            'Key một phần hiện tại:')
+    'O6CH_CURRENT_KEY'     = @('Current key:',                    'Key hiện tại:')
     'O6CH_CURRENT_EDITION' = @('Edition:',                        'Ấn bản:')
     'O6CH_TO_KMS'          = @('[A] Switch to VOLUME_KMSCLIENT (KMS)',  '[A] Chuyển sang VOLUME_KMSCLIENT (KMS)')
     'O6CH_TO_RETAIL'       = @('[B] Switch to RETAIL/MAK',             '[B] Chuyển sang RETAIL/MAK')
+    'O6CH_PROMPT'          = @('  [A] KMS  [B] RETAIL/MAK  [C] Cancel', '  [A] KMS  [B] RETAIL/MAK  [C] Hủy')
     'O6CH_GVLK_LABEL'      = @('GVLK for this edition:',               'GVLK cho ấn bản này:')
     'O6CH_GVLK_INSTALLING' = @('Installing GVLK...',                   'Đang cài GVLK...')
     'O6CH_GVLK_DONE'       = @('[OK] GVLK installed. Run Option 8 to complete KMS activation.',
@@ -1047,6 +1143,21 @@ function Resolve-KmsHost {
     }
 }
 
+$script:showFullKeys = $null
+
+function Get-ShowFullKeys {
+    if ($null -eq $script:showFullKeys) {
+        $script:showFullKeys = Ask-YesNo (T 'O1_SHOWFULL')
+    }
+    return $script:showFullKeys
+}
+
+function Display-Key {
+    param([string]$key)
+    if (Get-ShowFullKeys) { return $key }
+    return Mask-Key $key
+}
+
 function Mask-Key {
     param([string]$key)
     if ($key.Length -lt 5) { return $key }
@@ -1062,14 +1173,14 @@ function Ask-YesNo {
 function Run-Slmgr {
     param([string]$arg, [string]$label = '')
     if (-not (Test-Path $slmgrPath)) {
-        Write-Fail "slmgr.vbs not found at $slmgrPath"
+        Write-Fail ((T 'SLMGR_NOTFOUND') -f $slmgrPath)
         return $null
     }
     if ($label) { Write-Step $label }
     Write-Cmd "cscript //nologo `"$slmgrPath`" $arg"
     $out = cscript //nologo $slmgrPath $arg 2>&1
     if (-not $out) {
-        Write-Warn "No output from slmgr $arg"
+        Write-Warn ((T 'SLMGR_NOOUTPUT') -f $arg)
         return $null
     }
     return $out
@@ -1168,21 +1279,18 @@ function Get-LicenseStatusText {
 }
 
 # =============================================================================
-# OPTION 1 -- Full System & License Info
-# (Merged: OS Version, License Channel /dli, Keys & Activation Status, optional /dlv)
+# Show-SystemInfo  -- shared OS / license / key info block
+# Used by both Get-VersionInfo (Option 1) and Test-ProductKey (Option 2).
+# -WarnBeforeReplace : when set (Option 2), skips the interactive mismatch-
+#                      removal prompt and shows the save-key advisory for
+#                      unique Retail/MAK/OEM keys.
 # =============================================================================
-function Get-VersionInfo {
-    Write-Blank
-    Write-Host ("  " + (T 'O1_OPT_HDR')) -ForegroundColor Magenta
-    Write-Sep
-    Write-Diag (T 'O1_OPT_DESC1')
-    Write-Diag (T 'O1_OPT_DESC2')
-    Write-Sep
-    Write-Blank
+function Show-SystemInfo {
+    param([switch]$WarnBeforeReplace)
 
-    # ── 1a. OS Version ─────────────────────────────────────────────────────
+    # -- 1a. OS Version -------------------------------------------------------
     Write-Step (T 'O1_STEP_OS')
-    Write-Cmd  "Get-CimInstance Win32_OperatingSystem"
+    Write-Cmd  'Get-CimInstance Win32_OperatingSystem'
     try {
         $os = Get-CimInstance Win32_OperatingSystem
         Write-Blank
@@ -1190,29 +1298,121 @@ function Get-VersionInfo {
         Write-Data (T 'O1_LBL_VER')   $os.Version
         Write-Data (T 'O1_LBL_BUILD') $os.BuildNumber
         Write-Data (T 'O1_LBL_ARCH')  $os.OSArchitecture
+        $productId = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'ProductId' -ErrorAction SilentlyContinue).ProductId
+        if ($productId) { Write-Data (T 'O1_LBL_PRODUCTID') $productId }
+
+        # System Manufacturer (OEM)
+        $cs = Get-WmiObject Win32_ComputerSystem -ErrorAction SilentlyContinue
+        if ($cs.Manufacturer) { Write-Info ((T 'O1_SYS_MFR') + $cs.Manufacturer) }
+        if ($cs.Model)        { Write-Info ((T 'O1_SYS_MODEL') + $cs.Model) }
     } catch {
         Write-Fail ((T 'O1_WMI_FAIL') + $_)
-        Start-Process "winver"
         return
     }
 
     Write-Blank
     Write-Sep
 
-    # ── 1b. BIOS OEM Key ───────────────────────────────────────────────────
+    # -- 1b. Active License (WMI) ---------------------------------------------
+    Write-Step (T 'O1_STEP_LIC')
+    Write-Cmd  'Get-CimInstance SoftwareLicensingProduct | Where PartialProductKey and Name like Windows*'
+    Write-Blank
+
+    $regKeyPath    = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform'
+    $activeProduct = Get-CimInstance -ClassName SoftwareLicensingProduct |
+                     Where-Object { $_.PartialProductKey -and $_.Name -like 'Windows*' }
+    $partialKey    = $null
+    $isVolume      = $false
+
+    if ($activeProduct) {
+        $partialKey = $activeProduct.PartialProductKey
+        Write-Data (T 'O1_LBL_NAME')    $activeProduct.Name
+        Write-Data (T 'O1_LBL_CHAN')    $activeProduct.Description
+        Write-Data (T 'O1_LBL_PARTIAL') $partialKey 'Cyan'
+
+        $statusText  = Get-LicenseStatusText $activeProduct.LicenseStatus
+        $statusColor = if ($activeProduct.LicenseStatus -eq 1) { 'Green' } else { 'Red' }
+        Write-Data (T 'O1_LBL_ACT') $statusText $statusColor
+        if ($activeProduct.ProductKeyChannel) { Write-Data (T 'O1_LBL_KEYCHANNEL') $activeProduct.ProductKeyChannel }
+        if ($activeProduct.LicenseStatusReason -ne $null) { Write-Data (T 'O1_LBL_STATUSREASON') ("0x{0:X8}" -f $activeProduct.LicenseStatusReason) }
+        if ($activeProduct.GracePeriodRemaining -ne $null) { Write-Data (T 'O1_LBL_GRACEPERIOD') ((T 'O1_GRACE_MIN') -f $activeProduct.GracePeriodRemaining) }
+
+        Write-Blank
+        $isVolume = $activeProduct.Description -match 'VOLUME_KMSCLIENT'
+        $isMak = $activeProduct.Description -match 'VOLUME_MAK'
+        if (-not $isVolume -and -not $isMak -and $activeProduct.LicenseStatus -eq 1) {
+            Write-DE   (T 'O1_DE_OK')
+            Write-Diag ('Channel: ' + $activeProduct.Description)
+            Write-Diag (T 'O1_DE_1')
+            Write-Diag (T 'O1_DE_2')
+            if ($genericKeys.ContainsKey($partialKey)) {
+                Write-Diag (T 'O1_DE_3')
+            } else {
+                Write-Diag (T 'O1_DE_REAL')
+            }
+            Write-Diag (T 'O1_DE_VFY')
+        } elseif ($isVolume) {
+            Write-OK  (T 'O1_KMS_OK')
+            $kmsHost = $activeProduct.KeyManagementServiceMachine
+            if ($kmsHost) { Write-Data (T 'O1_LBL_KMS') $kmsHost 'Cyan' }
+        } else {
+            Write-OK  (T 'O1_MAK_OK')
+        }
+
+        # -- Channel warnings (Option 2 context) ------------------------------
+        if ($WarnBeforeReplace) {
+            $chanDesc = ($activeProduct.Description + '').ToUpperInvariant()
+            if     ($chanDesc -match 'VOLUME_KMSCLIENT')                          { Write-Warn (T 'O2_WARN_CHAN_KMS') }
+            elseif ($chanDesc -match 'VOLUME_KMS' -and $chanDesc -notmatch 'KMSCLIENT') { Write-Warn (T 'O2_WARN_CHAN_KMSHOST') }
+            elseif ($chanDesc -match 'SUBSCRIPTION')                              { Write-Warn (T 'O2_WARN_CHAN_SUB') }
+        }
+    } else {
+        Write-Warn (T 'O1_NOACT')
+    }
+
+    Write-Blank
+    Write-Sep
+
+    # -- Determine display mode (ask once, apply to all three keys) -----------
+    # In Option 1: ask user. In Option 2 (WarnBeforeReplace): always show partial only.
+    if ($WarnBeforeReplace) {
+        $script:showFullKeys = $false
+    }
+
+    # -- 1c. BIOS OEM Key (inline display + pidgenx analysis) -----------------
+    Write-Blank
+    Write-Sep
     Write-Step (T 'O1_STEP_BIOS')
-    Write-Cmd  "Get-CimInstance SoftwareLicensingService | Select OA3xOriginalProductKey"
-    $oemKey = (Get-CimInstance -ClassName SoftwareLicensingService).OA3xOriginalProductKey
+    Write-Cmd  'Get-CimInstance SoftwareLicensingService | Select OA3xOriginalProductKey'
+    $sls = Get-CimInstance -ClassName SoftwareLicensingService
+    $oemKey = $sls.OA3xOriginalProductKey
     Write-Blank
 
     if ($oemKey) {
         Write-OK (T 'O1_BIOS_DETECT')
-        $display = if (Ask-YesNo (T 'O1_SHOWBIOS')) { $oemKey } else { Mask-Key $oemKey }
-        Write-Data (T 'O1_LBL_BIOS') $display 'Cyan'
-        $last5 = $oemKey.Substring($oemKey.Length - 5)
-        if ($genericKeys.ContainsKey($last5)) {
-            Write-Blank
-            Write-OK ((T 'O1_ED_MATCH') + "  " + $genericKeys[$last5])
+        Write-Key ((T 'O1_KEY_BIOS') + (Display-Key $oemKey))
+        if ($sls.OA3xOriginalProductKeyDescription) {
+            Write-Data (T 'O1_LBL_OA3XDESC') $sls.OA3xOriginalProductKeyDescription
+        }
+
+        # PidGenX analysis on BIOS OEM key (reuses Invoke-PidGenXCheck from Option 2)
+        Write-Step (T 'O1_STEP_OEM_PID')
+        $oemPid = Invoke-PidGenXCheck -Key $oemKey
+        if ($oemPid.SourceNote -eq 'pidgenx') {
+            if ($oemPid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $oemPid.Channel) }
+            if ($oemPid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $oemPid.Edition) }
+            if ($oemPid.PartNumber)  { Write-Info ((T 'O2_PIDGX_PARTNO')  + $oemPid.PartNumber) }
+            if ($oemPid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $oemPid.WinVersion) }
+            if ($oemPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $oemPid.OemId) }
+            if ($oemPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $oemPid.Sku) }
+            if ($oemPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $oemPid.EulaType) }
+            $upgText = if ($oemPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
+            Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
+            if ($oemPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $oemPid.ExtPid) }
+        } elseif ($oemPid.SourceNote -eq 'pidgenx-rejected') {
+            Write-Warn (T 'O1_OEM_PID_REJECTED')
+        } else {
+            Write-Info (T 'O1_OEM_PID_FMTONLY')
         }
     } else {
         Write-Warn (T 'O1_BIOS_NONE')
@@ -1222,76 +1422,98 @@ function Get-VersionInfo {
     Write-Blank
     Write-Sep
 
-    # ── 1c. Active License (WMI) ───────────────────────────────────────────
-    Write-Step (T 'O1_STEP_LIC')
-    Write-Cmd  "Get-CimInstance SoftwareLicensingProduct | Where PartialProductKey and Name like Windows*"
-    Write-Blank
-
-    $regKeyPath   = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform"
-    $activeProduct = Get-CimInstance -ClassName SoftwareLicensingProduct |
-                     Where-Object { $_.PartialProductKey -and $_.Name -like "Windows*" }
-    $partialKey   = $null
-
-    if ($activeProduct) {
-        $partialKey = $activeProduct.PartialProductKey
-        try { Write-Data (T 'O1_LBL_OS') (Get-CimInstance Win32_OperatingSystem).Caption } catch {}
-        Write-Data (T 'O1_LBL_NAME')    $activeProduct.Name
-        Write-Data (T 'O1_LBL_CHAN')    $activeProduct.Description
-        Write-Data (T 'O1_LBL_PARTIAL') $partialKey 'Cyan'
-
-        $statusText  = Get-LicenseStatusText $activeProduct.LicenseStatus
-        $statusColor = if ($activeProduct.LicenseStatus -eq 1) { 'Green' } else { 'Red' }
-        Write-Data (T 'O1_LBL_ACT') $statusText $statusColor
-
-        Write-Blank
-        $isVolume = $activeProduct.Description -match 'VOLUME_KMSCLIENT'
-        if ($genericKeys.ContainsKey($partialKey) -and $activeProduct.LicenseStatus -eq 1 -and -not $isVolume) {
-            Write-DE   (T 'O1_DE_OK')
-            Write-Diag ("Channel: " + $activeProduct.Description)
-            Write-Diag (T 'O1_DE_1')
-            Write-Diag (T 'O1_DE_2')
-            Write-Diag (T 'O1_DE_3')
-            Write-Diag (T 'O1_DE_VFY')
-        } elseif ($activeProduct.Description -match 'VOLUME_KMSCLIENT') {
-            Write-OK  (T 'O1_KMS_OK')
-            $kmsHost = $activeProduct.KeyManagementServiceMachine
-            if ($kmsHost) { Write-Data (T 'O1_LBL_KMS') $kmsHost 'Cyan' }
+    # -- 1d. Registry Backup Key (inline display) -----------------------------
+    Write-Step (T 'O1_STEP_REG')
+    $regKey = (Get-ItemProperty -Path $regKeyPath -Name 'BackupProductKeyDefault' -ErrorAction SilentlyContinue).BackupProductKeyDefault
+    if ($regKey) {
+        Write-OK (T 'O1_REG_DETECT')
+        Write-Key ((T 'O1_KEY_REG') + (Display-Key $regKey))
+        
+        Write-Step (T 'O1_REG_PIDGENX')
+        $regPid = Invoke-PidGenXCheck -Key $regKey
+        if ($regPid.SourceNote -eq 'pidgenx') {
+            if ($regPid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $regPid.Channel) }
+            if ($regPid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $regPid.Edition) }
+            if ($regPid.PartNumber)  { Write-Info ((T 'O2_PIDGX_PARTNO')  + $regPid.PartNumber) }
+            if ($regPid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $regPid.WinVersion) }
+            if ($regPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $regPid.OemId) }
+            if ($regPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $regPid.Sku) }
+            if ($regPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $regPid.EulaType) }
+            $upgText = if ($regPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
+            Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
+            if ($regPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $regPid.ExtPid) }
+        } elseif ($regPid.SourceNote -eq 'pidgenx-rejected') {
+            Write-Warn (T 'O1_OEM_PID_REJECTED')
         } else {
-            Write-OK  (T 'O1_MAK_OK')
+            Write-Info (T 'O1_OEM_PID_FMTONLY')
         }
     } else {
-        Write-Warn (T 'O1_NOACT')
+        Write-Warn (T 'O1_REG_NONE')
     }
 
+    # -- 1e. Installed Key (inline display) -----------------------------------
     Write-Blank
-    Write-Sep
-
-    # ── 1d. Registry & Installed Key ──────────────────────────────────────
-    Write-Step (T 'O1_STEP_REG')
-    $regKey = (Get-ItemProperty -Path $regKeyPath -Name "BackupProductKeyDefault" -ErrorAction SilentlyContinue).BackupProductKeyDefault
-    if ($regKey) { Write-OK (T 'O1_REG_DETECT') } else { Write-Warn (T 'O1_REG_NONE') }
-
     Write-Step (T 'O1_STEP_INST')
     $installedKey = Get-InstalledProductKey
-    if ($installedKey) { Write-OK (T 'O1_INST_OK') } else { Write-Warn (T 'O1_INST_NO') }
+    if ($installedKey) {
+        Write-OK (T 'O1_INST_OK')
+        Write-Key ((T 'O1_KEY_INST') + (Display-Key $installedKey))
+        
+        Write-Step (T 'O1_INST_PIDGENX')
+        $instPid = Invoke-PidGenXCheck -Key $installedKey
+        if ($instPid.SourceNote -eq 'pidgenx') {
+            if ($instPid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $instPid.Channel) }
+            if ($instPid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $instPid.Edition) }
+            if ($instPid.PartNumber)  { Write-Info ((T 'O2_PIDGX_PARTNO')  + $instPid.PartNumber) }
+            if ($instPid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $instPid.WinVersion) }
+            if ($instPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $instPid.OemId) }
+            if ($instPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $instPid.Sku) }
+            if ($instPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $instPid.EulaType) }
+            $upgText = if ($instPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
+            Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
+            if ($instPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $instPid.ExtPid) }
+        } elseif ($instPid.SourceNote -eq 'pidgenx-rejected') {
+            Write-Warn (T 'O1_OEM_PID_REJECTED')
+        } else {
+            Write-Info (T 'O1_OEM_PID_FMTONLY')
+        }
+    } else {
+        Write-Warn (T 'O1_INST_NO')
+    }
 
-    # Display key values (optional)
-    if ($oemKey -or $regKey -or $installedKey) {
-        Write-Blank
-        $showFull = Ask-YesNo (T 'O1_SHOWFULL')
-        Write-Blank
-        Write-Host ("  " + (T 'O1_KEYS_HDR')) -ForegroundColor Cyan
-        if ($installedKey) {
-            $val = if ($showFull) { $installedKey } else { Mask-Key $installedKey }
-            Write-Key ((T 'O1_KEY_INST') + $val)
+    Write-Diag (T 'O1_FETCH_ORIGKEY')
+    try {
+        $origDpId = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey' -Name 'DigitalProductId' -ErrorAction SilentlyContinue).DigitalProductId
+        if ($origDpId) {
+            $origKey = Decode-ProductKey $origDpId
+            if ($origKey) {
+                Write-Key ((T 'O1_LBL_ORIGKEY') + ' ' + (Display-Key $origKey))
+                Write-Diag (T 'O1_FETCH_ORIGPIDGENX')
+                $origPid = Invoke-PidGenXCheck -Key $origKey
+                if ($origPid.SourceNote -eq 'pidgenx') {
+                    if ($origPid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $origPid.Channel) }
+                    if ($origPid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $origPid.Edition) }
+                    if ($origPid.PartNumber)  { Write-Info ((T 'O2_PIDGX_PARTNO')  + $origPid.PartNumber) }
+                    if ($origPid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $origPid.WinVersion) }
+                    if ($origPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $origPid.OemId) }
+                    if ($origPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $origPid.Sku) }
+                    if ($origPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $origPid.EulaType) }
+                    $ut = if ($origPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
+                    Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $ut)
+                    if ($origPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $origPid.ExtPid) }
+                } elseif ($origPid.SourceNote -eq 'pidgenx-rejected') {
+                    Write-Warn (T 'O2_PIDGX_REJECTED')
+                }
+            }
         }
-        if ($oemKey) {
-            $val = if ($showFull) { $oemKey } else { Mask-Key $oemKey }
-            Write-Key ((T 'O1_KEY_BIOS') + $val)
-        }
-        if ($regKey) {
-            $val = if ($showFull) { $regKey } else { Mask-Key $regKey }
-            Write-Key ((T 'O1_KEY_REG') + $val)
+    } catch {}
+
+    # -- Save-key advisory (inline, right after installed key) ----------------
+    if ($WarnBeforeReplace -and $installedKey) {
+        $isDE        = $genericKeys.ContainsKey($partialKey) -and -not $isVolume
+        $isKmsClient = $isVolume
+        if (-not $isDE -and -not $isKmsClient) {
+            Write-Warn (T 'O2_SAVE_KEY_WARN')
         }
     }
 
@@ -1299,20 +1521,25 @@ function Get-VersionInfo {
     Write-Sep
 
     # Key mismatch check
+    $isDE = $partialKey -and $genericKeys.ContainsKey($partialKey) -and -not $isVolume
     if ($regKey -and $partialKey -and -not $regKey.EndsWith($partialKey)) {
         Write-Warn (T 'O1_MISMATCH')
         Write-Data (T 'O1_ACTIVE_ENDS') $partialKey 'Yellow'
         Write-Data (T 'O1_BACKUP_ENDS') $regKey.Substring($regKey.Length - 5) 'Yellow'
         Write-Diag (T 'O1_STALE_NOTE')
+        if ($isDE) { Write-Diag (T 'O1_DE_MISMATCH_REG') }
         Write-Diag (T 'O1_ACTIVE_SAFE')
         Write-Blank
-        if ($isAdmin) {
+        # Only offer removal prompt in Option 1 (interactive admin context)
+        if (-not $WarnBeforeReplace -and $isAdmin) {
             if (Ask-YesNo (T 'O1_REMOVE_ASK')) {
                 try {
-                    Remove-ItemProperty -Path $regKeyPath -Name "BackupProductKeyDefault" -Force
+                    Remove-ItemProperty -Path $regKeyPath -Name 'BackupProductKeyDefault' -Force
                     Write-OK (T 'O1_REMOVE_OK')
                 } catch { Write-Fail ((T 'O1_REMOVE_FAIL') + $_) }
             } else { Write-Warn (T 'O1_REMOVE_KEPT') }
+        } elseif ($WarnBeforeReplace) {
+            Write-Diag (T 'O1_NEED_ADMIN')
         } else {
             Write-Warn (T 'O1_NEED_ADMIN')
         }
@@ -1322,8 +1549,26 @@ function Get-VersionInfo {
 
     Write-Blank
     Write-Sep
+}
 
-    # ── 1e. License Channel /dli ───────────────────────────────────────────
+# =============================================================================
+# OPTION 1 -- Full System & License Info
+# (Merged: OS Version, License Channel /dli, Keys & Activation Status, optional /dlv)
+# =============================================================================
+function Get-VersionInfo {
+    Write-Blank
+    Write-Host ('  ' + (T 'O1_OPT_HDR')) -ForegroundColor Magenta
+    Write-Sep
+    Write-Diag (T 'O1_OPT_DESC1')
+    Write-Diag (T 'O1_OPT_DESC2')
+    Write-Sep
+    Write-Blank
+
+    # Shared system info block (OS, BIOS key, license, installed key, mismatch)
+    Show-SystemInfo
+
+
+    # -- 1e. License Channel /dli ─────────────────────────────────────────────
     Write-Blank
     Write-Host ("  " + (T 'O1_DLI_HDR')) -ForegroundColor Cyan
     Write-Diag (T 'O1_DLI_NOTE')
@@ -1358,7 +1603,7 @@ function Get-VersionInfo {
                 $t = $line.Trim()
                 if (-not $t) { continue }
                 if ($t -match '^License Status:') { Write-Host ("  {0}" -f $t) -ForegroundColor Green }
-                elseif ($t -match '^Name:|^Description:|^SKU ID:') { Write-Host ("  {0}" -f $t) -ForegroundColor Cyan }
+                elseif ($t -match '^Name:|^Description:|^Activation ID:') { Write-Host ("  {0}" -f $t) -ForegroundColor Cyan }
                 else { Write-Host ("  {0}" -f $t) }
             }
         }
@@ -1406,6 +1651,179 @@ function Get-InstalledProductKey {
 
 
 # =============================================================================
+# OPTION 2 -- Key Analysis Helper (format + alphabet check + pkeyconfig parse)
+# =============================================================================
+# =============================================================================
+# PidGenX Key Analysis Helper
+# Calls pidgenx.dll (present in System32 on all Win10/11) via P/Invoke.
+# Falls back to format-only check if pidgenx.dll fails or pkeyconfig not found.
+# =============================================================================
+
+# Load the P/Invoke wrapper once at script startup (not inside the function)
+# so it is available across all calls without repeated Add-Type overhead.
+# Struct layout (critical):
+#   DigPid2 / DigPid4 use CharSet.Unicode (WCHAR fields)
+#   DigPid3 uses CharSet.Ansi + Pack=1 to give exactly 164 bytes
+#   3rd param (mpc) must be '12345', NOT the pkeyconfig path repeated
+if (-not ([System.Management.Automation.PSTypeName]'WinLicPidGenX').Type) {
+    try {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+
+[StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
+public struct WL_DigPid2 {
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=24)] public string m_productId2;
+}
+
+[StructLayout(LayoutKind.Sequential, CharSet=CharSet.Ansi, Pack=1)]
+public struct WL_DigPid3 {
+    public uint   m_length;
+    public ushort m_versionMajor;
+    public ushort m_versionMinor;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst=24)] public byte[] m_productId2;
+    public uint   m_keyIdx;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=16)] public string m_sku;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst=16)] public byte[] m_abCdKey;
+    public uint m_cloneStatus, m_time, m_random, m_lt;
+    public uint m_licenseData0, m_licenseData1;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=8)] public string m_oemId;
+    public uint m_bundleId;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=8)] public string m_hardwareIdStatic;
+    public uint m_hwTypeStatic, m_biosChkStatic, m_volSerStatic, m_ramStatic, m_videoBiosStatic;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=8)] public string m_hardwareIdDynamic;
+    public uint m_hwTypeDynamic, m_biosChkDynamic, m_volSerDynamic, m_ramDynamic, m_videoBiosDynamic;
+    public uint m_crc32;
+}
+
+[StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
+public struct WL_DigPid4 {
+    public uint   m_length;
+    public ushort m_versionMajor;
+    public ushort m_versionMinor;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=64)]  public string m_productId2Ex;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=64)]  public string m_sku;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=8)]   public string m_oemId;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=260)] public string m_editionId;
+    public byte m_isUpgrade;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst=7)]  public byte[] m_reserved;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst=16)] public byte[] m_abCdKey;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst=32)] public byte[] m_abCdKeySHA256Hash;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst=32)] public byte[] m_abSHA256Hash;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=64)]  public string m_partNumber;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=64)]  public string m_productKeyType;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=64)]  public string m_eulaType;
+}
+
+public class WinLicPidGenX {
+    [DllImport("pidgenx.dll", EntryPoint="PidGenX",
+               CharSet=CharSet.Unicode, CallingConvention=CallingConvention.StdCall)]
+    public static extern int PidGenX(
+        string productKey, string pkeyConfigPath, string mpc, string oemId,
+        ref WL_DigPid2 dpid2, ref WL_DigPid3 dpid3, ref WL_DigPid4 dpid4);
+}
+'@ -ErrorAction Stop
+    } catch { <# struct/DllImport compile failed -- Invoke-PidGenXCheck falls back to format-only #> }
+}
+
+# Decode a PidGenX part number prefix to a human-readable Windows version string.
+# Examples: '[TH]X19-98841' -> 'Windows 10 (Threshold)'
+#           '[CO]X22-81919' -> 'Windows 11 (Cobalt / 21H2-22H2)'
+function Get-PartNumberWinVersion {
+    param([string]$PartNumber)
+    if ([string]::IsNullOrEmpty($PartNumber)) { return '' }
+    # Extract bracket prefix e.g. '[TH]' -> 'TH'
+    if ($PartNumber -notmatch '^\[([A-Z]{2,4})\]') { return '' }
+    $prefix = $Matches[1].ToUpper()
+    switch ($prefix) {
+        'TH' { return 'Windows 10 Threshold (1507 / 1511)' }
+        'RS' { return 'Windows 10 Redstone (1607-1909)' }
+        'VB' { return 'Windows 10 Vibranium (2004 / 20H2 / 21H1)' }
+        'CO' { return 'Windows 11 Cobalt (21H2 / 22H2)' }
+        'NI' { return 'Windows 11 Nickel (23H2)' }
+        'GE' { return 'Windows 11 Germanium (24H2)' }
+        'CU' { return 'Windows 11 Copper (25H2+)' }
+        default { return "Windows (prefix: $prefix)" }
+    }
+}
+
+
+function Invoke-PidGenXCheck {
+    param([string]$Key)
+
+    $result = [pscustomobject]@{
+        Valid      = $false
+        Channel    = ''
+        Edition    = ''
+        PartNumber = ''
+        WinVersion = ''
+        SourceNote = 'checksum-only'
+        OemId      = ''
+        Sku        = ''
+        EulaType   = ''
+        IsUpgrade  = 0
+        ExtPid     = ''
+    }
+
+    # -- Tier 1: Structural format check ------------------------------------
+    # Only check: 25 alphanumeric chars in 5x5 layout.
+    # slmgr /ipk is the sole arbiter of real key validity.
+    $stripped = $Key.ToUpper() -replace '-', ''
+    if ($stripped.Length -ne 25) { return $result }
+
+    $allValid = $true
+    foreach ($ch in $stripped.ToCharArray()) {
+        if ($ch -notmatch '[A-Z0-9]') { $allValid = $false; break }
+    }
+    $result.Valid = $allValid
+    if (-not $result.Valid) { return $result }
+
+    # -- Tier 2: PidGenX P/Invoke with correct struct layout ----------------
+    # Requires: DigPid3 Pack=1 (164 bytes), DigPid4 WCHAR fields (1272 bytes)
+    # mpc = '12345' (generic MPC code, NOT the pkeyconfig path repeated)
+    $pkcPath = "$env:SystemRoot\System32\spp\tokens\pkeyconfig\pkeyconfig.xrm-ms"
+    $typeOk  = try { [WinLicPidGenX] | Out-Null; $true } catch { $false }
+
+    if ($typeOk -and (Test-Path $pkcPath)) {
+        try {
+            $d2  = New-Object WL_DigPid2
+            $d3  = New-Object WL_DigPid3
+            $d3.m_length = [uint32][System.Runtime.InteropServices.Marshal]::SizeOf($d3)
+            $d4  = New-Object WL_DigPid4
+            $d4.m_length = [uint32][System.Runtime.InteropServices.Marshal]::SizeOf($d4)
+
+            $hr = [WinLicPidGenX]::PidGenX($Key, $pkcPath, '12345', $null,
+                                           [ref]$d2, [ref]$d3, [ref]$d4)
+
+            if ($hr -eq 0) {
+                $result.Channel    = if ($d4.m_productKeyType) { $d4.m_productKeyType } else { '' }
+                $result.Edition    = if ($d4.m_editionId)      { $d4.m_editionId }      else { '' }
+                $result.PartNumber = if ($d4.m_partNumber)     { $d4.m_partNumber }     else { '' }
+                $result.WinVersion = Get-PartNumberWinVersion $result.PartNumber
+                $result.SourceNote = 'pidgenx'
+                # OEM ID: dpid4.m_oemId is often empty; dpid3.m_oemId holds ASUS/DELL/LENOVO etc.
+                $result.OemId      = if ($d4.m_oemId) { $d4.m_oemId } elseif ($d3.m_oemId) { $d3.m_oemId } else { '' }
+                $result.Sku        = $d4.m_sku
+                $result.EulaType   = $d4.m_eulaType
+                $result.IsUpgrade  = $d4.m_isUpgrade
+                $result.ExtPid     = $d4.m_productId2Ex
+            } else {
+                # Key not in pkeyconfig for this OS generation (e.g. Win8 key on Win10)
+                # Must gate the install -- set Valid=false so the prompt fires
+                $result.Valid      = $false
+                $result.SourceNote = 'pidgenx-rejected'
+            }
+        } catch {
+            <# P/Invoke failed at runtime -- stay with format-only result #>
+        }
+    }
+
+    return $result
+}
+
+
+
+# =============================================================================
 # OPTION 2 -- Test & Install New Product Key
 # =============================================================================
 function Test-ProductKey {
@@ -1421,47 +1839,113 @@ function Test-ProductKey {
     Write-Sep
     Write-Blank
 
-    # Show current active key for reference
-    Write-Step (T 'O2_READ_LIC')
-    $activeProduct = Get-CimInstance -ClassName SoftwareLicensingProduct |
-                     Where-Object { $_.PartialProductKey -and $_.Name -like "Windows*" }
-    if ($activeProduct) {
-        Write-Data (T 'O2_CUR_ED')     $activeProduct.Name
-        Write-Data (T 'O2_CUR_KEY')    $activeProduct.PartialProductKey 'Cyan'
-        $statusText  = Get-LicenseStatusText $activeProduct.LicenseStatus
-        $statusColor = if ($activeProduct.LicenseStatus -eq 1) { 'Green' } else { 'Yellow' }
-        Write-Data (T 'O2_CUR_STATUS') $statusText $statusColor
-    } else {
-        Write-Warn (T 'O2_NO_LIC')
-    }
-    Write-Blank
-    Write-Sep
-    Write-Blank
+    # Full system info -- same output as Option 1 (minus /dli and /dlv)
+    Show-SystemInfo -WarnBeforeReplace
 
     Write-Info (T 'O2_INFO1')
     Write-Info (T 'O2_INFO2')
     Write-Warn (T 'O2_WARN_OVERWRITE')
-
-    # Channel awareness -- warn if VOLUME_KMSCLIENT, VOLUME_KMS, or Subscription
-    if ($activeProduct) {
-        $chanDesc = ($activeProduct.Description + '').ToUpperInvariant()
-        if     ($chanDesc -match 'VOLUME_KMSCLIENT')                       { Write-Warn (T 'O2_WARN_CHAN_KMS') }
-        elseif ($chanDesc -match 'VOLUME_KMS' -and $chanDesc -notmatch 'KMSCLIENT') { Write-Warn (T 'O2_WARN_CHAN_KMSHOST') }
-        elseif ($chanDesc -match 'SUBSCRIPTION')                           { Write-Warn (T 'O2_WARN_CHAN_SUB') }
-    }
+    Write-Info (T 'O2_NET_NOTICE')
     Write-Blank
 
     $rawKey = Read-Host (T 'O2_PROMPT')
     $key    = $rawKey.Trim().ToUpper()
 
+    if ($key.Length -eq 0) {
+        Write-Warn (T 'O2_CANCEL')
+        return
+    }
+
+    # Basic format check: XXXXX-XXXXX-XXXXX-XXXXX-XXXXX (alphanumeric).
+    # Do NOT restrict to the Base-24 alphabet here — keys with unexpected
+    # characters (e.g. N) should reach the analysis phase so the user gets
+    # the Format-FAIL warning + "proceed anyway?" prompt, not a hard stop.
     if ($key -notmatch '^[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$') {
         Write-Fail (T 'O2_BADFMT')
         return
     }
 
-    $displayKey = if (Ask-YesNo (T 'O2_SHOW_KEY')) { $key } else { Mask-Key $key }
+    # ── PHASE 1: PidGenX / Checksum pre-verification ────────────────────────
+    Write-Blank
+    Write-Sep
+    Write-Step (T 'O2_PIDGX_HDR')
+    Write-Diag (T 'O2_PIDGX_ABOUT')
+    Write-Blank
 
-    # Confirmation before installing — require typing OK
+    $pidResult = Invoke-PidGenXCheck -Key $key
+
+    if ($pidResult.Valid) {
+        Write-OK   (T 'O2_PIDGX_CHKSUM_OK')
+    } else {
+        if ($pidResult.SourceNote -eq 'pidgenx-rejected') {
+            # Format is valid but pidgenx says key is for a different OS generation
+            Write-OK   (T 'O2_PIDGX_CHKSUM_OK')     # format IS valid
+            Write-Warn (T 'O2_PIDGX_REJECTED')       # but pidgenx rejected it
+        } else {
+            Write-Fail (T 'O2_PIDGX_CHKSUM_FAIL')   # true format failure
+        }
+    }
+
+    if ($pidResult.Channel -ne '') {
+        Write-Host ((T 'O2_PIDGX_CHANNEL') + $pidResult.Channel) -ForegroundColor Cyan
+    }
+    if ($pidResult.Edition -ne '') {
+        Write-Host ((T 'O2_PIDGX_EDITION') + $pidResult.Edition) -ForegroundColor Cyan
+    }
+    if ($pidResult.PartNumber -ne '') {
+        Write-Host ((T 'O2_PIDGX_PARTNO') + $pidResult.PartNumber) -ForegroundColor DarkCyan
+    }
+    if ($pidResult.WinVersion -ne '') {
+        Write-Host ((T 'O2_PIDGX_WINVER') + $pidResult.WinVersion) -ForegroundColor DarkCyan
+    }
+    if ($pidResult.OemId -ne '') {
+        Write-Host ((T 'O2_PIDGX_OEMID') + $pidResult.OemId) -ForegroundColor Cyan
+    }
+    if ($pidResult.Sku -ne '') {
+        Write-Host ((T 'O2_PIDGX_SKU') + $pidResult.Sku) -ForegroundColor Cyan
+    }
+    if ($pidResult.EulaType -ne '') {
+        Write-Host ((T 'O2_PIDGX_EULA') + $pidResult.EulaType) -ForegroundColor Cyan
+    }
+    $upgText = if ($pidResult.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
+    Write-Host ((T 'O2_PIDGX_ISUPGRADE') + $upgText) -ForegroundColor Cyan
+    if ($pidResult.ExtPid -ne '') {
+        Write-Host ((T 'O2_PIDGX_EXTPID') + $pidResult.ExtPid) -ForegroundColor Cyan
+    }
+    switch ($pidResult.SourceNote) {
+        'pidgenx'          { }
+        'pidgenx-rejected' { }
+        default            { Write-Info (T 'O2_PIDGX_SRC_CHK') }
+    }
+    Write-Sep
+    Write-Blank
+
+    # If pidgenx rejected or checksum failed, warn and ask to proceed
+    if (-not $pidResult.Valid) {
+        if ($pidResult.SourceNote -eq 'pidgenx-rejected') {
+            Write-Warn (T 'O2_PIDGX_REJECT_WARN')
+        } else {
+            Write-Warn (T 'O2_PIDGX_WARN_FAIL')
+        }
+        if (-not (Ask-YesNo (T 'O2_PROCEED_ANYWAY'))) {
+            Write-Info (T 'O2_INSPECT_ONLY')
+            return
+        }
+        if ($pidResult.SourceNote -eq 'pidgenx-rejected') {
+            Write-Warn (T 'O2_PIDGX_OVERRIDE')
+        }
+        Write-Blank
+    }
+
+    # ── PHASE 2: Ask whether to actually install ────────────────────────────
+    if (-not (Ask-YesNo (T 'O2_INSTALL_ASK'))) {
+        Write-Info (T 'O2_INSPECT_ONLY')
+        return
+    }
+
+    $displayKey = Display-Key $key
+
+    # Confirmation before installing -- require typing OK
     Write-Blank
     Write-Sep
     Write-Warn (T 'O2_CONFIRM_HDR')
@@ -1494,20 +1978,31 @@ function Test-ProductKey {
 
     if ($fullOut -match 'Error:' -or $fullOut -match '0x') {
         Write-Fail (T 'O2_FAIL')
-        if    ($fullOut -match '0xC004F069') {
-            Write-Warn (T 'O2_DIAG_SKU')
-        } elseif ($fullOut -match '0xC004F050') {
-            Write-Warn (T 'O2_DIAG_INVALID')
-        } elseif ($fullOut -match '0xC004C003') {
-            Write-Warn (T 'O2_DIAG_BLOCKED')
-        } else {
-            Write-Warn (T 'O2_DIAG_GENERAL')
-        }
+        if      ($fullOut -match '0x80070005') { Write-Warn (T 'O2_DIAG_ACCESS_DENIED') }
+        elseif  ($fullOut -match '0xC004E016') { Write-Warn (T 'O2_DIAG_GEN') }
+        elseif  ($fullOut -match '0xC004F069') { Write-Warn (T 'O2_DIAG_SKU') }
+        elseif  ($fullOut -match '0xC004F050') { Write-Warn (T 'O2_DIAG_INVALID') }
+        elseif  ($fullOut -match '0xC004C003') { Write-Warn (T 'O2_DIAG_BLOCKED') }
+        elseif  ($fullOut -match '0xC004C008') { Write-Warn (T 'O2_DIAG_KEY_LIMIT') }
+        elseif  ($fullOut -match '0xC004F035') { Write-Warn (T 'O2_DIAG_VOL_LIC') }
+        elseif  ($fullOut -match '0xC004F051') { Write-Warn (T 'O2_DIAG_KEY_BLOCKED_SLS') }
+        else                                   { Write-Warn (T 'O2_DIAG_GENERAL') }
         Write-Blank
         Write-Info (T 'O2_REF_URL')
     } else {
         Write-OK  (T 'O2_SUCCESS')
         Write-Info (T 'O2_SUCCESS2')
+
+        # -- Internet pre-check before /ato --------------------------------
+        $netOk = $false
+        try {
+            $tc = New-Object System.Net.Sockets.TcpClient
+            $ar = $tc.BeginConnect('8.8.8.8', 53, $null, $null)
+            $netOk = $ar.AsyncWaitHandle.WaitOne(1500) -and $tc.Connected
+            try { $tc.EndConnect($ar) } catch {}
+            $tc.Close()
+        } catch {}
+        if (-not $netOk) { Write-Warn (T 'O2_ATO_NO_INTERNET') }
 
         # -- Auto /ato after successful /ipk --------------------------------
         Write-Blank
@@ -1519,12 +2014,29 @@ function Test-ProductKey {
         Write-Blank
         if ($atoFull -match 'Error:' -or $atoFull -match '0x') {
             Write-Fail (T 'O2_ATO_FAIL')
-            if      ($atoFull -match '0x80070490') { Write-Warn (T 'O2_DIAG_DIDNTWORK') }
-            elseif  ($atoFull -match '0xC004C001') { Write-Warn (T 'O2_DIAG_SERVER_INVALID') }
-            elseif  ($atoFull -match '0xC004C020|0xC004C021') { Write-Warn (T 'O2_DIAG_MAK_LIMIT') }
-            elseif  ($atoFull -match '0xC004B100') { Write-Warn (T 'O2_DIAG_SERVER_NOACT') }
-            elseif  ($atoFull -match '0xC004F009') { Write-Warn (T 'O2_DIAG_GRACE') }
-            elseif  ($atoFull -match '0x8004FE21') { Write-Warn (T 'O2_DIAG_NOTGENUINE') }
+            if      ($atoFull -match '0x80070005')                              { Write-Warn (T 'O2_DIAG_ACCESS_DENIED') }
+            elseif  ($atoFull -match '0x80070490')                              { Write-Warn (T 'O2_DIAG_DIDNTWORK') }
+            elseif  ($atoFull -match '0xC004C001')                              { Write-Warn (T 'O2_DIAG_SERVER_INVALID') }
+            elseif  ($atoFull -match '0xC004C008')                              { Write-Warn (T 'O2_DIAG_KEY_LIMIT') }
+            elseif  ($atoFull -match '0xC004C020|0xC004C021')                   { Write-Warn (T 'O2_DIAG_MAK_LIMIT') }
+            elseif  ($atoFull -match '0xC004B100')                              { Write-Warn (T 'O2_DIAG_SERVER_NOACT') }
+            elseif  ($atoFull -match '0xC004E003')                              { Write-Warn (T 'O2_DIAG_LIC_EVAL_FAIL') }
+            elseif  ($atoFull -match '0xC004F009')                              { Write-Warn (T 'O2_DIAG_GRACE') }
+            elseif  ($atoFull -match '0xC004F00F')                              { Write-Warn (T 'O2_DIAG_HW_CHANGED') }
+            elseif  ($atoFull -match '0xC004F038')                              { Write-Warn (T 'O2_DIAG_KMS_COUNT') }
+            elseif  ($atoFull -match '0xC004F039')                              { Write-Warn (T 'O2_DIAG_KMS_DISABLED') }
+            elseif  ($atoFull -match '0xC004F041')                              { Write-Warn (T 'O2_DIAG_KMS_NOT_ACT') }
+            elseif  ($atoFull -match '0xC004F042')                              { Write-Warn (T 'O2_DIAG_KMS_WRONG') }
+            elseif  ($atoFull -match '0xC004F064')                              { Write-Warn (T 'O2_DIAG_NONGENUINE_EXP') }
+            elseif  ($atoFull -match '0xC004F065')                              { Write-Warn (T 'O2_DIAG_NONGENUINE_GRC') }
+            elseif  ($atoFull -match '0xC004F06C')                              { Write-Warn (T 'O2_DIAG_KMS_CLOCK') }
+            elseif  ($atoFull -match '0x8004FE21')                              { Write-Warn (T 'O2_DIAG_NOTGENUINE') }
+            elseif  ($atoFull -match '0x8007007B|0x80092328')                   { Write-Warn (T 'O2_DIAG_DNS_NONAME') }
+            elseif  ($atoFull -match '0x800706BA')                              { Write-Warn (T 'O2_DIAG_RPC_UNAVAIL') }
+            elseif  ($atoFull -match '0x8007232A|0x8007251D')                   { Write-Warn (T 'O2_DIAG_DNS_FAIL') }
+            elseif  ($atoFull -match '0x8007232B')                              { Write-Warn (T 'O2_DIAG_NO_NET') }
+            elseif  ($atoFull -match '0x80072EE2|0x80072EE7|0x80072EFD')        { Write-Warn (T 'O2_DIAG_NET_TIMEOUT') }
+            elseif  ($atoFull -match '0xC004F074')                              { Write-Warn (T 'O2_DIAG_KMS_NO_SRV') }
             Write-Blank
             Write-Info (T 'O8KMS_REF_URL')
         } else {
@@ -1533,6 +2045,8 @@ function Test-ProductKey {
     }
     Write-Blank
 }
+
+
 
 # =============================================================================
 # OPTION 3 -- Remove Activation
@@ -1546,6 +2060,37 @@ function Remove-License {
     Write-Warn (T 'O3_WARN1')
     Write-Warn (T 'O3_WARN2')
     Write-Sep
+    Write-Blank
+
+    # Show current key so user can save it
+    try {
+        $product = Get-CimInstance -Query "SELECT PartialProductKey FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL AND Name LIKE 'Windows%'" -ErrorAction SilentlyContinue | Select-Object -First 1
+        $ppk = $product.PartialProductKey
+    } catch { $ppk = $null }
+
+    $instKey = $null
+    try { $instKey = Get-InstalledProductKey } catch {}
+
+    if ($instKey) {
+        Write-Info ((T 'O3_CURRENT_KEY') + ' ' + (Display-Key $instKey))
+        $o3Pid = Invoke-PidGenXCheck -Key $instKey
+        if ($o3Pid.SourceNote -eq 'pidgenx') {
+            if ($o3Pid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $o3Pid.Channel) }
+            if ($o3Pid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $o3Pid.Edition) }
+            if ($o3Pid.PartNumber)  { Write-Info ((T 'O2_PIDGX_PARTNO')  + $o3Pid.PartNumber) }
+            if ($o3Pid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $o3Pid.WinVersion) }
+            if ($o3Pid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $o3Pid.OemId) }
+            if ($o3Pid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $o3Pid.Sku) }
+            if ($o3Pid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $o3Pid.EulaType) }
+            $upgText = if ($o3Pid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
+            Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
+            if ($o3Pid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $o3Pid.ExtPid) }
+        }
+        $isGeneric = $ppk -and $genericKeys.ContainsKey($ppk)
+        if (-not $isGeneric) {
+            Write-Warn (T 'O3_SAVE_WARN')
+        }
+    }
     Write-Blank
 
     if (-not (Ask-YesNo (T 'O3_CONFIRM'))) {
@@ -1571,6 +2116,16 @@ function Remove-License {
 # =============================================================================
 function Reset-Activation {
     if (-not $isAdmin) { Elevate-For-Option; return }
+
+    # Check remaining rearm count
+    try {
+        $rearmCount = (Get-CimInstance -Query "SELECT RemainingWindowsReArmCount FROM SoftwareLicensingService" -ErrorAction SilentlyContinue).RemainingWindowsReArmCount
+        Write-Info ((T 'O4_REARM_COUNT') -f $rearmCount)
+        if ($rearmCount -eq 0) {
+            Write-Fail (T 'O4_REARM_ZERO')
+            return
+        }
+    } catch {}
 
     Write-Blank
     Write-Host ("  " + (T 'O4_OPT_HDR')) -ForegroundColor Magenta
@@ -2360,7 +2915,26 @@ function Set-ActivationChannel {
 
     Write-Info  ((T 'O6CH_CURRENT_CHANNEL') + " " + $channel)
     Write-Info  ((T 'O6CH_CURRENT_EDITION') + " " + $edition)
-    Write-Info  ((T 'O6CH_CURRENT_KEY') + " " + $partKey)
+    $chFullKey = $null
+    try { $chFullKey = Get-InstalledProductKey } catch {}
+    if ($chFullKey) {
+        Write-Info  ((T 'O6CH_CURRENT_KEY') + ' ' + (Display-Key $chFullKey))
+        $chPid = Invoke-PidGenXCheck -Key $chFullKey
+        if ($chPid.SourceNote -eq 'pidgenx') {
+            if ($chPid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $chPid.Channel) }
+            if ($chPid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $chPid.Edition) }
+            if ($chPid.PartNumber)  { Write-Info ((T 'O2_PIDGX_PARTNO')  + $chPid.PartNumber) }
+            if ($chPid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $chPid.WinVersion) }
+            if ($chPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $chPid.OemId) }
+            if ($chPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $chPid.Sku) }
+            if ($chPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $chPid.EulaType) }
+            $upgText = if ($chPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
+            Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
+            if ($chPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $chPid.ExtPid) }
+        }
+    } else {
+        Write-Info  ((T 'O6CH_CURRENT_KEY') + ' ' + $partKey)
+    }
     Write-Blank
 
     $isKmsClient = $channel -match "VOLUME_KMSCLIENT"
@@ -2375,7 +2949,7 @@ function Set-ActivationChannel {
     Write-Host ("  " + (T 'O6CH_TO_KMS'))    -ForegroundColor $(if ($isKmsClient) { "DarkGray" } else { "White" })
     Write-Host ("  " + (T 'O6CH_TO_RETAIL')) -ForegroundColor $(if ($isKmsClient) { "White" } else { "DarkGray" })
     Write-Blank
-    $choice = (Read-Host "  [A] KMS  [B] RETAIL/MAK  [C] Cancel").Trim().ToUpper()
+    $choice = (Read-Host (T 'O6CH_PROMPT')).Trim().ToUpper()
 
     switch ($choice) {
         'A' {
@@ -2412,12 +2986,12 @@ function Set-ActivationChannel {
                 Write-Warn (T 'O6CH_GVLK_NOMAP')
                 return
             }
-            Write-Info ((T 'O6CH_GVLK_LABEL') + " " + $gvlk)
+            Write-Info ((T 'O6CH_GVLK_LABEL') + " " + $gvlk)  # GVLKs are public keys
             $ok = (Read-Host (T 'O8KMS_GVLK_CONFIRM')).Trim()
             if ($ok -ne 'OK') { Write-Info (T 'O6CH_CANCELLED'); return }
-            Write-Step (T 'O6CH_GVLK_INSTALLING')
-            $ipk = & cscript //NoLogo "$env:windir\System32\slmgr.vbs" /ipk $gvlk 2>&1 | Out-String
-            Write-Host ("  " + $ipk.Trim()) -ForegroundColor Gray
+            
+            $ipk = Run-Slmgr "/ipk $gvlk" (T 'O6CH_GVLK_INSTALLING')
+            if ($ipk) { foreach ($l in $ipk) { Write-Host ("  {0}" -f $l.Trim()) -ForegroundColor Gray } }
             if ($ipk -match "successfully") {
                 Write-OK (T 'O6CH_GVLK_DONE')
             } else {
@@ -2442,8 +3016,8 @@ function Get-KmsSettings {
     Write-Blank
 
     # Read registry
-    $regKey  = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareLicensingService"
-    $regHost = (Get-ItemProperty -Path $regKey -Name "KeyManagementServiceMachine" -ErrorAction SilentlyContinue).KeyManagementServiceMachine
+    $regKey  = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform"
+    $regHost = (Get-ItemProperty -Path $regKey -Name "KeyManagementServiceName" -ErrorAction SilentlyContinue).KeyManagementServiceName
     $regPort = (Get-ItemProperty -Path $regKey -Name "KeyManagementServicePort" -ErrorAction SilentlyContinue).KeyManagementServicePort
     if (-not $regHost) { $regHost = T 'O7KMS_NOT_SET' }
     if (-not $regPort) { $regPort = T 'O7KMS_DEFAULT_PORT' }
@@ -2451,8 +3025,8 @@ function Get-KmsSettings {
     # Read slmgr /dlv
     $dlvHost = T 'O7KMS_NOT_SET'
     try {
-        $dlvOut = & cscript //NoLogo "$env:windir\System32\slmgr.vbs" /dlv 2>&1 | Out-String
-        if ($dlvOut -match "KMS machine name[^:]*:\s*(.+)") { $dlvHost = $Matches[1].Trim() }
+        $wmiHost = (Get-CimInstance -Query "SELECT DiscoveredKeyManagementServiceMachineName FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL AND Name LIKE 'Windows%'" -ErrorAction SilentlyContinue | Select-Object -First 1).DiscoveredKeyManagementServiceMachineName
+        if ($wmiHost) { $dlvHost = $wmiHost }
     } catch {}
 
     # Display
@@ -2472,9 +3046,8 @@ function Get-KmsSettings {
     $ok = (Read-Host (T 'O7KMS_CLEAR_CONFIRM')).Trim()
     if ($ok -ne 'OK') { Write-Info (T 'O7KMS_CANCELLED'); return }
 
-    Write-Step (T 'O7KMS_CLEARING')
-    $ckms = & cscript //NoLogo "$env:windir\System32\slmgr.vbs" /ckms 2>&1 | Out-String
-    Write-Host ("  " + $ckms.Trim()) -ForegroundColor Gray
+    $ckms = Run-Slmgr "/ckms" (T 'O7KMS_CLEARING')
+    if ($ckms) { foreach ($l in $ckms) { Write-Host ("  {0}" -f $l.Trim()) -ForegroundColor Gray } }
 
     if ($ckms -match "successfully") {
         Write-OK (T 'O7KMS_CLEARED')
@@ -2550,7 +3123,7 @@ function Invoke-KmsActivation {
         if ($gvlkToInstall) {
             Write-Blank
             Write-Host ("  " + (T 'O8KMS_GVLK_FOUND') + "  $gvlkEdition") -ForegroundColor Yellow
-            Write-Host ("  Key: $gvlkToInstall") -ForegroundColor Cyan
+            Write-Host ("  Key: $gvlkToInstall") -ForegroundColor Cyan  # GVLKs are public keys
             Write-Blank
             $okInput = Read-Host (T 'O8KMS_GVLK_CONFIRM')
             if ($okInput.Trim().ToUpper() -ne 'OK') {
@@ -2645,14 +3218,22 @@ function Invoke-KmsActivation {
 
     if ($atoFull -match 'Error:' -or $atoFull -match '0x') {
         Write-Fail (T 'O8KMS_FAIL')
-        if      ($atoFull -match '0xC004F038') { Write-Warn (T 'O8KMS_DIAG_COUNT') }
-        elseif  ($atoFull -match '0xC004F039') { Write-Warn (T 'O8KMS_DIAG_NOTENABLED') }
-        elseif  ($atoFull -match '0xC004F041') { Write-Warn (T 'O8KMS_DIAG_HOSTNACT') }
-        elseif  ($atoFull -match '0xC004F042') { Write-Warn (T 'O8KMS_DIAG_WRONGHOST') }
-        elseif  ($atoFull -match '0xC004F06C') { Write-Warn (T 'O8KMS_DIAG_CLOCK') }
-        elseif  ($atoFull -match '0xC004F074') { Write-Warn (T 'O8KMS_DIAG_NOCONTACT') }
+        if      ($atoFull -match '0x80070005')                              { Write-Warn (T 'O2_DIAG_ACCESS_DENIED') }
+        elseif  ($atoFull -match '0xC004E003')                              { Write-Warn (T 'O2_DIAG_LIC_EVAL_FAIL') }
+        elseif  ($atoFull -match '0xC004F00F')                              { Write-Warn (T 'O2_DIAG_HW_CHANGED') }
+        elseif  ($atoFull -match '0xC004F038')                              { Write-Warn (T 'O8KMS_DIAG_COUNT') }
+        elseif  ($atoFull -match '0xC004F039')                              { Write-Warn (T 'O8KMS_DIAG_NOTENABLED') }
+        elseif  ($atoFull -match '0xC004F041')                              { Write-Warn (T 'O8KMS_DIAG_HOSTNACT') }
+        elseif  ($atoFull -match '0xC004F042')                              { Write-Warn (T 'O8KMS_DIAG_WRONGHOST') }
+        elseif  ($atoFull -match '0xC004F064')                              { Write-Warn (T 'O2_DIAG_NONGENUINE_EXP') }
+        elseif  ($atoFull -match '0xC004F065')                              { Write-Warn (T 'O2_DIAG_NONGENUINE_GRC') }
+        elseif  ($atoFull -match '0xC004F06C')                              { Write-Warn (T 'O8KMS_DIAG_CLOCK') }
+        elseif  ($atoFull -match '0xC004F074')                              { Write-Warn (T 'O8KMS_DIAG_NOCONTACT') }
         elseif  ($atoFull -match '0x8007007B|0x8007232B|0x8007251D|0x80092328') { Write-Warn (T 'O8KMS_DIAG_DNS') }
-        elseif  ($atoFull -match '0xC004F035') { Write-Warn (T 'O8KMS_DIAG_VOLK') }
+        elseif  ($atoFull -match '0x800706BA')                              { Write-Warn (T 'O2_DIAG_RPC_UNAVAIL') }
+        elseif  ($atoFull -match '0x8007232A')                              { Write-Warn (T 'O2_DIAG_DNS_FAIL') }
+        elseif  ($atoFull -match '0x80072EE2|0x80072EE7|0x80072EFD')        { Write-Warn (T 'O2_DIAG_NET_TIMEOUT') }
+        elseif  ($atoFull -match '0xC004F035')                              { Write-Warn (T 'O8KMS_DIAG_VOLK') }
         Write-Blank
         Write-Info (T 'O8KMS_REF_URL')
     } else {
