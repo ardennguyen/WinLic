@@ -1800,7 +1800,8 @@ function Invoke-PidGenXCheck {
                 $result.PartNumber = if ($d4.m_partNumber)     { $d4.m_partNumber }     else { '' }
                 $result.WinVersion = Get-PartNumberWinVersion $result.PartNumber
                 $result.SourceNote = 'pidgenx'
-                $result.OemId      = $d4.m_oemId
+                # OEM ID: dpid4.m_oemId is often empty; dpid3.m_oemId holds ASUS/DELL/LENOVO etc.
+                $result.OemId      = if ($d4.m_oemId) { $d4.m_oemId } elseif ($d3.m_oemId) { $d3.m_oemId } else { '' }
                 $result.Sku        = $d4.m_sku
                 $result.EulaType   = $d4.m_eulaType
                 $result.IsUpgrade  = $d4.m_isUpgrade

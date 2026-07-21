@@ -1080,12 +1080,15 @@ namespace WinLicApp
                 if (hr != 0) return (false, "", "", "", "", "", "", "", 0, "");  // not in pkeyconfig \u2014 REJECTED (e.g. Win8 key on Win10)
 
                 var pn  = dpid4.m_partNumber     ?? "";
+                // OEM ID: dpid4.m_oemId is often empty; dpid3.m_oemId holds "ASUS","DELL","LENOVO" etc.
+                var oemId = !string.IsNullOrEmpty(dpid4.m_oemId) ? dpid4.m_oemId
+                          : (dpid3.m_oemId ?? "");
                 return (true,
                     dpid4.m_productKeyType ?? "",
                     dpid4.m_editionId      ?? "",
                     pn,
                     GetPartNumberWinVersion(pn),
-                    dpid4.m_oemId ?? "",
+                    oemId,
                     dpid4.m_sku ?? "",
                     dpid4.m_eulaType ?? "",
                     dpid4.m_isUpgrade,
