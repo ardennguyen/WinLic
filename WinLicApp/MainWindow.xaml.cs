@@ -602,13 +602,14 @@ namespace WinLicApp
 
         private void RunPidGenXAnalysis(string key)
         {
-            var (valid, channel, edition, _, winVer) = CheckKeyChecksum(key);
+            var (valid, channel, edition, partNumber, winVer) = CheckKeyChecksum(key);
             bool pkcPresent = System.IO.File.Exists(PkcPath);
             if (valid && !string.IsNullOrEmpty(channel))
             {
                 LogInfo(L.Get("OemPid_Channel") + channel);
-                if (!string.IsNullOrEmpty(edition)) LogInfo(L.Get("OemPid_Edition") + edition);
-                if (!string.IsNullOrEmpty(winVer))  LogInfo(L.Get("OemPid_WinVer")  + winVer);
+                if (!string.IsNullOrEmpty(edition))    LogInfo(L.Get("OemPid_Edition") + edition);
+                if (!string.IsNullOrEmpty(partNumber))  LogInfo(L.Get("OemPid_PartNo")  + partNumber);
+                if (!string.IsNullOrEmpty(winVer))      LogInfo(L.Get("OemPid_WinVer")  + winVer);
                 LogInfo(L.Get("O2_PIDGX_SRC_PIDGENX"));
             }
             else if (!valid && pkcPresent)
@@ -1523,14 +1524,15 @@ namespace WinLicApp
             }
             catch { }
 
+            bool isGenericForRemove = currentPartial != null
+                && AppSettings.AllGenericKeySuffixes.Contains(currentPartial);
             if (!string.IsNullOrWhiteSpace(currentInstalled))
             {
                 LogData(L.Get("D_InstalledKey"),
                     ShowFullKey ? currentInstalled : MaskKey(currentInstalled));
-                bool isDE = currentPartial != null
-                    && AppSettings.AllGenericKeySuffixes.Contains(currentPartial);
-                if (!isDE)
-                    LogWarn(L.Get("O2_SAVE_KEY_WARN"));
+                RunPidGenXAnalysis(currentInstalled);
+                if (!isGenericForRemove)
+                    LogWarn(L.Get("O3_SAVE_KEY_WARN"));
             }
             LogBlank();
 
@@ -1538,6 +1540,28 @@ namespace WinLicApp
             RcpTitle.Text        = L.Get("O3_Remove_Title");
             RcpWarn1.Text        = L.Get("O3_Remove_Warn1");
             RcpWarn2.Text        = L.Get("O3_Remove_Warn2");
+
+            // Show key info + save warning in the dialog itself
+            if (!string.IsNullOrWhiteSpace(currentInstalled))
+            {
+                RcpKeyInfo.Visibility = Visibility.Visible;
+                RcpKeyInfo.Text = L.Get("D_InstalledKey") + "    "
+                    + (ShowFullKey ? currentInstalled : MaskKey(currentInstalled));
+            }
+            else
+            {
+                RcpKeyInfo.Visibility = Visibility.Collapsed;
+            }
+            if (!isGenericForRemove && !string.IsNullOrWhiteSpace(currentInstalled))
+            {
+                RcpSaveWarn.Visibility = Visibility.Visible;
+                RcpSaveWarn.Text = L.Get("O3_SAVE_KEY_WARN");
+            }
+            else
+            {
+                RcpSaveWarn.Visibility = Visibility.Collapsed;
+            }
+
             RcpConfirmLabel.Text = L.Get("O3_Remove_TypeOk");
             RcpHint.Text         = L.Get("O3_Remove_Hint");
             BtnRemoveCancel.Content  = L.Get("O3_Remove_Cancel");
@@ -2527,7 +2551,7 @@ namespace WinLicApp
                     _kmsGvlkNeeded = true;
                     _kmsGvlkKey    = gvlkKey;
                     KmsGvlkLabel.Text = L.Get("O8KMS_GVLK_FOUND_KEY") + "  " + gvlkEdition;
-                    KmsGvlkKey.Text   = ShowFullKey ? gvlkKey : MaskKey(gvlkKey);
+                    KmsGvlkKey.Text   = gvlkKey;  // GVLKs are public keys — always show full
                     KmsGvlkSection.Visibility = Visibility.Visible;
                     EnsurePanelFits(KmsPanel);
                 }
@@ -2830,7 +2854,7 @@ namespace WinLicApp
             if (_chGvlkKey != null)
             {
                 ChGvlkLabel.Text        = L.Get("O6CH_GVLK_LABEL") + "  " + gvlkEdition;
-                ChGvlkKey.Text          = ShowFullKey ? _chGvlkKey : MaskKey(_chGvlkKey);
+                ChGvlkKey.Text          = _chGvlkKey;  // GVLKs are public keys — always show full
                 ChGvlkConfirmLabel.Text = L.Get("O6CH_GVLK_CONFIRM");
                 ChGvlkSection.Visibility = Visibility.Visible;
                 BtnChProceed.IsEnabled   = true;

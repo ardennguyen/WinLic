@@ -1369,6 +1369,7 @@ function Show-SystemInfo {
         if ($oemPid.SourceNote -eq 'pidgenx') {
             if ($oemPid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $oemPid.Channel) }
             if ($oemPid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $oemPid.Edition) }
+            if ($oemPid.PartNumber)  { Write-Info ((T 'O2_PIDGX_PARTNO')  + $oemPid.PartNumber) }
             if ($oemPid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $oemPid.WinVersion) }
             Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
         } elseif ($oemPid.SourceNote -eq 'pidgenx-rejected') {
@@ -1397,6 +1398,7 @@ function Show-SystemInfo {
         if ($regPid.SourceNote -eq 'pidgenx') {
             if ($regPid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $regPid.Channel) }
             if ($regPid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $regPid.Edition) }
+            if ($regPid.PartNumber)  { Write-Info ((T 'O2_PIDGX_PARTNO')  + $regPid.PartNumber) }
             if ($regPid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $regPid.WinVersion) }
             Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
         } elseif ($regPid.SourceNote -eq 'pidgenx-rejected') {
@@ -1422,6 +1424,7 @@ function Show-SystemInfo {
         if ($instPid.SourceNote -eq 'pidgenx') {
             if ($instPid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $instPid.Channel) }
             if ($instPid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $instPid.Edition) }
+            if ($instPid.PartNumber)  { Write-Info ((T 'O2_PIDGX_PARTNO')  + $instPid.PartNumber) }
             if ($instPid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $instPid.WinVersion) }
             Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
         } elseif ($instPid.SourceNote -eq 'pidgenx-rejected') {
@@ -1974,6 +1977,13 @@ function Remove-License {
 
     if ($instKey) {
         Write-Info ((T 'O3_CURRENT_KEY') + ' ' + (Display-Key $instKey))
+        $o3Pid = Invoke-PidGenXCheck -Key $instKey
+        if ($o3Pid.SourceNote -eq 'pidgenx') {
+            if ($o3Pid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $o3Pid.Channel) }
+            if ($o3Pid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $o3Pid.Edition) }
+            if ($o3Pid.PartNumber)  { Write-Info ((T 'O2_PIDGX_PARTNO')  + $o3Pid.PartNumber) }
+            if ($o3Pid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $o3Pid.WinVersion) }
+        }
         $isGeneric = $ppk -and $genericKeys.ContainsKey($ppk)
         if (-not $isGeneric) {
             Write-Warn (T 'O3_SAVE_WARN')
@@ -2855,7 +2865,7 @@ function Set-ActivationChannel {
                 Write-Warn (T 'O6CH_GVLK_NOMAP')
                 return
             }
-            Write-Info ((T 'O6CH_GVLK_LABEL') + " " + (Display-Key $gvlk))
+            Write-Info ((T 'O6CH_GVLK_LABEL') + " " + $gvlk)  # GVLKs are public keys
             $ok = (Read-Host (T 'O8KMS_GVLK_CONFIRM')).Trim()
             if ($ok -ne 'OK') { Write-Info (T 'O6CH_CANCELLED'); return }
             
@@ -2992,7 +3002,7 @@ function Invoke-KmsActivation {
         if ($gvlkToInstall) {
             Write-Blank
             Write-Host ("  " + (T 'O8KMS_GVLK_FOUND') + "  $gvlkEdition") -ForegroundColor Yellow
-            Write-Host ("  Key: $(Display-Key $gvlkToInstall)") -ForegroundColor Cyan
+            Write-Host ("  Key: $gvlkToInstall") -ForegroundColor Cyan  # GVLKs are public keys
             Write-Blank
             $okInput = Read-Host (T 'O8KMS_GVLK_CONFIRM')
             if ($okInput.Trim().ToUpper() -ne 'OK') {

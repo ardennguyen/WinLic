@@ -543,6 +543,23 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- Current key info (populated in code-behind) -->
+                        <TextBlock x:Name="RcpKeyInfo"
+                                   Visibility="Collapsed"
+                                   FontFamily="Consolas" FontSize="11"
+                                   Foreground="#4338ca" TextWrapping="Wrap"
+                                   MaxWidth="360" HorizontalAlignment="Center"
+                                   Margin="0,0,0,6"/>
+
+                        <!-- Save key warning for non-generic keys -->
+                        <TextBlock x:Name="RcpSaveWarn"
+                                   Visibility="Collapsed"
+                                   FontFamily="Segoe UI" FontSize="11"
+                                   Foreground="#dc2626" FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="360" HorizontalAlignment="Center"
+                                   Margin="0,0,0,12"/>
+
                         <!-- "Type OK to confirm" label -->
                         <TextBlock x:Name="RcpConfirmLabel"
                                    FontFamily="Segoe UI" FontSize="11"

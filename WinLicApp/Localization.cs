@@ -119,6 +119,7 @@ namespace WinLicApp
                                       "Đang phân tích Giai đoạn 1 trên Key OEM BIOS…"),
             ["OemPid_Channel"]      = ("  Channel  : ",   "  Kênh     : "),
             ["OemPid_Edition"]      = ("  Edition  : ",   "  Ấn bản   : "),
+            ["OemPid_PartNo"]       = ("  Part No. : ",   "  Mã SP    : "),
             ["OemPid_WinVer"]       = ("  Win Ver. : ",   "  Phiên bản: "),
             ["OemPid_Rejected"]     = ("  PidGenX  : Key not found in pkeyconfig.xrm-ms (possibly a pre-Windows 10 OEM key)",
                                       "  PidGenX  : Key không tìm thấy trong pkeyconfig.xrm-ms (có thể là key OEM trước Windows 10)"),
@@ -603,11 +604,17 @@ namespace WinLicApp
 
 
             // ── Option 2 — save-key advisory for non-generic Retail/MAK/OEM keys ──
-            ["O2_SAVE_KEY_WARN"] = ("⚠  This appears to be a unique Retail / MAK / OEM key. " +
+            ["O2_SAVE_KEY_WARN"] = ("This appears to be a unique Retail / MAK / OEM key. " +
                                     "Save it now before installing a new key — " +
                                     "you will NOT be able to recover it afterwards.",
-                                    "⚠  Đây có vẻ là key Retail / MAK / OEM riêng. " +
+                                    "Đây có vẻ là key Retail / MAK / OEM riêng. " +
                                     "Hãy lưu lại trước khi cài key mới — " +
+                                    "bạn sẽ KHÔNG thể khôi phục sau này."),
+            ["O3_SAVE_KEY_WARN"] = ("This appears to be a unique Retail / MAK / OEM key. " +
+                                    "Save it now before removing — " +
+                                    "you will NOT be able to recover it afterwards.",
+                                    "Đây có vẻ là key Retail / MAK / OEM riêng. " +
+                                    "Hãy lưu lại trước khi gỡ — " +
                                     "bạn sẽ KHÔNG thể khôi phục sau này."),
 
             // ── Option 2 — auto /ato after successful /ipk ───────────────────────
