@@ -71,8 +71,8 @@ $Str = @{
     # -- Header / status --
     'HDR_ADMIN'    = @('[ADMIN] Running as Administrator -- all options available',
                        '[ADMIN] Đang chạy với quyền Administrator -- tất cả tùy chọn khả dụng')
-    'HDR_NOADMIN'  = @('[NO ADMIN] Options 1,5 available -- 2,3,4 will prompt for elevation',
-                       '[KHÔNG ADMIN] Tùy chọn 1,5 khả dụng -- 2,3,4 yêu cầu quyền nâng cao')
+    'HDR_NOADMIN'  = @('[NO ADMIN] Options 1,5,7 available -- 2,3,4,6,8 will prompt for elevation',
+                       '[KHÔNG ADMIN] Tùy chọn 1,5,7 khả dụng -- 2,3,4,6,8 yêu cầu quyền nâng cao')
     # -- About section --
     'ABOUT_HDR'    = @('ABOUT', 'GIỚI THIỆU')
     'ABOUT_OPT1'   = @('Option 1 is read-only and safe for any user.',
@@ -98,19 +98,19 @@ $Str = @{
                        '7 -- Kiểm Tra & Xóa Cài Đặt KMS')
 
     'MENU_8'       = @('8 -- KMS Activation                    [!]',
-                       '6 -- Kích Hoạt KMS                     [!]')
+                       '8 -- Kích Hoạt KMS                     [!]')
     'MENU_U'       = @('U -- Update Scan Defaults from GitHub',
                        'U -- Cập nhật Tự động từ GitHub')
     'MENU_Q'       = @('Q -- Quit', 'Q -- Thoát')
     'MENU_WARN'    = @('[!] These options make REAL changes to your Windows license.',
                        '[!] Các tùy chọn này thay đổi THẬT SỰ bản quyền Windows của bạn.')
     'MENU_SELECT'  = @('Select option (1-8, U, Q to quit)',
-                       'Chọn tùy chọn (1-6, U, Q để thoát)')
+                       'Chọn tùy chọn (1-8, U, Q để thoát)')
     # -- Shared prompts --
     'PRESS_ENTER'  = @('Press Enter to return to menu...', 'Nhấn Enter để quay lại menu...')
     'GOODBYE'      = @('Goodbye!', 'Tạm biệt!')
-    'INVALID_OPT'  = @('Invalid option -- choose 1-6, U, or Q.',
-                       'Lựa chọn không hợp lệ -- chọn 1-6, U, hoặc Q.')
+    'INVALID_OPT'  = @('Invalid option -- choose 1-8, U, or Q.',
+                       'Lựa chọn không hợp lệ -- chọn 1-8, U, hoặc Q.')
     'ELEVATE_WARN' = @('This option requires Administrator privileges.',
                        'Tùy chọn này yêu cầu quyền Administrator.')
     'ELEVATE_ASK'  = @('Relaunch WinLic Manager as Administrator now?',
@@ -127,7 +127,6 @@ $Str = @{
     'PS7_DOING'    = @('Relaunching in PowerShell 7...', 'Đang khởi chạy lại bằng PowerShell 7...')
     'PS7_SKIP'     = @('Continuing in PowerShell 5.', 'Tiếp tục với PowerShell 5.')
     'CANCEL_BACK'  = @('Canceled. Returning to menu.', 'Đã hủy. Quay lại menu.')
-    'YES_NO'       = @('(y/n)', '(y/n)')
 
     # =========================================================================
     # Option 1 -- Full System & License Info
@@ -157,9 +156,6 @@ $Str = @{
     'O1_LBL_CHAN'  = @('License Channel:', 'Kênh phân phối:')
     'O1_LBL_PARTIAL' = @('Active Partial Key:', 'Key một phần:')
     'O1_LBL_ACT'   = @('Activation:', 'Kích hoạt:')
-    'O1_LBL_BIOS'  = @('BIOS OEM Key:', 'Key Bản Quyền OEM BIOS:')
-    'O1_LBL_REG'   = @('Registry Backup Key:', 'Key Dự phòng (Registry):')
-    'O1_LBL_INST'  = @('Installed Key:', 'Key Đã Cài đặt:')
     'O1_LBL_KMS'   = @('KMS Server:', 'Máy chủ KMS:')
     # Status messages
     'O1_BIOS_DETECT' = @('BIOS OEM Key: Detected', 'Key OEM BIOS: Đã phát hiện')
@@ -183,8 +179,6 @@ $Str = @{
                         'Key đang dùng là key chung thay thế -- quyền kích hoạt thực sự nằm trên cloud.')
     'O1_DE_VFY'    = @('To verify: Settings > System > Activation > look for Digital license',
                         'Xác nhận: Cài đặt > Hệ thống > Kích hoạt > tìm Giấy phép kỹ thuật số')
-    'O1_DE_MISMATCH' = @('The BIOS OEM key and Registry Backup key may differ from the active key -- this is normal for DE-activated systems.',
-                          'Key OEM BIOS và dự phòng có thể khác Key đang dùng -- điều này bình thường với hệ thống kích hoạt bằng DE.')
     'O1_KMS_OK'    = @('Activation method:  KMS (Volume / Corporate License)',
                         'Phương thức kích hoạt:  KMS (Bản quyền Doanh nghiệp/Tập thể)')
     'O1_MAK_OK'    = @('Activation method:  MAK / Retail / OEM key (standard activation)',
@@ -198,22 +192,15 @@ $Str = @{
     'O1_LS_5'      = @('Notification Mode', 'Chế độ thông báo')
     'O1_LS_6'      = @('Extended Grace Period', 'Thời gian ân hạn mở rộng')
     'O1_LS_UNK'    = @('Unknown', 'Không xác định')
-    # OEM edition match
-    'O1_ED_MATCH'  = @('Edition match found:', 'Phát hiện ấn bản tương ứng:')
     # Key detail section
-    'O1_KEYS_HDR'  = @('-- KEY DETAILS --', '-- CHI TIẾT KEY BẢN QUYỀN --')
     'O1_SHOWFULL'  = @('Show full product key(s)? No = last 5 chars only',
                         'Hiển thị đầy đủ key? No = chỉ 5 ký tự cuối')
-    'O1_SHOWBIOS'  = @('Show full BIOS OEM key?',
-                        'Hiển thị đầy đủ Key OEM BIOS?')
     'O1_KEY_INST'  = @('Installed Key:         ', 'Key Đã cài đặt:        ')
     'O1_KEY_BIOS'  = @('BIOS OEM Key:          ', 'Key OEM BIOS:          ')
     'O1_KEY_REG'   = @('Registry Backup Key:   ', 'Key Dự phòng (Registry):  ')
     # Mismatch detection
     'O1_MISMATCH'  = @('Registry Backup Key does NOT match the currently active license key.',
                         'Key Dự phòng trong Registry KHÔNG khớp với Key Bản Quyền đang hoạt động.')
-    'O1_MISMATCH_REASON' = @('This can happen after an edition upgrade or a change in activation method.',
-                              'Điều này có thể xảy ra sau khi nâng cấp ấn bản hoặc thay đổi phương thức kích hoạt.')
     'O1_ACTIVE_ENDS' = @('  Active key ends with:         ', '  Key đang dùng kết thúc với:  ')
     'O1_BACKUP_ENDS' = @('  Registry Backup Key ends with: ', '  Key Dự phòng Registry kết thúc với:  ')
     'O1_STALE_NOTE'  = @('This backup key is stale -- it pre-dates or was not updated by the most recent key install. slmgr /ipk does not reliably update BackupProductKeyDefault.',
@@ -247,7 +234,6 @@ $Str = @{
     'O1_DLV_ASK'    = @('Also run the full slmgr /dlv extended report?',
                          'Có muốn chạy báo cáo mở rộng slmgr /dlv không?')
     'O1_RUNNING_DLV' = @('Running slmgr /dlv...', 'Đang chạy slmgr /dlv...')
-    'O1_LIC_STATUS_PFX' = @('License Status:  ', 'Trạng thái bản quyền:  ')
     'O1_WMI_FAIL'    = @('Failed to query WMI: ', 'Truy vấn WMI thất bại: ')
 
     # =========================================================================
@@ -261,11 +247,6 @@ $Str = @{
                          'Nếu key khớp với ấn bản đã cài và hợp lệ, nó sẽ được chấp nhận.')
     'O2_DESC3'      = @('If rejected (SKU mismatch / invalid / blocked), an error code is returned.',
                          'Nếu bị từ chối (sai SKU / không hợp lệ / bị chặn), mã lỗi sẽ được trả về.')
-    'O2_READ_LIC'   = @('Reading current active license...', 'Đang đọc bản quyền đang hoạt động...')
-    'O2_CUR_ED'     = @('  Current edition:', '  Ấn bản hiện tại:')
-    'O2_CUR_KEY'    = @('  Current partial key:', '  Key một phần hiện tại:')
-    'O2_CUR_STATUS' = @('  Current status:', '  Trạng thái hiện tại:')
-    'O2_NO_LIC'     = @('  No active license detected.', '  Không phát hiện bản quyền đang hoạt động.')
     'O2_INFO1'      = @('Phase 1 (offline, instant): Key structure is checked immediately -- no network, no registry changes.',
                          'Giai đoạn 1 (ngoại tuyến, tức thì): Cấu trúc key được kiểm tra ngay -- không mạng, không thay đổi registry.')
     'O2_INFO2'      = @('Phase 2 (online): slmgr /ipk runs only after you confirm -- this is the real key install.',
@@ -278,19 +259,15 @@ $Str = @{
     'O2_REPLACES'   = @('  Replaces : ...', '  Thay thế : ...')
     'O2_CONFIRM_WARN' = @('If accepted, this key will REPLACE your current product key immediately.',
                            'Nếu được chấp nhận, key này sẽ THAY THẾ key bản quyền hiện tại ngay lập tức.')
-    'O2_CONFIRM_ASK' = @('Install this key now?', 'Cài đặt key này ngay bây giờ?')
     'O2_WARN_OVERWRITE' = @('WARNING: If the key is compatible, it WILL overwrite your current product key immediately.',
                              'CẢNH BÁO: Nếu key tương thích, nó SẼ ghi đè key bản quyền hiện tại ngay lập tức.')
     'O2_CONFIRM_TYPE_OK' = @('  Type OK (then Enter) to confirm installation, or press Enter to cancel: ',
                               '  Nhập OK rồi Enter để xác nhận, hoặc Enter để hủy: ')
     'O2_CONFIRM_BAD_INPUT' = @('Input not recognized -- installation canceled.',
                                 'Đầu vào không hợp lệ -- đã hủy cài đặt.')
-    'O2_CANCELED_NO' = @('Canceled -- no changes made.', 'Đã hủy -- không có thay đổi.')
-    'O2_INSTALLING' = @('Installing product key...', 'Đang cài đặt key bản quyền...')
     'O2_CANCEL'     = @('Canceled -- no key entered.', 'Đã hủy -- không nhập Key Bản Quyền.')
     'O2_BADFMT'     = @('Invalid format. Key must be XXXXX-XXXXX-XXXXX-XXXXX-XXXXX',
                          'Định dạng không hợp lệ. Key phải có dạng XXXXX-XXXXX-XXXXX-XXXXX-XXXXX')
-    'O2_INSTALL'    = @('Installing key:  ', 'Đang cài đặt key:  ')
     'O2_SUCCESS'    = @('Key accepted! Windows will attempt online activation automatically.',
                          'Key được chấp nhận! Windows sẽ tự động kích hoạt trực tuyến.')
     'O2_SUCCESS2'   = @('Check activation status with Option 1.',
@@ -398,8 +375,6 @@ $Str = @{
     'O2_PIDGX_WARN_FAIL'   = @('[!] Key structure is invalid -- check length and ensure only letters/digits are used. Proceed at own risk.',
                                 '[!] Cấu trúc key không hợp lệ -- kiểm tra độ dài và đảm bảo chỉ dùng chữ cái/số. Tiếp tục theo trách nhiệm của bạn.')
     'O2_PIDGX_SRC_PIDGENX' = @('  Source   : pidgenx.dll + pkeyconfig.xrm-ms (real key group lookup)',
-                                '  Nguồn    : pidgenx.dll + pkeyconfig.xrm-ms (tra cứu key group thực sự)')
-    'O2_PIDGX_SRC_PKC'     = @('  Source   : pidgenx.dll + pkeyconfig.xrm-ms (real key group lookup)',
                                 '  Nguồn    : pidgenx.dll + pkeyconfig.xrm-ms (tra cứu key group thực sự)')
     'O2_PIDGX_SRC_CHK'     = @('  Source   : format check only (pidgenx.dll unavailable or key not in pkeyconfig)',
                                 '  Nguồn    : chỉ kiểm tra định dạng (pidgenx.dll không khả dụng hoặc key không trong pkeyconfig)')
@@ -754,7 +729,7 @@ $Str = @{
     # =========================================================================
     # Option 6 -- KMS Activation
     # =========================================================================
-    'O8KMS_OPT_HDR'    = @('Option 8 -- KMS Activation', 'Tùy chọn 6 -- Kích Hoạt KMS')
+    'O8KMS_OPT_HDR'    = @('Option 8 -- KMS Activation', 'Tùy chọn 8 -- Kích Hoạt KMS')
     'O8KMS_DESC1'      = @('KMS (Key Management Service) is an enterprise volume-licensing activation channel.',
                             'KMS (Dịch Vụ Quản Lý Key) là kênh kích hoạt cấp phép doanh nghiệp.')
     'O8KMS_DESC2'      = @('Requirements: GVLK key installed, KMS host reachable on TCP 1688, DNS SRV (_VLMCS._TCP) or manual host, clock within 4 h of KMS host.',
