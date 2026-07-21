@@ -1,5 +1,5 @@
 ﻿# =============================================================================
-# WinLicManager.ps1  --  Windows Licensing & Information Manager  v1.3-beta3
+# WinLicManager.ps1  --  Windows Licensing & Information Manager  $SCRIPT_VERSION
 # =============================================================================
 # Mirrors the WinLic Manager GUI application for power-user / CLI usage.
 #
@@ -39,7 +39,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 $OutputEncoding           = [System.Text.Encoding]::UTF8
 
 # ---- Globals ----------------------------------------------------------------
-$SCRIPT_VERSION = "v1.5"
+$SCRIPT_VERSION = "v1.6"
 $SCRIPT_DIR     = Split-Path -Parent $MyInvocation.MyCommand.Path
 $SETTINGS_FILE  = Join-Path $SCRIPT_DIR "settings.ini"
 $slmgrPath      = Join-Path $env:SystemRoot "System32\slmgr.vbs"
@@ -151,6 +151,8 @@ $Str = @{
                               '  Nguồn    : chỉ kiểm tra định dạng (không tìm thấy pkeyconfig.xrm-ms)')
     # Data labels (mirror GUI D_* keys)
     'O1_LBL_OS'    = @('OS Edition:', 'Phiên bản Windows:')
+    'O1_SYS_MFR'   = @('  OEM      : ', '  OEM      : ')
+    'O1_SYS_MODEL' = @('  Model    : ', '  Mẫu máy  : ')
     'O1_LBL_VER'   = @('Version:', 'Số phiên bản:')
     'O1_LBL_BUILD' = @('Build:', 'Số build:')
     'O1_LBL_ARCH'  = @('Architecture:', 'Kiến trúc hệ thống:')
@@ -240,8 +242,8 @@ $Str = @{
     # slmgr /dlv section
     'O1_DLV_HDR'    = @('-- EXTENDED LICENSE REPORT (slmgr /dlv) --',
                          '-- BÁO CÁO BẢN QUYỀN MỞ RỘNG (slmgr /dlv) --')
-    'O1_DLV_REVEAL' = @('Reveals: license channel, SKU, KMS server config, rearm count, expiry, CMID.',
-                         'Hiển thị: kênh bản quyền, SKU, cấu hình KMS, số lần rearm, thời hạn, CMID.')
+    'O1_DLV_REVEAL' = @('Reveals: license channel, Activation ID, KMS server config, rearm count, expiry, CMID.',
+                         'Hiển thị: kênh bản quyền, Mã kích hoạt, cấu hình KMS, số lần rearm, thời hạn, CMID.')
     'O1_DLV_ASK'    = @('Also run the full slmgr /dlv extended report?',
                          'Có muốn chạy báo cáo mở rộng slmgr /dlv không?')
     'O1_RUNNING_DLV' = @('Running slmgr /dlv...', 'Đang chạy slmgr /dlv...')
@@ -256,8 +258,8 @@ $Str = @{
                          'Kiểm thử key bằng cách thử cài đặt cục bộ qua slmgr /ipk.')
     'O2_DESC2'      = @('If the key matches the installed edition and is valid, it will be accepted.',
                          'Nếu key khớp với ấn bản đã cài và hợp lệ, nó sẽ được chấp nhận.')
-    'O2_DESC3'      = @('If rejected (SKU mismatch / invalid / blocked), an error code is returned.',
-                         'Nếu bị từ chối (sai SKU / không hợp lệ / bị chặn), mã lỗi sẽ được trả về.')
+    'O2_DESC3'      = @('If rejected (edition mismatch / invalid / blocked), an error code is returned.',
+                         'Nếu bị từ chối (sai ấn bản / không hợp lệ / bị chặn), mã lỗi sẽ được trả về.')
     'O2_INFO1'      = @('Phase 1 (offline, instant): Key structure is checked immediately -- no network, no registry changes.',
                          'Giai đoạn 1 (ngoại tuyến, tức thì): Cấu trúc key được kiểm tra ngay -- không mạng, không thay đổi registry.')
     'O2_INFO2'      = @('Phase 2 (online): slmgr /ipk runs only after you confirm -- this is the real key install.',
@@ -380,7 +382,7 @@ $Str = @{
     'O2_PIDGX_PARTNO'      = @('  Part No. : ', '  Mã SP    : ')
     'O2_PIDGX_WINVER'      = @('  Win Ver. : ', '  Phiên bản Windows: ')
     'O2_PIDGX_OEMID'       = @('  OEM ID   : ', '  Mã OEM   : ')
-    'O2_PIDGX_SKU'         = @('  SKU      : ', '  SKU      : ')
+    'O2_PIDGX_SKU'         = @('  Activation ID: ', '  Mã kích hoạt : ')
     'O2_PIDGX_EULA'        = @('  EULA     : ', '  EULA     : ')
     'O2_PIDGX_ISUPGRADE'   = @('  Upgrade  : ', '  Nâng cấp : ')
     'O2_PIDGX_EXTPID'      = @('  Ext. PID : ', '  PID mở rộng: ')
@@ -1298,6 +1300,11 @@ function Show-SystemInfo {
         Write-Data (T 'O1_LBL_ARCH')  $os.OSArchitecture
         $productId = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'ProductId' -ErrorAction SilentlyContinue).ProductId
         if ($productId) { Write-Data (T 'O1_LBL_PRODUCTID') $productId }
+
+        # System Manufacturer (OEM)
+        $cs = Get-WmiObject Win32_ComputerSystem -ErrorAction SilentlyContinue
+        if ($cs.Manufacturer) { Write-Info ((T 'O1_SYS_MFR') + $cs.Manufacturer) }
+        if ($cs.Model)        { Write-Info ((T 'O1_SYS_MODEL') + $cs.Model) }
     } catch {
         Write-Fail ((T 'O1_WMI_FAIL') + $_)
         return
@@ -1402,10 +1409,8 @@ function Show-SystemInfo {
             $upgText = if ($oemPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
             Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
             if ($oemPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $oemPid.ExtPid) }
-            Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
         } elseif ($oemPid.SourceNote -eq 'pidgenx-rejected') {
             Write-Warn (T 'O1_OEM_PID_REJECTED')
-            Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
         } else {
             Write-Info (T 'O1_OEM_PID_FMTONLY')
         }
@@ -1437,10 +1442,8 @@ function Show-SystemInfo {
             $upgText = if ($regPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
             Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
             if ($regPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $regPid.ExtPid) }
-            Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
         } elseif ($regPid.SourceNote -eq 'pidgenx-rejected') {
             Write-Warn (T 'O1_OEM_PID_REJECTED')
-            Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
         } else {
             Write-Info (T 'O1_OEM_PID_FMTONLY')
         }
@@ -1469,10 +1472,8 @@ function Show-SystemInfo {
             $upgText = if ($instPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
             Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
             if ($instPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $instPid.ExtPid) }
-            Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
         } elseif ($instPid.SourceNote -eq 'pidgenx-rejected') {
             Write-Warn (T 'O1_OEM_PID_REJECTED')
-            Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
         } else {
             Write-Info (T 'O1_OEM_PID_FMTONLY')
         }
@@ -1602,7 +1603,7 @@ function Get-VersionInfo {
                 $t = $line.Trim()
                 if (-not $t) { continue }
                 if ($t -match '^License Status:') { Write-Host ("  {0}" -f $t) -ForegroundColor Green }
-                elseif ($t -match '^Name:|^Description:|^SKU ID:') { Write-Host ("  {0}" -f $t) -ForegroundColor Cyan }
+                elseif ($t -match '^Name:|^Description:|^Activation ID:') { Write-Host ("  {0}" -f $t) -ForegroundColor Cyan }
                 else { Write-Host ("  {0}" -f $t) }
             }
         }
@@ -1912,8 +1913,8 @@ function Test-ProductKey {
         Write-Host ((T 'O2_PIDGX_EXTPID') + $pidResult.ExtPid) -ForegroundColor Cyan
     }
     switch ($pidResult.SourceNote) {
-        'pidgenx'          { Write-Info (T 'O2_PIDGX_SRC_PIDGENX') }
-        'pidgenx-rejected' { Write-Info (T 'O2_PIDGX_SRC_PIDGENX') }
+        'pidgenx'          { }
+        'pidgenx-rejected' { }
         default            { Write-Info (T 'O2_PIDGX_SRC_CHK') }
     }
     Write-Sep

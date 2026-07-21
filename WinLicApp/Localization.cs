@@ -24,7 +24,6 @@ namespace WinLicApp
             // ── About dialog ─────────────────────────────────────────────────────
             ["About_Title"]         = ("About — WinLic Manager",
                                       "Giới thiệu — WinLic Manager"),
-            ["About_Version"]           = ("v1.5",              "v1.5"),
             ["About_Author"]        = ("Author",                    "Tác giả"),
             ["About_GitHub"]        = ("GitHub",                    "GitHub"),
             ["About_Repo"]          = ("Repository",                "Kho mã nguồn"),
@@ -129,7 +128,7 @@ namespace WinLicApp
             ["OemPid_PartNo"]       = ("  Part No. : ",   "  Mã SP    : "),
             ["OemPid_WinVer"]       = ("  Win Ver. : ",   "  Phiên bản: "),
             ["OemPid_OemId"]        = ("  OEM ID   : ",   "  Mã OEM   : "),
-            ["OemPid_Sku"]          = ("  SKU      : ",   "  SKU      : "),
+            ["OemPid_Sku"]          = ("  Activation ID: ",   "  Mã kích hoạt : "),
             ["OemPid_EulaType"]     = ("  EULA     : ",   "  EULA     : "),
             ["OemPid_IsUpgrade"]    = ("  Upgrade  : ",   "  Nâng cấp : "),
             ["OemPid_ExtPid"]       = ("  Ext. PID : ",   "  PID mở rộng: "),
@@ -139,6 +138,9 @@ namespace WinLicApp
                                       "  PidGenX  : Key không tìm thấy trong pkeyconfig.xrm-ms (có thể là key OEM trước Windows 10)"),
             ["OemPid_FormatOnly"]   = ("  Source   : format check only (pkeyconfig.xrm-ms not found)",
                                       "  Nguồn    : chỉ kiểm tra định dạng (không tìm thấy pkeyconfig.xrm-ms)"),
+
+            ["Sys_Manufacturer"]    = ("  OEM      : ",   "  OEM      : "),
+            ["Sys_Model"]           = ("  Model    : ",   "  Mẫu máy  : "),
 
             // ── Original Key (pre-upgrade) fetch labels ─────
             ["Fetch_OrigKey"]       = ("Checking for pre-upgrade original key...",

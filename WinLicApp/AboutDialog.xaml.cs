@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Text.RegularExpressions;
@@ -10,9 +10,8 @@ namespace WinLicApp
 {
     public partial class AboutDialog : Window
     {
-        // Current version tag — must match the GitHub release tag format (e.g. "v1.0-beta2")
-        // Keep in sync with About_Version in Localization.cs.
-        private const string CurrentVersion = "v1.5";
+        // Single source of truth for the app version — used everywhere.
+        internal const string AppVersion = "v1.6";
         private const string ReleasesUrl    = "https://github.com/ardennguyen/WinLic/releases";
         private const string LatestApiUrl   = "https://api.github.com/repos/ardennguyen/WinLic/releases/latest";
 
@@ -27,7 +26,7 @@ namespace WinLicApp
         private void ApplyLanguage()
         {
             Title              = L.Get("About_Title");
-            TxtVersion.Text    = L.Get("About_Version");
+            TxtVersion.Text    = AppVersion;
             TxtLblAuthor.Text  = L.Get("About_Author");
             TxtLblGitHub.Text  = L.Get("About_GitHub");
             TxtLblRepo.Text    = L.Get("About_Repo");
@@ -58,8 +57,8 @@ namespace WinLicApp
                 var latestTag = match.Groups[1].Value.Trim();
 
                 // Compare tags — treat as newer if they differ (simple string compare on semver-like tags)
-                bool isNewer = !string.Equals(latestTag, CurrentVersion, StringComparison.OrdinalIgnoreCase)
-                               && IsTagNewer(latestTag, CurrentVersion);
+                bool isNewer = !string.Equals(latestTag, AppVersion, StringComparison.OrdinalIgnoreCase)
+                               && IsTagNewer(latestTag, AppVersion);
 
                 if (isNewer)
                 {

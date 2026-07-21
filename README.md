@@ -6,7 +6,7 @@
 
 **Windows License Management Tool — GUI & PowerShell CLI**
 
-[![Version](https://img.shields.io/badge/version-v1.5-a78bfa?style=flat-square)](https://github.com/ardennguyen/WinLic/releases)
+[![Version](https://img.shields.io/badge/version-v1.6-a78bfa?style=flat-square)](https://github.com/ardennguyen/WinLic/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-7c3aed?style=flat-square)](https://github.com/ardennguyen/WinLic)
 [![Framework](https://img.shields.io/badge/.NET%20Framework-4.8-6d28d9?style=flat-square)](https://dotnet.microsoft.com/en-us/download/dotnet-framework/net48)
 [![License](https://img.shields.io/badge/license-MIT-6d28d9?style=flat-square)](LICENSE)
@@ -76,7 +76,7 @@ Both tools (GUI and CLI) provide the same **8 options**:
 
 | # | Feature | Privilege |
 |---|---------|-----------|
-| 1 | **System Info & License Status** — reads OS info, activation channel, OEM BIOS key, detects DE/KMS/Retail; optional extended `/dlv` scan | No Admin required |
+| 1 | **System Info & License Status** — OS info, system manufacturer/model, activation channel, OEM BIOS key, PidGenX key analysis (Activation ID, channel, edition, EULA, upgrade status), detects DE/KMS/Retail; optional extended `/dlv` scan; Full System License Log (GUI) | No Admin required |
 | 2 | **Test & Install Product Key** — validates and installs a new key via `slmgr /ipk`; auto-activates `/ato`; channel warnings; detailed error diagnostics | **Admin** |
 | 3 | **Remove License Key** — removes the current key with `slmgr /upk` + `/cpky`; confirmation required before execution | **Admin** |
 | 4 | **Reset Activation (Rearm)** — shows remaining rearm count (WMI); confirmation required; optional automatic restart | **Admin** |
@@ -128,6 +128,22 @@ Step 4  TCP 1688 check      Manual entry if DNS fails
 Step 5  System clock        Warning if offset > ±5 minutes
 Step 6  slmgr /ato          Activates + error code diagnostics
 ```
+
+---
+
+### Full System License Log (GUI only)
+
+The GUI app includes a **Full System License Log** button at the bottom of the sidebar. It exports a comprehensive snapshot of:
+- OS info, registry values, system manufacturer
+- All product keys (BIOS OEM, Registry Backup, Installed, Pre-upgrade)
+- PidGenX analysis for each key
+- WMI `SoftwareLicensingProduct` and `SoftwareLicensingService` data
+
+Two modes:
+- **Raw** — unprocessed field values for power users
+- **Enriched** — with human-readable annotations from WinLic
+
+Output opens in a dedicated window with options to **Save to file**, **Copy to clipboard**, or **Close**.
 
 ---
 
@@ -195,7 +211,7 @@ Start-Process powershell -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -Fil
 
 ```
   ╔══════════════════════════════════════════════════════╗
-  ║         WinLic Manager v1.5                          ║
+  ║         WinLic Manager v1.6                          ║
   ╠══════════════════════════════════════════════════════╣
   ║  1 -- System Info & License Status                   ║
   ║  2 -- Test & Install Product Key              [!]    ║
@@ -254,6 +270,8 @@ No build needed — run directly from source:
 powershell -ExecutionPolicy Bypass -File .\WinLicPS\WinLicManager.ps1
 ```
 
+> ⚠️ **UTF-8 BOM requirement:** If you edit `WinLicManager.ps1`, ensure the file is saved with a **UTF-8 BOM** (Byte Order Mark). PowerShell 5.1 reads `.ps1` files as Windows-1252 by default — without the BOM, Vietnamese diacritics will cause parse errors. Most modern editors (VS Code, Notepad++) can be configured to save with UTF-8 BOM.
+
 ---
 
 ## Project Structure
@@ -266,6 +284,7 @@ WinLic/
 │   ├── AppSettings.cs               # settings.ini manager (GVLK, ports, domains…)
 │   ├── SettingsDialog.xaml[.cs]     # Scan Settings dialog
 │   ├── AboutDialog.xaml[.cs]        # About dialog + update check
+│   ├── FullLogWindow.xaml[.cs]       # Full System License Log window
 │   ├── App.xaml[.cs]                # App entry point
 │   ├── app.manifest                 # UAC + DPI manifest
 │   ├── winlic.ico / winlic_256.png  # App icon
@@ -350,7 +369,7 @@ Cả hai công cụ (GUI và CLI) đều cung cấp **8 tùy chọn** giống nh
 
 | # | Tính năng | Quyền |
 |---|-----------|-------|
-| 1 | **Thông Tin Hệ Thống & Bản Quyền** — đọc thông tin OS, kênh kích hoạt, key OEM BIOS, phát hiện DE/KMS/Retail; tùy chọn quét mở rộng `/dlv` | Không cần Admin |
+| 1 | **Thông Tin Hệ Thống & Bản Quyền** — thông tin OS, nhà sản xuất/mẫu máy, kênh kích hoạt, key OEM BIOS, phân tích key PidGenX (Mã kích hoạt, kênh, ấn bản, EULA, trạng thái nâng cấp), phát hiện DE/KMS/Retail; tùy chọn quét mở rộng `/dlv`; Nhật Ký Bản Quyền Toàn Hệ Thống (GUI) | Không cần Admin |
 | 2 | **Kiểm Thử & Cài Key** — xác thực và cài key mới qua `slmgr /ipk`; tự động kích hoạt `/ato`; cảnh báo kênh; chẩn đoán lỗi chi tiết | **Admin** |
 | 3 | **Gỡ Key Bản Quyền** — xóa key hiện tại bằng `slmgr /upk` + `/cpky`; xác nhận trước khi thực hiện | **Admin** |
 | 4 | **Đặt Lại Kích Hoạt (Rearm)** — hiển thị số lần rearm còn lại (WMI); xác nhận; tùy chọn khởi động lại tự động | **Admin** |
@@ -402,6 +421,22 @@ Bước 4  Kiểm tra TCP 1688    Nhập thủ công nếu DNS thất bại
 Bước 5  Đồng hồ hệ thống     Cảnh báo nếu lệch > ±5 phút
 Bước 6  slmgr /ato           Kích hoạt + chẩn đoán mã lỗi
 ```
+
+---
+
+### Nhật Ký Bản Quyền Toàn Hệ Thống (chỉ GUI)
+
+GUI có nút **Nhật Ký Bản Quyền Toàn Hệ Thống** ở cuối thanh bên. Nó xuất một bản chụp toàn diện về:
+- Thông tin OS, giá trị registry, nhà sản xuất hệ thống
+- Tất cả product key (OEM BIOS, Registry Backup, Đã cài, Trước nâng cấp)
+- Phân tích PidGenX cho từng key
+- Dữ liệu WMI `SoftwareLicensingProduct` và `SoftwareLicensingService`
+
+Hai chế độ:
+- **Thô** — giá trị trường chưa xử lý dành cho power user
+- **Có phân tích** — với chú thích dễ đọc từ WinLic
+
+Kết quả mở trong cửa sổ riêng với tùy chọn **Lưu file**, **Sao chép** hoặc **Đóng**.
 
 ---
 
@@ -469,7 +504,7 @@ Start-Process powershell -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -Fil
 
 ```
   ╔══════════════════════════════════════════════════════╗
-  ║         WinLic Manager v1.5                          ║
+  ║         WinLic Manager v1.6                          ║
   ╠══════════════════════════════════════════════════════╣
   ║  1 -- System Info & License Status                   ║
   ║  2 -- Test & Install Product Key              [!]    ║
@@ -528,6 +563,8 @@ Không cần biên dịch — chạy trực tiếp từ source:
 powershell -ExecutionPolicy Bypass -File .\WinLicPS\WinLicManager.ps1
 ```
 
+> ⚠️ **Yêu cầu UTF-8 BOM:** Nếu bạn chỉnh sửa `WinLicManager.ps1`, hãy đảm bảo lưu file với **UTF-8 BOM** (Byte Order Mark). PowerShell 5.1 đọc file `.ps1` mặc định theo Windows-1252 — nếu không có BOM, các ký tự dấu tiếng Việt sẽ gây lỗi phân tích cú pháp. Hầu hết các trình soạn thảo hiện đại (VS Code, Notepad++) có thể cấu hình để lưu với UTF-8 BOM.
+
 ---
 
 ## Cấu trúc dự án
@@ -540,6 +577,7 @@ WinLic/
 │   ├── AppSettings.cs               # Quản lý settings.ini (GVLK, ports, domains…)
 │   ├── SettingsDialog.xaml[.cs]     # Hộp thoại Cài đặt Kiểm tra
 │   ├── AboutDialog.xaml[.cs]        # Hộp thoại Giới thiệu + kiểm tra cập nhật
+│   ├── FullLogWindow.xaml[.cs]       # Cửa sổ Nhật Ký Bản Quyền Toàn Hệ Thống
 │   ├── App.xaml[.cs]                # Điểm khởi động ứng dụng
 │   ├── app.manifest                 # UAC + DPI manifest
 │   ├── winlic.ico / winlic_256.png  # Icon ứng dụng
