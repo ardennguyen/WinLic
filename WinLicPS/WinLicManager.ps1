@@ -108,6 +108,8 @@ $Str = @{
                        'Chọn tùy chọn (1-8, U, Q để thoát)')
     # -- Shared prompts --
     'PRESS_ENTER'  = @('Press Enter to return to menu...', 'Nhấn Enter để quay lại menu...')
+    'SLMGR_NOTFOUND' = @('slmgr.vbs not found at: {0}', 'Không tìm thấy slmgr.vbs tại: {0}')
+    'SLMGR_NOOUTPUT' = @('No output from slmgr {0}', 'Không có kết quả từ slmgr {0}')
     'GOODBYE'      = @('Goodbye!', 'Tạm biệt!')
     'INVALID_OPT'  = @('Invalid option -- choose 1-8, U, or Q.',
                        'Lựa chọn không hợp lệ -- chọn 1-8, U, hoặc Q.')
@@ -265,6 +267,7 @@ $Str = @{
                               '  Nhập OK rồi Enter để xác nhận, hoặc Enter để hủy: ')
     'O2_CONFIRM_BAD_INPUT' = @('Input not recognized -- installation canceled.',
                                 'Đầu vào không hợp lệ -- đã hủy cài đặt.')
+    'O2_INSTALLING' = @('Installing product key...', 'Đang cài đặt key bản quyền...')
     'O2_CANCEL'     = @('Canceled -- no key entered.', 'Đã hủy -- không nhập Key Bản Quyền.')
     'O2_BADFMT'     = @('Invalid format. Key must be XXXXX-XXXXX-XXXXX-XXXXX-XXXXX',
                          'Định dạng không hợp lệ. Key phải có dạng XXXXX-XXXXX-XXXXX-XXXXX-XXXXX')
@@ -410,6 +413,8 @@ $Str = @{
     # Option 4 -- Reset Activation (Rearm)
     # =========================================================================
     'O4_OPT_HDR'      = @('Option 4 -- Reset Activation (Rearm)', 'Tùy chọn 4 -- Đặt Lại Kích Hoạt (Rearm)')
+    'O4_REARM_COUNT'  = @('Remaining rearm count: {0}', 'Số lần rearm còn lại: {0}')
+    'O4_REARM_ZERO'   = @('No rearms remaining -- cannot reset activation.', 'Không còn lần rearm nào -- không thể đặt lại kích hoạt.')
     'O4_WARN1'        = @('WARNING -- This resets the licensing status and activation timers (rearm).',
                            'CẢNH BÁO -- Thao tác này đặt lại trạng thái bản quyền và bộ đếm kích hoạt (rearm).')
     'O4_WARN2'        = @('           A computer restart is required for changes to take effect.',
@@ -807,6 +812,7 @@ $Str = @{
     'O6CH_CURRENT_EDITION' = @('Edition:',                        'Ấn bản:')
     'O6CH_TO_KMS'          = @('[A] Switch to VOLUME_KMSCLIENT (KMS)',  '[A] Chuyển sang VOLUME_KMSCLIENT (KMS)')
     'O6CH_TO_RETAIL'       = @('[B] Switch to RETAIL/MAK',             '[B] Chuyển sang RETAIL/MAK')
+    'O6CH_PROMPT'          = @('  [A] KMS  [B] RETAIL/MAK  [C] Cancel', '  [A] KMS  [B] RETAIL/MAK  [C] Hủy')
     'O6CH_GVLK_LABEL'      = @('GVLK for this edition:',               'GVLK cho ấn bản này:')
     'O6CH_GVLK_INSTALLING' = @('Installing GVLK...',                   'Đang cài GVLK...')
     'O6CH_GVLK_DONE'       = @('[OK] GVLK installed. Run Option 8 to complete KMS activation.',
@@ -1126,14 +1132,14 @@ function Ask-YesNo {
 function Run-Slmgr {
     param([string]$arg, [string]$label = '')
     if (-not (Test-Path $slmgrPath)) {
-        Write-Fail "slmgr.vbs not found at $slmgrPath"
+        Write-Fail ((T 'SLMGR_NOTFOUND') -f $slmgrPath)
         return $null
     }
     if ($label) { Write-Step $label }
     Write-Cmd "cscript //nologo `"$slmgrPath`" $arg"
     $out = cscript //nologo $slmgrPath $arg 2>&1
     if (-not $out) {
-        Write-Warn "No output from slmgr $arg"
+        Write-Warn ((T 'SLMGR_NOOUTPUT') -f $arg)
         return $null
     }
     return $out
@@ -1929,6 +1935,16 @@ function Remove-License {
 # =============================================================================
 function Reset-Activation {
     if (-not $isAdmin) { Elevate-For-Option; return }
+
+    # Check remaining rearm count
+    try {
+        $rearmCount = (Get-CimInstance -Query "SELECT RemainingWindowsReArmCount FROM SoftwareLicensingService" -ErrorAction SilentlyContinue).RemainingWindowsReArmCount
+        Write-Info ((T 'O4_REARM_COUNT') -f $rearmCount)
+        if ($rearmCount -eq 0) {
+            Write-Fail (T 'O4_REARM_ZERO')
+            return
+        }
+    } catch {}
 
     Write-Blank
     Write-Host ("  " + (T 'O4_OPT_HDR')) -ForegroundColor Magenta
@@ -2733,7 +2749,7 @@ function Set-ActivationChannel {
     Write-Host ("  " + (T 'O6CH_TO_KMS'))    -ForegroundColor $(if ($isKmsClient) { "DarkGray" } else { "White" })
     Write-Host ("  " + (T 'O6CH_TO_RETAIL')) -ForegroundColor $(if ($isKmsClient) { "White" } else { "DarkGray" })
     Write-Blank
-    $choice = (Read-Host "  [A] KMS  [B] RETAIL/MAK  [C] Cancel").Trim().ToUpper()
+    $choice = (Read-Host (T 'O6CH_PROMPT')).Trim().ToUpper()
 
     switch ($choice) {
         'A' {
@@ -2773,9 +2789,9 @@ function Set-ActivationChannel {
             Write-Info ((T 'O6CH_GVLK_LABEL') + " " + $gvlk)
             $ok = (Read-Host (T 'O8KMS_GVLK_CONFIRM')).Trim()
             if ($ok -ne 'OK') { Write-Info (T 'O6CH_CANCELLED'); return }
-            Write-Step (T 'O6CH_GVLK_INSTALLING')
-            $ipk = & cscript //NoLogo "$env:windir\System32\slmgr.vbs" /ipk $gvlk 2>&1 | Out-String
-            Write-Host ("  " + $ipk.Trim()) -ForegroundColor Gray
+            
+            $ipk = Run-Slmgr "/ipk $gvlk" (T 'O6CH_GVLK_INSTALLING')
+            if ($ipk) { foreach ($l in $ipk) { Write-Host ("  {0}" -f $l.Trim()) -ForegroundColor Gray } }
             if ($ipk -match "successfully") {
                 Write-OK (T 'O6CH_GVLK_DONE')
             } else {
@@ -2800,8 +2816,8 @@ function Get-KmsSettings {
     Write-Blank
 
     # Read registry
-    $regKey  = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareLicensingService"
-    $regHost = (Get-ItemProperty -Path $regKey -Name "KeyManagementServiceMachine" -ErrorAction SilentlyContinue).KeyManagementServiceMachine
+    $regKey  = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform"
+    $regHost = (Get-ItemProperty -Path $regKey -Name "KeyManagementServiceName" -ErrorAction SilentlyContinue).KeyManagementServiceName
     $regPort = (Get-ItemProperty -Path $regKey -Name "KeyManagementServicePort" -ErrorAction SilentlyContinue).KeyManagementServicePort
     if (-not $regHost) { $regHost = T 'O7KMS_NOT_SET' }
     if (-not $regPort) { $regPort = T 'O7KMS_DEFAULT_PORT' }
@@ -2809,8 +2825,8 @@ function Get-KmsSettings {
     # Read slmgr /dlv
     $dlvHost = T 'O7KMS_NOT_SET'
     try {
-        $dlvOut = & cscript //NoLogo "$env:windir\System32\slmgr.vbs" /dlv 2>&1 | Out-String
-        if ($dlvOut -match "KMS machine name[^:]*:\s*(.+)") { $dlvHost = $Matches[1].Trim() }
+        $wmiHost = (Get-CimInstance -Query "SELECT DiscoveredKeyManagementServiceMachineName FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL AND Name LIKE 'Windows%'" -ErrorAction SilentlyContinue | Select-Object -First 1).DiscoveredKeyManagementServiceMachineName
+        if ($wmiHost) { $dlvHost = $wmiHost }
     } catch {}
 
     # Display
@@ -2830,9 +2846,8 @@ function Get-KmsSettings {
     $ok = (Read-Host (T 'O7KMS_CLEAR_CONFIRM')).Trim()
     if ($ok -ne 'OK') { Write-Info (T 'O7KMS_CANCELLED'); return }
 
-    Write-Step (T 'O7KMS_CLEARING')
-    $ckms = & cscript //NoLogo "$env:windir\System32\slmgr.vbs" /ckms 2>&1 | Out-String
-    Write-Host ("  " + $ckms.Trim()) -ForegroundColor Gray
+    $ckms = Run-Slmgr "/ckms" (T 'O7KMS_CLEARING')
+    if ($ckms) { foreach ($l in $ckms) { Write-Host ("  {0}" -f $l.Trim()) -ForegroundColor Gray } }
 
     if ($ckms -match "successfully") {
         Write-OK (T 'O7KMS_CLEARED')

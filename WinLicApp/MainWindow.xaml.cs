@@ -360,7 +360,7 @@ namespace WinLicApp
         private ManagementObjectCollection? WmiQuery(string wql)
         {
             try { return new ManagementObjectSearcher(wql).Get(); }
-            catch (Exception ex) { LogError("WMI: " + ex.Message); return null; }
+            catch (Exception ex) { LogError(string.Format(L.Get("P7_WmiErr"), ex.Message)); return null; }
         }
 
         // =========================================================================
@@ -374,7 +374,7 @@ namespace WinLicApp
         private string RunSlmgr(string option)
         {
             var path = SlmgrPath;
-            if (!System.IO.File.Exists(path)) { LogError("slmgr.vbs not found: " + path); return ""; }
+            if (!System.IO.File.Exists(path)) { LogError(string.Format(L.Get("Fetch_SlmgrNotFound"), path)); return ""; }
             var args = $"//nologo \"{path}\" {option}";
             LogCmd($"cscript.exe {args}");
             try
@@ -2232,7 +2232,7 @@ namespace WinLicApp
                 if (hasPublicIp)
                     LogError(L.Get("P7_KmsDnsPublic"));
                 else
-                    LogWarn("  Resolved to private/internal IP — unusual for a cloud KMS domain.");
+                    LogWarn(L.Get("P7_KmsDnsPrivate"));
             }
             catch
             {
@@ -2846,10 +2846,10 @@ namespace WinLicApp
             try
             {
                 using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
-                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareLicensingService");
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform");
                 if (key != null)
                 {
-                    var h = key.GetValue("KeyManagementServiceMachine") as string;
+                    var h = key.GetValue("KeyManagementServiceName") as string;
                     var p = key.GetValue("KeyManagementServicePort") as string;
                     if (!string.IsNullOrWhiteSpace(h)) regHost = h;
                     if (!string.IsNullOrWhiteSpace(p)) regPort = p;
@@ -2857,24 +2857,17 @@ namespace WinLicApp
             }
             catch { }
 
-            // Read slmgr /dlv for KMS host
+            // Read KMS host from WMI (locale-independent)
             string dlvHost = L.Get("O7KMS_NOT_SET");
             try
             {
-                var psi = new System.Diagnostics.ProcessStartInfo("cscript")
+                var wql = "SELECT DiscoveredKeyManagementServiceMachineName FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL AND Name LIKE 'Windows%'";
+                var col = new ManagementObjectSearcher(wql).Get();
+                foreach (var mo in col)
                 {
-                    Arguments              = "//NoLogo %windir%\\System32\\slmgr.vbs /dlv",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError  = true,
-                    UseShellExecute        = false,
-                    CreateNoWindow         = true,
-                };
-                using var proc = System.Diagnostics.Process.Start(psi);
-                string dlvOut = proc!.StandardOutput.ReadToEnd();
-                proc.WaitForExit();
-                var m = System.Text.RegularExpressions.Regex.Match(
-                    dlvOut, @"KMS machine name[^:]*:\s*(.+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                if (m.Success) dlvHost = m.Groups[1].Value.Trim();
+                    var h = mo["DiscoveredKeyManagementServiceMachineName"]?.ToString();
+                    if (!string.IsNullOrWhiteSpace(h)) { dlvHost = h; break; }
+                }
             }
             catch { }
 

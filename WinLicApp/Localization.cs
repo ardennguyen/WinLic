@@ -91,6 +91,8 @@ namespace WinLicApp
                                     "Đang kiểm tra Key Bản Quyền OEM trên BIOS/UEFI…"),
             ["Fetch_License"]    = ("Querying active Windows license (WMI)…",
                                     "Đang truy vấn bản quyền Windows đang hoạt động (WMI)…"),
+            ["Fetch_SlmgrNotFound"] = ("slmgr.vbs not found: {0}",
+                                       "Không tìm thấy slmgr.vbs: {0}"),
             ["Fetch_RegKey"]     = ("Reading registry backup key…",
                                     "Đang đọc Key Bản Quyền dự phòng từ Registry…"),
 
@@ -372,8 +374,8 @@ namespace WinLicApp
                                             "Microsoft grants this through the activation server; it is indistinguishable from a retail license here.",
                                           "Phát hiện khóa HWID placeholder '{0}' với kênh '{1}' và kích hoạt vĩnh viễn — phù hợp với kích hoạt Digital Entitlement (HWID/DE) hợp lệ. " +
                                           "Microsoft cấp qua máy chủ kích hoạt; không thể phân biệt với bản quyền mua chính hãng."),
-            ["P7_GvlkWithKms"]         = ("GVLK key detected with active KMS renewal — consistent with legitimate enterprise KMS activation. Verify the KMS server above.",
-                                          "Phát hiện khóa GVLK với gia hạn KMS đang hoạt động — phù hợp với kích hoạt KMS doanh nghiệp hợp lệ. Xác minh máy chủ KMS ở trên."),
+            ["P7_GvlkWithKms"]         = ("GVLK key '{0}' detected with active KMS renewal — consistent with legitimate enterprise KMS activation. Verify the KMS server above.",
+                                          "Phát hiện khóa GVLK '{0}' với gia hạn KMS đang hoạt động — phù hợp với kích hoạt KMS doanh nghiệp hợp lệ. Xác minh máy chủ KMS ở trên."),
             ["P7_NoGvlk"]              = ("Installed key is NOT a known GVLK or placeholder key.",
                                           "Khóa đã cài đặt KHÔNG phải là GVLK hoặc khóa placeholder đã biết."),
             ["P7_NoKeyWmi"]             = ("No licensed Windows product key found via WMI.",
@@ -460,6 +462,8 @@ namespace WinLicApp
                                        "Tên miền KMS lậu trong lần quét: {0} mặc định + {1} từ settings.ini  (tổng: {2})"),
             ["P7_CheckDns"]         = ("Checking internet access and resolving host via DNS...",
                                        "Đang kiểm tra kết nối internet và phân giải tên miền qua DNS..."),
+            ["P7_KmsDnsPrivate"]    = ("  Resolved to private/internal IP — unusual for a cloud KMS domain.",
+                                       "  Phân giải thành IP nội bộ/riêng — bất thường cho miền KMS đám mây."),
             ["P7_KmsDnsResolved"]   = ("Resolves to: ",
                                        "Phân giải thành: "),
             ["P7_KmsDnsPublic"]     = ("Confirmed active: domain resolves to a public IP address.",
