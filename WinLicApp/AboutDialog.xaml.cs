@@ -11,7 +11,7 @@ namespace WinLicApp
     public partial class AboutDialog : Window
     {
         // Single source of truth for the app version — used everywhere.
-        internal const string AppVersion = "v1.6";
+        internal const string AppVersion = "v1.6.1-beta1";
         private const string ReleasesUrl    = "https://github.com/ardennguyen/WinLic/releases";
         private const string LatestApiUrl   = "https://api.github.com/repos/ardennguyen/WinLic/releases/latest";
 
