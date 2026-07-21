@@ -159,6 +159,15 @@ $Str = @{
     'O1_LBL_PARTIAL' = @('Active Partial Key:', 'Key một phần:')
     'O1_LBL_ACT'   = @('Activation:', 'Kích hoạt:')
     'O1_LBL_KMS'   = @('KMS Server:', 'Máy chủ KMS:')
+    'O1_LBL_PRODUCTID'     = @('Product ID:', 'Mã sản phẩm:')
+    'O1_LBL_OA3XDESC'      = @('BIOS Key Desc.:', 'Mô tả Key BIOS:')
+    'O1_LBL_ORIGKEY'       = @('Original Key (pre-upgrade):', 'Key Gốc (trước nâng cấp):')
+    'O1_LBL_KEYCHANNEL'    = @('Key Channel:', 'Kênh key:')
+    'O1_LBL_STATUSREASON'  = @('Status Reason:', 'Lý do trạng thái:')
+    'O1_LBL_GRACEPERIOD'   = @('Grace Period:', 'Thời hạn gia hạn:')
+    'O1_GRACE_MIN'         = @('{0} minutes remaining', '{0} phút còn lại')
+    'O1_FETCH_ORIGKEY'     = @('Checking for pre-upgrade original key...', 'Đang kiểm tra key gốc trước nâng cấp...')
+    'O1_FETCH_ORIGPIDGENX' = @('Analyzing Original Key via pidgenx...', 'Đang phân tích Key Gốc qua pidgenx...')
     # Status messages
     'O1_BIOS_DETECT' = @('BIOS OEM Key: Detected', 'Key OEM BIOS: Đã phát hiện')
     'O1_BIOS_NONE'   = @('BIOS OEM Key: None detected', 'Key OEM BIOS: Không phát hiện')
@@ -370,6 +379,13 @@ $Str = @{
     'O2_PIDGX_CHANNEL'     = @('  Channel  : ', '  Kênh     : ')
     'O2_PIDGX_PARTNO'      = @('  Part No. : ', '  Mã SP    : ')
     'O2_PIDGX_WINVER'      = @('  Win Ver. : ', '  Phiên bản Windows: ')
+    'O2_PIDGX_OEMID'       = @('  OEM ID   : ', '  Mã OEM   : ')
+    'O2_PIDGX_SKU'         = @('  SKU      : ', '  SKU      : ')
+    'O2_PIDGX_EULA'        = @('  EULA     : ', '  EULA     : ')
+    'O2_PIDGX_ISUPGRADE'   = @('  Upgrade  : ', '  Nâng cấp : ')
+    'O2_PIDGX_EXTPID'      = @('  Ext. PID : ', '  PID mở rộng: ')
+    'O2_PIDGX_UPG_YES'     = @('Yes (upgrade license)', 'Có (key nâng cấp)')
+    'O2_PIDGX_UPG_NO'      = @('No (full license)', 'Không (key đầy đủ)')
     'O2_PIDGX_CHKSUM_OK'   = @('  Format   : OK (25 alphanumeric chars, 5x5 groups)',
                                 '  Định dạng: HỢP LỆ (25 ký tự chữ-số, 5 nhóm 5)')
     'O2_PIDGX_CHKSUM_FAIL' = @('  Format   : FAIL (must be 25 alphanumeric chars in 5x5 groups)',
@@ -1280,6 +1296,8 @@ function Show-SystemInfo {
         Write-Data (T 'O1_LBL_VER')   $os.Version
         Write-Data (T 'O1_LBL_BUILD') $os.BuildNumber
         Write-Data (T 'O1_LBL_ARCH')  $os.OSArchitecture
+        $productId = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'ProductId' -ErrorAction SilentlyContinue).ProductId
+        if ($productId) { Write-Data (T 'O1_LBL_PRODUCTID') $productId }
     } catch {
         Write-Fail ((T 'O1_WMI_FAIL') + $_)
         return
@@ -1308,6 +1326,9 @@ function Show-SystemInfo {
         $statusText  = Get-LicenseStatusText $activeProduct.LicenseStatus
         $statusColor = if ($activeProduct.LicenseStatus -eq 1) { 'Green' } else { 'Red' }
         Write-Data (T 'O1_LBL_ACT') $statusText $statusColor
+        if ($activeProduct.ProductKeyChannel) { Write-Data (T 'O1_LBL_KEYCHANNEL') $activeProduct.ProductKeyChannel }
+        if ($activeProduct.LicenseStatusReason -ne $null) { Write-Data (T 'O1_LBL_STATUSREASON') ("0x{0:X8}" -f $activeProduct.LicenseStatusReason) }
+        if ($activeProduct.GracePeriodRemaining -ne $null) { Write-Data (T 'O1_LBL_GRACEPERIOD') ((T 'O1_GRACE_MIN') -f $activeProduct.GracePeriodRemaining) }
 
         Write-Blank
         $isVolume = $activeProduct.Description -match 'VOLUME_KMSCLIENT'
@@ -1356,12 +1377,16 @@ function Show-SystemInfo {
     Write-Sep
     Write-Step (T 'O1_STEP_BIOS')
     Write-Cmd  'Get-CimInstance SoftwareLicensingService | Select OA3xOriginalProductKey'
-    $oemKey = (Get-CimInstance -ClassName SoftwareLicensingService).OA3xOriginalProductKey
+    $sls = Get-CimInstance -ClassName SoftwareLicensingService
+    $oemKey = $sls.OA3xOriginalProductKey
     Write-Blank
 
     if ($oemKey) {
         Write-OK (T 'O1_BIOS_DETECT')
         Write-Key ((T 'O1_KEY_BIOS') + (Display-Key $oemKey))
+        if ($sls.OA3xOriginalProductKeyDescription) {
+            Write-Data (T 'O1_LBL_OA3XDESC') $sls.OA3xOriginalProductKeyDescription
+        }
 
         # PidGenX analysis on BIOS OEM key (reuses Invoke-PidGenXCheck from Option 2)
         Write-Step (T 'O1_STEP_OEM_PID')
@@ -1371,6 +1396,12 @@ function Show-SystemInfo {
             if ($oemPid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $oemPid.Edition) }
             if ($oemPid.PartNumber)  { Write-Info ((T 'O2_PIDGX_PARTNO')  + $oemPid.PartNumber) }
             if ($oemPid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $oemPid.WinVersion) }
+            if ($oemPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $oemPid.OemId) }
+            if ($oemPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $oemPid.Sku) }
+            if ($oemPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $oemPid.EulaType) }
+            $upgText = if ($oemPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
+            Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
+            if ($oemPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $oemPid.ExtPid) }
             Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
         } elseif ($oemPid.SourceNote -eq 'pidgenx-rejected') {
             Write-Warn (T 'O1_OEM_PID_REJECTED')
@@ -1400,6 +1431,12 @@ function Show-SystemInfo {
             if ($regPid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $regPid.Edition) }
             if ($regPid.PartNumber)  { Write-Info ((T 'O2_PIDGX_PARTNO')  + $regPid.PartNumber) }
             if ($regPid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $regPid.WinVersion) }
+            if ($regPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $regPid.OemId) }
+            if ($regPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $regPid.Sku) }
+            if ($regPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $regPid.EulaType) }
+            $upgText = if ($regPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
+            Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
+            if ($regPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $regPid.ExtPid) }
             Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
         } elseif ($regPid.SourceNote -eq 'pidgenx-rejected') {
             Write-Warn (T 'O1_OEM_PID_REJECTED')
@@ -1426,6 +1463,12 @@ function Show-SystemInfo {
             if ($instPid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $instPid.Edition) }
             if ($instPid.PartNumber)  { Write-Info ((T 'O2_PIDGX_PARTNO')  + $instPid.PartNumber) }
             if ($instPid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $instPid.WinVersion) }
+            if ($instPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $instPid.OemId) }
+            if ($instPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $instPid.Sku) }
+            if ($instPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $instPid.EulaType) }
+            $upgText = if ($instPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
+            Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
+            if ($instPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $instPid.ExtPid) }
             Write-Info (T 'O2_PIDGX_SRC_PIDGENX')
         } elseif ($instPid.SourceNote -eq 'pidgenx-rejected') {
             Write-Warn (T 'O1_OEM_PID_REJECTED')
@@ -1436,6 +1479,33 @@ function Show-SystemInfo {
     } else {
         Write-Warn (T 'O1_INST_NO')
     }
+
+    Write-Diag (T 'O1_FETCH_ORIGKEY')
+    try {
+        $origDpId = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey' -Name 'DigitalProductId' -ErrorAction SilentlyContinue).DigitalProductId
+        if ($origDpId) {
+            $origKey = Decode-ProductKey $origDpId
+            if ($origKey) {
+                Write-Key ((T 'O1_LBL_ORIGKEY') + ' ' + (Display-Key $origKey))
+                Write-Diag (T 'O1_FETCH_ORIGPIDGENX')
+                $origPid = Invoke-PidGenXCheck -Key $origKey
+                if ($origPid.SourceNote -eq 'pidgenx') {
+                    if ($origPid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $origPid.Channel) }
+                    if ($origPid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $origPid.Edition) }
+                    if ($origPid.PartNumber)  { Write-Info ((T 'O2_PIDGX_PARTNO')  + $origPid.PartNumber) }
+                    if ($origPid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $origPid.WinVersion) }
+                    if ($origPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $origPid.OemId) }
+                    if ($origPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $origPid.Sku) }
+                    if ($origPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $origPid.EulaType) }
+                    $ut = if ($origPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
+                    Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $ut)
+                    if ($origPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $origPid.ExtPid) }
+                } elseif ($origPid.SourceNote -eq 'pidgenx-rejected') {
+                    Write-Warn (T 'O2_PIDGX_REJECTED')
+                }
+            }
+        }
+    } catch {}
 
     # -- Save-key advisory (inline, right after installed key) ----------------
     if ($WarnBeforeReplace -and $installedKey) {
@@ -1687,6 +1757,11 @@ function Invoke-PidGenXCheck {
         PartNumber = ''
         WinVersion = ''
         SourceNote = 'checksum-only'
+        OemId      = ''
+        Sku        = ''
+        EulaType   = ''
+        IsUpgrade  = 0
+        ExtPid     = ''
     }
 
     # -- Tier 1: Structural format check ------------------------------------
@@ -1725,6 +1800,11 @@ function Invoke-PidGenXCheck {
                 $result.PartNumber = if ($d4.m_partNumber)     { $d4.m_partNumber }     else { '' }
                 $result.WinVersion = Get-PartNumberWinVersion $result.PartNumber
                 $result.SourceNote = 'pidgenx'
+                $result.OemId      = $d4.m_oemId
+                $result.Sku        = $d4.m_sku
+                $result.EulaType   = $d4.m_eulaType
+                $result.IsUpgrade  = $d4.m_isUpgrade
+                $result.ExtPid     = $d4.m_productId2Ex
             } else {
                 # Key not in pkeyconfig for this OS generation (e.g. Win8 key on Win10)
                 # Must gate the install -- set Valid=false so the prompt fires
@@ -1815,6 +1895,20 @@ function Test-ProductKey {
     }
     if ($pidResult.WinVersion -ne '') {
         Write-Host ((T 'O2_PIDGX_WINVER') + $pidResult.WinVersion) -ForegroundColor DarkCyan
+    }
+    if ($pidResult.OemId -ne '') {
+        Write-Host ((T 'O2_PIDGX_OEMID') + $pidResult.OemId) -ForegroundColor Cyan
+    }
+    if ($pidResult.Sku -ne '') {
+        Write-Host ((T 'O2_PIDGX_SKU') + $pidResult.Sku) -ForegroundColor Cyan
+    }
+    if ($pidResult.EulaType -ne '') {
+        Write-Host ((T 'O2_PIDGX_EULA') + $pidResult.EulaType) -ForegroundColor Cyan
+    }
+    $upgText = if ($pidResult.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
+    Write-Host ((T 'O2_PIDGX_ISUPGRADE') + $upgText) -ForegroundColor Cyan
+    if ($pidResult.ExtPid -ne '') {
+        Write-Host ((T 'O2_PIDGX_EXTPID') + $pidResult.ExtPid) -ForegroundColor Cyan
     }
     switch ($pidResult.SourceNote) {
         'pidgenx'          { Write-Info (T 'O2_PIDGX_SRC_PIDGENX') }
@@ -1983,6 +2077,12 @@ function Remove-License {
             if ($o3Pid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $o3Pid.Edition) }
             if ($o3Pid.PartNumber)  { Write-Info ((T 'O2_PIDGX_PARTNO')  + $o3Pid.PartNumber) }
             if ($o3Pid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $o3Pid.WinVersion) }
+            if ($o3Pid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $o3Pid.OemId) }
+            if ($o3Pid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $o3Pid.Sku) }
+            if ($o3Pid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $o3Pid.EulaType) }
+            $upgText = if ($o3Pid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
+            Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
+            if ($o3Pid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $o3Pid.ExtPid) }
         }
         $isGeneric = $ppk -and $genericKeys.ContainsKey($ppk)
         if (-not $isGeneric) {
@@ -2817,6 +2917,19 @@ function Set-ActivationChannel {
     try { $chFullKey = Get-InstalledProductKey } catch {}
     if ($chFullKey) {
         Write-Info  ((T 'O6CH_CURRENT_KEY') + ' ' + (Display-Key $chFullKey))
+        $chPid = Invoke-PidGenXCheck -Key $chFullKey
+        if ($chPid.SourceNote -eq 'pidgenx') {
+            if ($chPid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $chPid.Channel) }
+            if ($chPid.Edition)     { Write-Info ((T 'O2_PIDGX_EDITION') + $chPid.Edition) }
+            if ($chPid.PartNumber)  { Write-Info ((T 'O2_PIDGX_PARTNO')  + $chPid.PartNumber) }
+            if ($chPid.WinVersion)  { Write-Info ((T 'O2_PIDGX_WINVER')  + $chPid.WinVersion) }
+            if ($chPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $chPid.OemId) }
+            if ($chPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $chPid.Sku) }
+            if ($chPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $chPid.EulaType) }
+            $upgText = if ($chPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
+            Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
+            if ($chPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $chPid.ExtPid) }
+        }
     } else {
         Write-Info  ((T 'O6CH_CURRENT_KEY') + ' ' + $partKey)
     }
