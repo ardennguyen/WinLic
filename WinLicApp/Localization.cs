@@ -792,7 +792,7 @@ namespace WinLicApp
             ["O6CH_DESC"]            = ("Switch your Windows licensing channel. Switching to KMS installs the GVLK for your edition. Switching to RETAIL/MAK opens the key installation flow.",
                                          "Chuyển đổi kênh bản quyền Windows. Chuyển sang KMS sẽ cài GVLK cho ấn bản của bạn. Chuyển sang RETAIL/MAK mở luồng cài key."),
             ["O6CH_CURRENT_CHANNEL"] = ("Current channel:",                         "Kênh hiện tại:"),
-            ["O6CH_CURRENT_KEY"]     = ("Current partial key:",                      "Key một phần hiện tại:"),
+            ["O6CH_CURRENT_KEY"]     = ("Current key:",                          "Key hiện tại:"),
             ["O6CH_CURRENT_EDITION"] = ("Edition:",                                  "Ấn bản:"),
             ["O6CH_TO_KMS"]          = ("→ Switch to VOLUME_KMSCLIENT (KMS)",        "→ Chuyển sang VOLUME_KMSCLIENT (KMS)"),
             ["O6CH_TO_RETAIL"]       = ("→ Switch to RETAIL / MAK",                  "→ Chuyển sang RETAIL / MAK"),

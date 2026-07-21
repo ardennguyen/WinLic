@@ -816,7 +816,7 @@ $Str = @{
     'O6CH_DESC'            = @('Switch your Windows licensing channel. To KMS: installs the GVLK for your edition. To RETAIL/MAK: redirects to Option 2.',
                                 'Chuyển đổi kênh bản quyền Windows. Sang KMS: cài GVLK cho ấn bản. Sang RETAIL/MAK: chuyển đến Tùy chọn 2.')
     'O6CH_CURRENT_CHANNEL' = @('Current channel:',                'Kênh hiện tại:')
-    'O6CH_CURRENT_KEY'     = @('Current partial key:',            'Key một phần hiện tại:')
+    'O6CH_CURRENT_KEY'     = @('Current key:',                    'Key hiện tại:')
     'O6CH_CURRENT_EDITION' = @('Edition:',                        'Ấn bản:')
     'O6CH_TO_KMS'          = @('[A] Switch to VOLUME_KMSCLIENT (KMS)',  '[A] Chuyển sang VOLUME_KMSCLIENT (KMS)')
     'O6CH_TO_RETAIL'       = @('[B] Switch to RETAIL/MAK',             '[B] Chuyển sang RETAIL/MAK')
@@ -2813,7 +2813,13 @@ function Set-ActivationChannel {
 
     Write-Info  ((T 'O6CH_CURRENT_CHANNEL') + " " + $channel)
     Write-Info  ((T 'O6CH_CURRENT_EDITION') + " " + $edition)
-    Write-Info  ((T 'O6CH_CURRENT_KEY') + " " + $partKey)
+    $chFullKey = $null
+    try { $chFullKey = Get-InstalledProductKey } catch {}
+    if ($chFullKey) {
+        Write-Info  ((T 'O6CH_CURRENT_KEY') + ' ' + (Display-Key $chFullKey))
+    } else {
+        Write-Info  ((T 'O6CH_CURRENT_KEY') + ' ' + $partKey)
+    }
     Write-Blank
 
     $isKmsClient = $channel -match "VOLUME_KMSCLIENT"

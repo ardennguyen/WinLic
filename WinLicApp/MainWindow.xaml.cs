@@ -2802,7 +2802,19 @@ namespace WinLicApp
             ChLblEdition.Text  = L.Get("O6CH_CURRENT_EDITION");
             ChValEdition.Text  = edition;
             ChLblKey.Text      = L.Get("O6CH_CURRENT_KEY");
-            ChValKey.Text      = partKey;
+            // Show full installed key (decoded from registry) instead of WMI partial
+            string? chFullKey = null;
+            try
+            {
+                using var rk = Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+                if (rk?.GetValue("DigitalProductId") is byte[] dpId)
+                    chFullKey = DecodeProductKeyWin8AndUp(dpId);
+            }
+            catch { }
+            ChValKey.Text = chFullKey != null
+                ? (ShowFullKey ? chFullKey : MaskKey(chFullKey))
+                : partKey;
 
             BtnChToKms.Content    = L.Get("O6CH_TO_KMS");
             BtnChToRetail.Content = L.Get("O6CH_TO_RETAIL");
