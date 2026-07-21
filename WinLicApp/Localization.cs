@@ -128,10 +128,23 @@ namespace WinLicApp
             ["OemPid_Edition"]      = ("  Edition  : ",   "  Ấn bản   : "),
             ["OemPid_PartNo"]       = ("  Part No. : ",   "  Mã SP    : "),
             ["OemPid_WinVer"]       = ("  Win Ver. : ",   "  Phiên bản: "),
+            ["OemPid_OemId"]        = ("  OEM ID   : ",   "  Mã OEM   : "),
+            ["OemPid_Sku"]          = ("  SKU      : ",   "  SKU      : "),
+            ["OemPid_EulaType"]     = ("  EULA     : ",   "  EULA     : "),
+            ["OemPid_IsUpgrade"]    = ("  Upgrade  : ",   "  Nâng cấp : "),
+            ["OemPid_ExtPid"]       = ("  Ext. PID : ",   "  PID mở rộng: "),
+            ["OemPid_UpgradeYes"]   = ("Yes (upgrade license)",  "Có (key nâng cấp)"),
+            ["OemPid_UpgradeNo"]    = ("No (full license)",      "Không (key đầy đủ)"),
             ["OemPid_Rejected"]     = ("  PidGenX  : Key not found in pkeyconfig.xrm-ms (possibly a pre-Windows 10 OEM key)",
                                       "  PidGenX  : Key không tìm thấy trong pkeyconfig.xrm-ms (có thể là key OEM trước Windows 10)"),
             ["OemPid_FormatOnly"]   = ("  Source   : format check only (pkeyconfig.xrm-ms not found)",
                                       "  Nguồn    : chỉ kiểm tra định dạng (không tìm thấy pkeyconfig.xrm-ms)"),
+
+            // ── Original Key (pre-upgrade) fetch labels ─────
+            ["Fetch_OrigKey"]       = ("Checking for pre-upgrade original key...",
+                                       "Đang kiểm tra key gốc trước nâng cấp..."),
+            ["Fetch_OrigPidGenX"]   = ("Analyzing Original Key via pidgenx...",
+                                       "Đang phân tích Key Gốc qua pidgenx..."),
 
             // ── License status texts ──────────────────────────────────────────────
             ["LS_0"]             = ("Unlicensed",                     "Chưa được cấp phép"),
