@@ -3280,6 +3280,28 @@ namespace WinLicApp
                         sb.AppendLine($"  {"Version",-28}: {obj["Version"]}");
                         sb.AppendLine($"  {"Architecture",-28}: {obj["OSArchitecture"]}");
                     }
+                // System Manufacturer / Model (ASUS, DELL, LENOVO, HP, etc.)
+                using var csRes = WmiQuery("SELECT Manufacturer,Model FROM Win32_ComputerSystem");
+                if (csRes != null)
+                    foreach (ManagementObject obj in csRes)
+                    {
+                        var mfr = obj["Manufacturer"]?.ToString();
+                        var mdl = obj["Model"]?.ToString();
+                        if (!string.IsNullOrEmpty(mfr)) sb.AppendLine($"  {"System Manufacturer",-28}: {mfr}");
+                        if (!string.IsNullOrEmpty(mdl))  sb.AppendLine($"  {"System Model",-28}: {mdl}");
+                    }
+                // BIOS info
+                using var biosRes = WmiQuery("SELECT Manufacturer,SMBIOSBIOSVersion,SerialNumber FROM Win32_BIOS");
+                if (biosRes != null)
+                    foreach (ManagementObject obj in biosRes)
+                    {
+                        var bmfr = obj["Manufacturer"]?.ToString();
+                        var bver = obj["SMBIOSBIOSVersion"]?.ToString();
+                        var bsn  = obj["SerialNumber"]?.ToString();
+                        if (!string.IsNullOrEmpty(bmfr)) sb.AppendLine($"  {"BIOS Manufacturer",-28}: {bmfr}");
+                        if (!string.IsNullOrEmpty(bver)) sb.AppendLine($"  {"BIOS Version",-28}: {bver}");
+                        if (!string.IsNullOrEmpty(bsn))  sb.AppendLine($"  {"BIOS Serial Number",-28}: {bsn}");
+                    }
             }
             catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
             sb.AppendLine();
