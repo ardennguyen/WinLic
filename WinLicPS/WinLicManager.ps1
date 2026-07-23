@@ -39,7 +39,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 $OutputEncoding           = [System.Text.Encoding]::UTF8
 
 # ---- Globals ----------------------------------------------------------------
-$SCRIPT_VERSION = "v1.6"
+$SCRIPT_VERSION = "v1.6.1-beta2"
 $SCRIPT_DIR     = Split-Path -Parent $MyInvocation.MyCommand.Path
 $SETTINGS_FILE  = Join-Path $SCRIPT_DIR "settings.ini"
 $slmgrPath      = Join-Path $env:SystemRoot "System32\slmgr.vbs"
@@ -623,12 +623,7 @@ $Str = @{
     'O5_FILE_NONE'   = @('No known activation tool files or folders found.', 'Không phát hiện tệp hoặc thư mục công cụ kích hoạt.')
     'O5_PROC_FOUND'  = @('Suspicious process running:  ', 'Phát hiện tiến trình đáng ngờ:  ')
     'O5_PROC_NONE'   = @('No suspicious processes running.', 'Không phát hiện tiến trình đáng ngờ.')
-    # GVLK results
-    'O5_PHONE'       = @('ANOMALOUS PHONE ACTIVATION DETECTED!', 'PHÁT HIỆN KÍCH HOẠT ĐIỆN THOẠI BẤT THƯỜNG!')
-    'O5_PHONE2'      = @('  Windows reports Phone activation with no record of a phone activation flow.',
-                          '  Windows báo cáo kích hoạt Điện thoại mà không có quy trình kích hoạt điện thoại.')
-    'O5_PHONE3'      = @('  This is a characteristic indicator of TSforge ZeroCID sub-method.',
-                          '  Đây là dấu hiệu đặc trưng của phương thức con TSforge ZeroCID.')
+
     'O5_GVLK_PERM_VOL' = @('LIKELY PIRACY -- VOLUME_KMSCLIENT key [{0}] installed with PERMANENT activation!',
                              'CÓ KHẢ NĂNG LẬU -- Khóa VOLUME_KMSCLIENT [{0}] được cài với kích hoạt VĨNH VIỄN!')
     'O5_GVLK_PV2'   = @('  Description: ', '  Mô tả: ')
@@ -658,6 +653,7 @@ $Str = @{
     'O5_EXP_DATE'    = @('Expiry date:', 'Ngày hết hạn:')
     'O5_EXP_TSFORGE' = @('TSFORGE KMS4K DETECTED -- Expiry year {0} (thousands of years in the future)!',
                           'PHÁT HIỆN TSFORGE KMS4K -- Năm hết hạn {0} (hàng nghìn năm trong tương lai)!')
+    'O5_EXP_ENTG'    = @('EnterpriseG edition -- long expiry is expected (not a piracy indicator).', 'Phiên bản EnterpriseG -- thời hạn dài là bình thường (không phải dấu hiệu lậu).')
     'O5_EXP_TSFORG2' = @('TSforge forges a KMS lease directly into the SPP trusted store.',
                           'TSforge giả mạo hợp đồng thuê KMS trực tiếp vào kho tin cậy SPP.')
     'O5_EXP_KMS38'   = @('KMS38 LEGACY ACTIVATION -- Expiry year {0} (~2038-01-19 = max 32-bit timestamp)',
@@ -2555,14 +2551,7 @@ function Invoke-ActivationAudit {
             $isGvlk = $true
         }
 
-        # 7a. Phone activation anomaly (TSforge ZeroCID indicator)
-        if ($desc -match 'phone' -and $isLicensed) {
-            Write-Fail (T 'O5_PHONE')
-            Write-Fail (T 'O5_PHONE2')
-            Write-Fail (T 'O5_PHONE3')
-            $criticalKms = $true
-            $suspiciousCount++
-        }
+        # 7a. Phone detection removed (WMI Description never contains 'phone')
 
         # 7b. GVLK check -- distinguish by channel:
         #   VOLUME_KMSCLIENT + permanent = KMS38 / TSforge / piracy
@@ -2611,12 +2600,14 @@ function Invoke-ActivationAudit {
             $expiry = (Get-Date).AddMinutes($graceMins2)
             $exYear = $expiry.Year
             $daysLeft = ($expiry - (Get-Date)).TotalDays
-            Write-Data (T 'O5_EXP_DATE') ($expiry.ToString('yyyy-MM-dd HH:mm'))
-            if ($exYear -ge 2100) {
+            $isEnterpriseG = $desc -match 'EnterpriseG'
+            if ($exYear -ge 2100 -and -not $isEnterpriseG) {
                 Write-Fail ([string]::Format((T 'O5_EXP_TSFORGE'), $exYear))
                 Write-Fail (T 'O5_EXP_TSFORG2')
                 $criticalKms = $true
                 $suspiciousCount++
+            } elseif ($exYear -ge 2100 -and $isEnterpriseG) {
+                Write-OK (T 'O5_EXP_ENTG')
             } elseif ($exYear -ge 2037) {
                 Write-Fail ([string]::Format((T 'O5_EXP_KMS38'), $exYear))
                 Write-Warn (T 'O5_EXP_KMS38_2')
@@ -2672,7 +2663,6 @@ function Invoke-ActivationAudit {
         } elseif ($installDate -ne $null -and $datMod -gt $installDate.AddDays(2)) {
             Write-Warn (T 'O5_SPP_WARN1')
             Write-Warn (T 'O5_SPP_WARN2')
-            $suspiciousCount++
         } else {
             Write-OK (T 'O5_SPP_NORMAL')
         }

@@ -93,19 +93,23 @@ namespace WinLicApp
         // Keep in sync with settings.default.ini when updating.
         public static readonly HashSet<string> HardcodedGvlkSuffixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            // Windows 11 / 10 Semi-Annual Channel
+            // Windows 11 / 10 Semi-Annual Channel (KMS Client / GVLK)
             "T83GX", // Pro
             "GCQG9", // Pro N
             "6Q84J", // Pro for Workstations
             "6XYWF", // Pro for Workstations N
             "J447Y", // Pro Education
             "66QFC", // Pro Education N
-            "VCFB2", // Education (also Win11 Pro Education HWID placeholder)
+            "VCFB2", // Education
             "MDWWJ", // Education N
             "2YT43", // Enterprise
             "KHJW4", // Enterprise N
             "4M68B", // Enterprise G
             "T84FV", // Enterprise G N
+            "H8Q99", // Home (KMS)
+            "844BM", // Home N (KMS)
+            "YTDFH", // Home Single Language (KMS)
+            "D3WVR", // Home Country Specific (KMS)
             // LTSC / IoT / LTSB
             "J462D", // LTSC 2024 / Win10 LTSC 2021 / 2019
             "7CG2H", // Enterprise N LTSC
@@ -114,19 +118,43 @@ namespace WinLicApp
             "8B639", // Enterprise N LTSB 2016
             "76DF9", // Enterprise LTSB 2015
             "D69TJ", // Enterprise N LTSB 2015
+            "MDWWW", // Enterprise S (KMS)
             // Windows 8.1
             "9D6T9", // 8.1 Pro
             "B4FXY", // 8.1 Pro N
             "MKKG7", // 8.1 Enterprise
             "JFFXW", // 8.1 Enterprise N
-            // HWID / DE placeholder keys
-            "3V66T", // Win 10/11 Pro
-            "8HVX7", // Win 10/11 Home
-            "H8Q99", // Win 10 Home
-            "WXCHW", // Home Single Language
-            "WGGBY", // Pro Education
-            "2YV77", // Pro for Workstations
-            "8DEC2", // Enterprise
+            // Generic RTM / HWID / OEM 3.0 Placeholder Keys
+            "8HVX7", // Win 11/10 Home (RTM)
+            "WXCHW", // Win 11/10 Home N (RTM) / Home SL (HWID)
+            "6F4BT", // Win 11/10 Home SL (RTM)
+            "8TYMD", // Win 11 Home Country Specific (RTM)
+            "3V66T", // Win 11/10 Pro (RTM / HWID)
+            "PKCKT", // Win 11/10 Pro N (RTM)
+            "2YV77", // Win 11/10 Pro for Workstations (RTM)
+            "WT2RQ", // Win 11/10 Pro N for Workstations (RTM)
+            "MHBPB", // Win 11/10 Pro Education (RTM)
+            "QPF8P", // Win 11/10 Pro Education N (RTM)
+            "7CFBY", // Win 11/10 Education (RTM)
+            "DRR8H", // Win 11/10 Education N (RTM)
+            "8HV2C", // Win 11/10 Enterprise (RTM)
+            "X766F", // Win 11/10 Enterprise N (RTM)
+            "B4H4T", // Win 11/10 Enterprise G N (RTM)
+            "7QW8P", // Win 10 S (RTM)
+            "DYJWX", // Win 10 Enterprise S (RTM)
+            "V22HG", // Win 10 Home (Default)
+            "DGPHV", // Win 10 Home N (Default)
+            "46YP4", // Win 10 Pro / Pro N (Default)
+            "D3WV4", // Win 10 SL (Default)
+            "9D7YC", // Win 10 CHN SL (Default)
+            "FC2HD", // Win 10 Home (OEM 3.0)
+            "VH636", // Win 10 Home N (OEM 3.0)
+            "WFG6P", // Win 10 Pro (OEM 3.0)
+            "TCQG3", // Win 10 Pro N (OEM 3.0)
+            "HH64C", // Win 10 SL (OEM 3.0)
+            "H6DDY", // Win 10 CHN SL (OEM 3.0)
+            "WGGBY", // Pro Education (HWID)
+            "8DEC2", // Enterprise (HWID)
         };
 
         // Hardcoded GVLK key suffix → description for display (mirrors HardcodedGvlkSuffixes).
@@ -140,12 +168,16 @@ namespace WinLicApp
             { "6XYWF", "Windows 10/11 Pro for Workstations N  (9FNHH-K3HBT-3W4TD-6383H-6XYWF)" },
             { "J447Y", "Windows 10/11 Pro Education  (6TP4R-GNPTD-KYYHQ-7B7DP-J447Y)" },
             { "66QFC", "Windows 10/11 Pro Education N  (YVWGF-BXNMC-HTQYQ-CPQ99-66QFC)" },
-            { "VCFB2", "Windows 10/11 Education (also Win11 Pro Education DE)  (NW6C2-QMPVW-D7KKK-3GKT6-VCFB2)" },
+            { "VCFB2", "Windows 10/11 Education  (NW6C2-QMPVW-D7KKK-3GKT6-VCFB2)" },
             { "MDWWJ", "Windows 10/11 Education N  (2WH4N-8QGBV-H22JP-CT43Q-MDWWJ)" },
             { "2YT43", "Windows 10/11 Enterprise  (NPPR9-FWDCX-D2C8J-H872K-2YT43)" },
             { "KHJW4", "Windows 10/11 Enterprise N  (DPH2V-TTNVB-4X9Q3-TJR4H-KHJW4)" },
             { "4M68B", "Windows 10 Enterprise G  (YYVX9-NTFWV-6MDM3-9PT4T-4M68B)" },
             { "T84FV", "Windows 10 Enterprise G N  (44RPN-FTY23-9VTTB-MP9BX-T84FV)" },
+            { "H8Q99", "Windows 10/11 Home KMS  (TX9XD-98N7V-6WMQ6-BX7FG-H8Q99)" },
+            { "844BM", "Windows 10/11 Home N KMS  (3KHY7-WNT83-DGQKR-F7HPR-844BM)" },
+            { "YTDFH", "Windows 10/11 Home Single Language KMS  (7HNRX-D7KGG-3K4RQ-4WPJ4-YTDFH)" },
+            { "D3WVR", "Windows 11 Home Country Specific KMS  (PVMJN-6DFY6-9CCP6-7BKTT-D3WVR)" },
             // LTSC / IoT / LTSB
             { "J462D", "Windows 11 LTSC 2024 / 10 LTSC 2021 / 2019  (M7XTQ-FN8P6-TTKYV-9D4CC-J462D)" },
             { "7CG2H", "Windows 10/11 Enterprise N LTSC  (92NFX-8DJQP-P6BBQ-THF9C-7CG2H)" },
@@ -154,6 +186,7 @@ namespace WinLicApp
             { "8B639", "Windows 10 Enterprise N LTSB 2016  (QFFDN-GRT3P-VKWWX-X7T3R-8B639)" },
             { "76DF9", "Windows 10 Enterprise LTSB 2015  (WNMTR-4C88C-JK8YV-HQ7T2-76DF9)" },
             { "D69TJ", "Windows 10 Enterprise N LTSB 2015  (2F77B-TNFGY-69QQF-B8YKP-D69TJ)" },
+            { "MDWWW", "Windows 10 Enterprise S KMS  (FWN7H-PF93Q-4GGP8-M8RF3-MDWWW)" },
             // Windows 8.1
             { "9D6T9", "Windows 8.1 Pro  (GCRJD-8NW9H-F2CDX-CCM8D-9D6T9)" },
             { "B4FXY", "Windows 8.1 Pro N  (HMCNV-VVBFX-7HMBH-CTY9B-B4FXY)" },
@@ -167,14 +200,40 @@ namespace WinLicApp
         public static readonly Dictionary<string, string> HardcodedGenericKeys =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            { "3V66T", "Windows 10/11 Pro  (VK7JG-NPHTM-C97JM-9MPGT-3V66T)" },
-            { "8HVX7", "Windows 10/11 Home  (YTMG3-N6DKC-DKB77-7M9GH-8HVX7)" },
-            { "H8Q99", "Windows 10 Home  (TX9XD-98N7V-6WMQ6-BX7FG-H8Q99)" },
-            { "WXCHW", "Windows 10/11 Home Single Language  (4CPRK-NM3K3-X6XXQ-RXX86-WXCHW)" },
-            { "WGGBY", "Windows 10 Pro Education  (8PTT6-RNW57-N3YKV-MJNWM-WGGBY)" },
-            { "2YV77", "Windows 10/11 Pro for Workstations  (DXG7C-N36C4-C4HTG-X4T3X-2YV77)" },
-            { "8DEC2", "Windows 10 Enterprise  (XGVPP-NMH47-7TTHJ-W3FW7-8DEC2)" },
-            { "VCFB2", "Windows 11 Pro Education  (BW6C2-QMPVW-D7KKK-3GKT6-VCFB2)" },
+            { "8HVX7", "Windows 11/10 Home RTM  (YTMG3-N6DKC-DKB77-7M9GH-8HVX7)" },
+            { "WXCHW", "Windows 11/10 Home N RTM / Home SL HWID  (4CPRK-NM3K3-X6XXQ-RXX86-WXCHW)" },
+            { "6F4BT", "Windows 11/10 Home Single Language RTM  (BT79Q-G7N6G-PGBYW-4YWX6-6F4BT)" },
+            { "8TYMD", "Windows 11 Home Country Specific RTM  (N2434-X9D7W-8PF6X-8DV9T-8TYMD)" },
+            { "3V66T", "Windows 11/10 Pro RTM / HWID  (VK7JG-NPHTM-C97JM-9MPGT-3V66T)" },
+            { "PKCKT", "Windows 11/10 Pro N RTM  (2B87N-8KFHP-DKV6R-Y2C8J-PKCKT)" },
+            { "2YV77", "Windows 11/10 Pro for Workstations RTM  (DXG7C-N36C4-C4HTG-X4T3X-2YV77)" },
+            { "WT2RQ", "Windows 11/10 Pro N for Workstations RTM  (WYPNQ-8C467-V2W6J-TX4WX-WT2RQ)" },
+            { "MHBPB", "Windows 11/10 Pro Education RTM  (8PTT6-RNW4C-6V7J2-C2D3X-MHBPB)" },
+            { "QPF8P", "Windows 11/10 Pro Education N RTM  (GJTYN-HDMQY-FRR76-HVGC7-QPF8P)" },
+            { "7CFBY", "Windows 11/10 Education RTM  (YNMGQ-8RYV3-4PGQ3-C8XTP-7CFBY)" },
+            { "DRR8H", "Windows 11/10 Education N RTM  (84NGF-MHBT6-FXBX8-QWJK7-DRR8H)" },
+            { "8HV2C", "Windows 11/10 Enterprise RTM  (XGVPP-NMH47-7TTHJ-W3FW7-8HV2C)" },
+            { "X766F", "Windows 11/10 Enterprise N RTM  (WGGHN-J84D6-QYCPR-T7PJ7-X766F)" },
+            { "B4H4T", "Windows 11/10 Enterprise G N RTM  (FW7NV-4T673-HF4VX-9X4MM-B4H4T)" },
+            { "H8Q99", "Windows 10 Home KMS  (TX9XD-98N7V-6WMQ6-BX7FG-H8Q99)" },
+            { "WGGBY", "Windows 10 Pro Education HWID  (8PTT6-RNW57-N3YKV-MJNWM-WGGBY)" },
+            { "8DEC2", "Windows 10 Enterprise HWID  (XGVPP-NMH47-7TTHJ-W3FW7-8DEC2)" },
+            { "VCFB2", "Windows 11 Pro Education HWID  (BW6C2-QMPVW-D7KKK-3GKT6-VCFB2)" },
+            { "2YT43", "Windows 11/10 Enterprise KMS/GVLK  (NPPR9-FWDCX-D2C8J-H872K-2YT43)" },
+            { "J462D", "Windows 10/11 LTSC KMS/GVLK  (M7XTQ-FN8P6-TTKYV-9D4CC-J462D)" },
+            { "7QW8P", "Windows 10 S RTM  (3NF4D-GF9GY-63VKH-QRC3V-7QW8P)" },
+            { "DYJWX", "Windows 10 Enterprise S RTM  (NK96Y-D9CD8-W44CQ-R8YTK-DYJWX)" },
+            { "V22HG", "Windows 10 Home Default  (46J3N-RY6B3-BJFDY-VBFT9-V22HG)" },
+            { "DGPHV", "Windows 10 Home N Default  (PGGM7-N77TC-KVR98-D82KJ-DGPHV)" },
+            { "46YP4", "Windows 10 Pro / Pro N Default  (RHGJR-N7FVY-Q3B8F-KBQ6V-46YP4)" },
+            { "D3WV4", "Windows 10 SL Default  (GH37Y-TNG7X-PP2TK-CMRMT-D3WV4)" },
+            { "9D7YC", "Windows 10 CHN SL Default  (68WP7-N2JMW-B676K-WR24Q-9D7YC)" },
+            { "FC2HD", "Windows 10 Home OEM 3.0  (37GNV-YCQVD-38XP9-T848R-FC2HD)" },
+            { "VH636", "Windows 10 Home N OEM 3.0  (33CY4-NPKCC-V98JP-42G8W-VH636)" },
+            { "WFG6P", "Windows 10 Pro OEM 3.0  (NF6HC-QH89W-F8WYV-WWXV4-WFG6P)" },
+            { "TCQG3", "Windows 10 Pro N OEM 3.0  (NH7W7-BMC3R-4W9XT-94B6D-TCQG3)" },
+            { "HH64C", "Windows 10 SL OEM 3.0  (NTRHT-XTHTG-GBWCG-4MTMP-HH64C)" },
+            { "H6DDY", "Windows 10 CHN SL OEM 3.0  (7B6NC-V3438-TRQG7-8TCCX-H6DDY)" },
         };
 
 

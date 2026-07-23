@@ -87,8 +87,18 @@ namespace WinLicApp
             };
         }
 
-        // Legacy call sites kept as no-ops — the SizeChanged hook handles everything.
-        private void EnsurePanelFits(FrameworkElement _) { }
+        // Explicitly force panel measurement and adjust window height if panel exceeds current height
+        private void EnsurePanelFits(FrameworkElement panel)
+        {
+            if (panel.Visibility != Visibility.Visible) return;
+            double availW = panel.ActualWidth > 1 ? panel.ActualWidth : 700;
+            panel.InvalidateMeasure();
+            panel.Measure(new System.Windows.Size(availW, double.PositiveInfinity));
+            double naturalH = panel.DesiredSize.Height;
+            double currentH = panel.ActualHeight > 1 ? panel.ActualHeight : naturalH;
+            double deficit  = naturalH - currentH;
+            if (deficit > 2) this.Height += deficit + 40;
+        }
 
         // Reusable resize hook for any overlay panel.
         private void HookPanelResize(FrameworkElement panel)
@@ -403,7 +413,7 @@ namespace WinLicApp
                 Environment.GetEnvironmentVariable("SystemRoot") ?? @"C:\Windows",
                 @"System32\slmgr.vbs");
 
-        private string RunSlmgr(string option)
+        private async System.Threading.Tasks.Task<string> RunSlmgrAsync(string option)
         {
             var path = SlmgrPath;
             if (!System.IO.File.Exists(path)) { LogError(string.Format(L.Get("Fetch_SlmgrNotFound"), path)); return ""; }
@@ -418,12 +428,15 @@ namespace WinLicApp
                     UseShellExecute        = false,
                     CreateNoWindow         = true
                 };
-                using var proc = Process.Start(psi)!;
-                var stdout = proc.StandardOutput.ReadToEnd();
-                var stderr = proc.StandardError.ReadToEnd().Trim();
-                proc.WaitForExit();
-                if (!string.IsNullOrEmpty(stderr)) LogWarn(stderr);
-                return stdout;
+                return await System.Threading.Tasks.Task.Run(() =>
+                {
+                    using var proc = Process.Start(psi)!;
+                    var stdout = proc.StandardOutput.ReadToEnd();
+                    var stderr = proc.StandardError.ReadToEnd().Trim();
+                    proc.WaitForExit();
+                    Dispatcher.Invoke(() => { if (!string.IsNullOrEmpty(stderr)) LogWarn(stderr); });
+                    return stdout;
+                });
             }
             catch (Exception ex) { LogError(ex.Message); return ""; }
         }
@@ -573,11 +586,11 @@ namespace WinLicApp
         // =========================================================================
         // Option 1 — Full System & License Info (merged: old Options 1 + 2 + 3)
         // =========================================================================
-        private void BtnVersionInfo_Click(object sender, RoutedEventArgs e)
+        private async void BtnVersionInfo_Click(object sender, RoutedEventArgs e)
         {
             CollapseAllPanels(); SetActiveButton(BtnVersionInfo);
             LogAction("Act1");
-            ShowSystemInfo();
+            _ = ShowSystemInfoAsync();
 
             // ── slmgr /dli — License Channel info ────────────────
             LogBlank();
@@ -585,7 +598,7 @@ namespace WinLicApp
             LogFetch(L.Get("Act1_DliHeader"));
             LogInfo(L.Get("O2_Note"));
             LogBlank();
-            var dliOutput = RunSlmgr("/dli");
+            var dliOutput = await RunSlmgrAsync("/dli");
             if (string.IsNullOrWhiteSpace(dliOutput))
                 LogWarn(L.Get("O2_NoOutput"));
             else
@@ -598,7 +611,6 @@ namespace WinLicApp
             BtnDlvCancel.Content = L.Get("DLV_CANCEL");
             BtnDlvRun.Content    = L.Get("DLV_RUN");
             DlvPanel.Visibility  = Visibility.Visible;
-            EnsurePanelFits(DlvPanel);
         }
 
         private void RunPidGenXAnalysis(string key)
@@ -627,7 +639,7 @@ namespace WinLicApp
             }
         }
 
-        private void ShowSystemInfo(bool warnBeforeReplace = false)
+        private async System.Threading.Tasks.Task ShowSystemInfoAsync(bool warnBeforeReplace = false)
         {
             // ── OS information ──────────────────────────────────────────────────
             LogFetch(L.Get("Fetch_OS"));
@@ -910,11 +922,11 @@ namespace WinLicApp
         private void BtnDlvCancel_Click(object sender, RoutedEventArgs e)
             => DlvPanel.Visibility = Visibility.Collapsed;
 
-        private void BtnDlvRun_Click(object sender, RoutedEventArgs e)
+        private async void BtnDlvRun_Click(object sender, RoutedEventArgs e)
         {
             DlvPanel.Visibility = Visibility.Collapsed;
             LogBlank();
-            LogSlmgrOutput(RunSlmgr("/dlv"));
+            LogSlmgrOutput(await RunSlmgrAsync("/dlv"));
         }
 
 
@@ -1179,7 +1191,7 @@ namespace WinLicApp
             LogWarn(L.Get("KP_Warn"));
 
             // Read and log current system state — full parity with Option 1 output
-            ShowSystemInfo(warnBeforeReplace: true);
+            _ = ShowSystemInfoAsync(warnBeforeReplace: true);
 
             // Show save-key advisory in dialog if needed (set by ShowSystemInfo)
             if (_saveKeyWarnNeeded)
@@ -1252,7 +1264,7 @@ namespace WinLicApp
                     e.Handled = true;
                     // If on last box, move focus to OK box; otherwise submit
                     if (idx == 4) KpOkBox.Focus();
-                    else InstallKeyFromPanel();
+                    else _ = InstallKeyFromPanelAsync();
                     break;
 
                 case Key.Escape:
@@ -1408,7 +1420,7 @@ namespace WinLicApp
         }
 
         private void BtnKeyInstall_Click(object sender, RoutedEventArgs e)
-            => InstallKeyFromPanel();
+            => _ = InstallKeyFromPanelAsync();
 
         private void BtnKeyCancel_Click(object sender, RoutedEventArgs e)
             => CancelKeyPanel();
@@ -1421,11 +1433,11 @@ namespace WinLicApp
 
         private void KpOkBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter)  { e.Handled = true; InstallKeyFromPanel(); }
+            if (e.Key == Key.Enter)  { e.Handled = true; _ = InstallKeyFromPanelAsync(); }
             if (e.Key == Key.Escape) { e.Handled = true; CancelKeyPanel(); }
         }
 
-        private void InstallKeyFromPanel()
+        private async System.Threading.Tasks.Task InstallKeyFromPanelAsync()
         {
             var key = string.Join("-",
                 KBox1.Text.Trim(), KBox2.Text.Trim(),
@@ -1491,7 +1503,7 @@ namespace WinLicApp
             LogInfo(L.Get("O4_Installing") + (full ? key : MaskKey(key)));
             LogBlank();
 
-            var output = RunSlmgr($"/ipk {key}");
+            var output = await RunSlmgrAsync($"/ipk {key}");
             LogSlmgrOutput(output);
 
             bool fail = output.Contains("Error") || output.Contains("0x");
@@ -1517,7 +1529,7 @@ namespace WinLicApp
                     LogWarn(L.Get("O2_ATO_NO_INTERNET"));
 
                 LogInfo(L.Get("O2_ATO_AUTO"));
-                var atoOut = RunSlmgr("/ato");
+                var atoOut = await RunSlmgrAsync("/ato");
                 LogSlmgrOutput(atoOut);
                 LogBlank();
                 bool atoFail = atoOut.Contains("Error") || atoOut.Contains("0x");
@@ -1670,16 +1682,16 @@ namespace WinLicApp
             LogInfo(L.Get("O3_Cancelled"));
         }
 
-        private void BtnRemoveConfirm_Click(object sender, RoutedEventArgs e)
-            => ExecuteRemove();
+        private async void BtnRemoveConfirm_Click(object sender, RoutedEventArgs e)
+            => await ExecuteRemoveAsync();
 
-        private void RcpOkBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        private async void RcpOkBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter)  { e.Handled = true; ExecuteRemove(); }
+            if (e.Key == Key.Enter)  { e.Handled = true; await ExecuteRemoveAsync(); }
             if (e.Key == Key.Escape) { e.Handled = true; BtnRemoveCancel_Click(sender, e); }
         }
 
-        private void ExecuteRemove()
+        private async System.Threading.Tasks.Task ExecuteRemoveAsync()
         {
             if (!RcpOkBox.Text.Trim().Equals("OK", StringComparison.OrdinalIgnoreCase))
             {
@@ -1693,11 +1705,11 @@ namespace WinLicApp
 
             LogBlank();
             LogInfo(L.Get("O5_Uninstalling"));
-            LogSlmgrOutput(RunSlmgr("/upk"));
+            LogSlmgrOutput(await RunSlmgrAsync("/upk"));
 
             LogBlank();
             LogInfo(L.Get("O5_Clearing"));
-            LogSlmgrOutput(RunSlmgr("/cpky"));
+            LogSlmgrOutput(await RunSlmgrAsync("/cpky"));
 
             LogBlank();
             LogOk(L.Get("O5_Done"));
@@ -1764,7 +1776,7 @@ namespace WinLicApp
             LogInfo(L.Get("R4_CANCELLED"));
         }
 
-        private void BtnRpConfirm_Click(object sender, RoutedEventArgs e)
+        private async void BtnRpConfirm_Click(object sender, RoutedEventArgs e)
         {
             if (!RpOkBox.Text.Trim().Equals("OK", StringComparison.OrdinalIgnoreCase))
             {
@@ -1778,7 +1790,7 @@ namespace WinLicApp
             LogAction("Act4");
             LogBlank();
             LogInfo(L.Get("O6_Rearming"));
-            LogSlmgrOutput(RunSlmgr("/rearm"));
+            LogSlmgrOutput(await RunSlmgrAsync("/rearm"));
 
             LogBlank();
             LogOk(L.Get("O6_Done"));
@@ -2131,7 +2143,6 @@ namespace WinLicApp
                         bool isLicensed     = licStatus == 1;
                         bool isPermanent    = graceMins == 0 && isLicensed;
                         bool isGvlk         = AppSettings.AllGvlkSuffixes.Contains(ppk);
-                        bool isPhone        = desc.IndexOf("phone", StringComparison.OrdinalIgnoreCase) >= 0;
                         // Channel check: VOLUME_KMSCLIENT = KMS (corporate or pirate), RETAIL/OEM_DM = DE
                         bool isVolumeKms    = desc.IndexOf("VOLUME_KMSCLIENT", StringComparison.OrdinalIgnoreCase) >= 0;
                         // Also check the ProductKeyChannel property if present (more reliable)
@@ -2140,13 +2151,8 @@ namespace WinLicApp
                         if (pkChannel?.IndexOf("VOLUME_KMSCLIENT", StringComparison.OrdinalIgnoreCase) >= 0)
                             isVolumeKms = true;
 
-                        // 7a. Phone activation anomaly (TSforge ZeroCID indicator)
-                        if (isPhone && isLicensed)
-                        {
-                            LogError(L.Get("P7_PhoneChannel"));
-                            criticalKms = true;
-                            suspiciousCount++;
-                        }
+                        // 7a. Phone detection removed — WMI Description never contains "phone",
+                        //     making this check non-functional. See GitHub issue #6.
 
                         // 7b. GVLK + permanent check — must distinguish channel:
                         //   VOLUME_KMSCLIENT + permanent = KMS38 / TSforge / piracy (real KMS always has 180d countdown)
@@ -2212,9 +2218,18 @@ namespace WinLicApp
                             var expiry = DateTime.Now.AddMinutes(graceMins);
                             if (expiry.Year >= 2100)
                             {
-                                LogError(string.Format(L.Get("P7_TsforgeExpiry"), expiry.Year));
-                                criticalKms = true;
-                                suspiciousCount++;
+                                // EnterpriseG editions legitimately have ~150,000 days (~410 years) of grace
+                                bool isEnterpriseG = desc.IndexOf("EnterpriseG", StringComparison.OrdinalIgnoreCase) >= 0;
+                                if (isEnterpriseG)
+                                {
+                                    LogOk(string.Format(L.Get("P7_EnterpriseGExpiry"), expiry.Year));
+                                }
+                                else
+                                {
+                                    LogError(string.Format(L.Get("P7_TsforgeExpiry"), expiry.Year));
+                                    criticalKms = true;
+                                    suspiciousCount++;
+                                }
                             }
                             else if (expiry.Year >= 2037)
                             {
@@ -2295,7 +2310,8 @@ namespace WinLicApp
                     {
                         LogWarn(string.Format(L.Get("P7_SppStoreModified"),
                             datMod.ToString("yyyy-MM-dd HH:mm")));
-                        suspiciousCount++;
+                        // Note: suspiciousCount NOT incremented — data.dat timestamp is LOW CONFIDENCE
+                        // (key installs, Office activation, and updates all modify data.dat)
                     }
                     else
                         LogOk(L.Get("P7_SppStoreOk"));
@@ -2642,13 +2658,11 @@ namespace WinLicApp
                     KmsGvlkLabel.Text = L.Get("O8KMS_GVLK_FOUND_KEY") + "  " + gvlkEdition;
                     KmsGvlkKey.Text   = gvlkKey;  // GVLKs are public keys — always show full
                     KmsGvlkSection.Visibility = Visibility.Visible;
-                    EnsurePanelFits(KmsPanel);
                 }
                 else
                 {
                     KmsGvlkLabel.Text = L.Get("O8KMS_GVLK_NOMAP");
                     KmsGvlkSection.Visibility = Visibility.Visible;
-                    EnsurePanelFits(KmsPanel);
                     // Cannot proceed without GVLK — leave proceed disabled
                     return;
                 }
@@ -2694,7 +2708,6 @@ namespace WinLicApp
                 KmsStep3.Text = $"⚠ {L.Get("O8KMS_DNS_FAIL")}";
                 _kmsManualNeeded = true;
                 KmsManualSection.Visibility = Visibility.Visible;
-                EnsurePanelFits(KmsPanel);
                 // Enable proceed so user can supply host manually; port/clock steps will run on proceed
                 BtnKmsProceed.IsEnabled = true;
                 return;
@@ -2773,7 +2786,7 @@ namespace WinLicApp
                     return;
                 }
                 LogInfo(L.Get("O8KMS_GVLK_INSTALLING"));
-                var ipkOut = RunSlmgr($"/ipk {_kmsGvlkKey}");
+                var ipkOut = await RunSlmgrAsync($"/ipk {_kmsGvlkKey}");
                 LogSlmgrOutput(ipkOut);
                 if (ipkOut.Contains("Error") || ipkOut.Contains("0x"))
                 {
@@ -2791,7 +2804,7 @@ namespace WinLicApp
                 if (_kmsPort1688Ok)
                 {
                     LogInfo(L.Get("O8KMS_SKMS_PERSIST"));
-                    var skmsOut = RunSlmgr($"/skms {_kmsResolvedHost}");
+                    var skmsOut = await RunSlmgrAsync($"/skms {_kmsResolvedHost}");
                     LogSlmgrOutput(skmsOut);
                 }
                 else
@@ -2804,7 +2817,7 @@ namespace WinLicApp
             // ── Step 6: slmgr /ato ───────────────────────────────────────────────
             KmsStep6.Text = $"→ {L.Get("O8KMS_CHK_ACTIVATE")}";
             LogInfo(L.Get("O8KMS_CHK_ACTIVATE"));
-            var atoOut = RunSlmgr("/ato");
+            var atoOut = await RunSlmgrAsync("/ato");
             LogSlmgrOutput(atoOut);
 
             bool atoFail = atoOut.Contains("Error") || atoOut.Contains("0x");
@@ -2959,7 +2972,6 @@ namespace WinLicApp
                 ChGvlkConfirmLabel.Text = L.Get("O6CH_GVLK_CONFIRM");
                 ChGvlkSection.Visibility = Visibility.Visible;
                 BtnChProceed.IsEnabled   = true;
-                EnsurePanelFits(ChangeChannelPanel);
             }
             else
             {
@@ -2978,7 +2990,6 @@ namespace WinLicApp
             ChRetailMsg.Text          = L.Get("O6CH_RETAIL_MSG");
             ChRetailSection.Visibility = Visibility.Visible;
             BtnChProceed.IsEnabled    = true;
-            EnsurePanelFits(ChangeChannelPanel);
         }
 
         private void BtnChCancel_Click(object sender, RoutedEventArgs e)
@@ -3017,7 +3028,7 @@ namespace WinLicApp
 
                 // Install GVLK
                 LogInfo(L.Get("O6CH_GVLK_INSTALLING"));
-                var ipkOut = RunSlmgr($"/ipk {_chGvlkKey}");
+                var ipkOut = await RunSlmgrAsync($"/ipk {_chGvlkKey}");
                 LogSlmgrOutput(ipkOut);
 
                 if (ipkOut.Contains("Error") || ipkOut.Contains("0x"))
@@ -3128,7 +3139,7 @@ namespace WinLicApp
             EnsurePanelFits(KmsSettingsPanel);
         }
 
-        private void BtnKs7Clear_Click(object sender, RoutedEventArgs e)
+        private async void BtnKs7Clear_Click(object sender, RoutedEventArgs e)
         {
             if (!RequireAdmin()) return;
             if (!Ks7OkBox.Text.Trim().Equals("OK", StringComparison.OrdinalIgnoreCase))
@@ -3140,7 +3151,7 @@ namespace WinLicApp
             BtnKs7Clear.IsEnabled = false;
             LogInfo(L.Get("O7KMS_CLEARING"));
 
-            var ckmsOut = RunSlmgr("/ckms");
+            var ckmsOut = await RunSlmgrAsync("/ckms");
             LogSlmgrOutput(ckmsOut);
 
             bool failed = ckmsOut.Contains("Error") || ckmsOut.Contains("0x");
@@ -3223,14 +3234,14 @@ namespace WinLicApp
         {
             FullLogModePanel.Visibility = Visibility.Collapsed;
             StatusBar.Text = L.Get("FL_GENERATING");
-            Dispatcher.BeginInvoke(new Action(() => GenerateAndShowFullLog(enriched: false)));
+            Dispatcher.BeginInvoke(new Action(async () => await GenerateAndShowFullLogAsync(enriched: false)));
         }
 
         private void BtnFlEnriched_Click(object sender, RoutedEventArgs e)
         {
             FullLogModePanel.Visibility = Visibility.Collapsed;
             StatusBar.Text = L.Get("FL_GENERATING");
-            Dispatcher.BeginInvoke(new Action(() => GenerateAndShowFullLog(enriched: true)));
+            Dispatcher.BeginInvoke(new Action(async () => await GenerateAndShowFullLogAsync(enriched: true)));
         }
 
         private void BtnFlCancel_Click(object sender, RoutedEventArgs e)
@@ -3238,7 +3249,7 @@ namespace WinLicApp
             FullLogModePanel.Visibility = Visibility.Collapsed;
         }
 
-        private void GenerateAndShowFullLog(bool enriched)
+        private async System.Threading.Tasks.Task GenerateAndShowFullLogAsync(bool enriched)
         {
             bool full = ShowFullKey;
             var sb = new System.Text.StringBuilder(8192);
@@ -3247,7 +3258,7 @@ namespace WinLicApp
             string mode = enriched ? L.Get("FL_ENRICHED") : L.Get("FL_RAW");
 
             sb.AppendLine(sep);
-            sb.AppendLine($" FULL SYSTEM LICENSE LOG — {mode}");
+            sb.AppendLine($" FULL SYSTEM LICENSE LOG — {mode} ({AboutDialog.AppVersion})");
             sb.AppendLine($" {L.Get("FL_MODE_LABEL")}{mode}");
             sb.AppendLine(sep);
             sb.AppendLine();
@@ -3487,13 +3498,13 @@ namespace WinLicApp
 
             // ── Section 7: slmgr /dli ──────────────────────────────────────────
             sb.AppendLine($"── {L.Get("FL_SEC_DLI")} {sec.Substring(0, 40)}");
-            try { sb.AppendLine(RunSlmgr("/dli")); }
+            try { sb.AppendLine(await RunSlmgrAsync("/dli")); }
             catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
             sb.AppendLine();
 
             // ── Section 8: slmgr /dlv ──────────────────────────────────────────
             sb.AppendLine($"── {L.Get("FL_SEC_DLV")} {sec.Substring(0, 40)}");
-            try { sb.AppendLine(RunSlmgr("/dlv")); }
+            try { sb.AppendLine(await RunSlmgrAsync("/dlv")); }
             catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
             sb.AppendLine();
 
@@ -3535,7 +3546,7 @@ namespace WinLicApp
             }
 
             sb.AppendLine(sep);
-            sb.AppendLine($" END OF LOG — Generated by WinLic Manager {AboutDialog.AppVersion}");
+            sb.AppendLine($" {L.Get("FL_FOOTER")} {AboutDialog.AppVersion}");
             sb.AppendLine(sep);
 
             StatusBar.Text = L.Get("Ready");
