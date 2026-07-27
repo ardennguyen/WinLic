@@ -923,7 +923,7 @@ namespace WinLicApp
             ["FL_SAVED"]            = ("Saved to: ",                               "Đã lưu tại: "),
             ["FL_GENERATING"]       = ("Generating full system license log…",      "Đang tạo nhật ký bản quyền đầy đủ…"),
             ["FL_SEC_OS"]           = ("OS Information",                           "Thông Tin Hệ Điều Hành"),
-            ["FL_SEC_KEYS"]         = ("Product Keys",                             "Key Bản Quyền"),
+            ["FL_SEC_KEYS"]         = ("Product Keys & PidGenX Analysis",          "Key Bản Quyền & Phân Tích PidGenX"),
             ["FL_SEC_PIDGENX"]      = ("PidGenX Analysis",                         "Phân Tích PidGenX"),
             ["FL_SEC_WMI_LIC"]      = ("WMI License Status",                       "Trạng Thái Bản Quyền WMI"),
             ["FL_SEC_WMI_SVC"]      = ("WMI Service Properties",                   "Thuộc Tính Dịch Vụ WMI"),

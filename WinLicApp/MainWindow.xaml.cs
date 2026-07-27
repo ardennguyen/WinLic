@@ -3489,14 +3489,52 @@ namespace WinLicApp
             catch (Exception ex) { sb.AppendLine($"    [Error: {ex.Message}]"); }
             sb.AppendLine();
 
-            // ── Section 2: Product Keys ────────────────────────────────────────
+            // ── Section 2: Product Keys & PidGenX Analysis ──────────────────────
             sb.AppendLine($"── {L.Get("FL_SEC_KEYS")} {sec.Substring(0, 40)}");
             string? flOemKey = null, flRegKey = null, flInstKey = null, flOrigKey = null, flOrigKey2 = null;
             string? flOa3xDesc = null;
+
+            void OutputKeyEntry(string label, string sourcePath, string? key, string? extraDesc = null)
+            {
+                sb.AppendLine($"  [Source: {sourcePath}]");
+                string keyDisplay = string.IsNullOrEmpty(key) ? "(not found)" : (full ? key! : MaskKey(key!));
+                sb.AppendLine($"    {label,-28}: {keyDisplay}");
+                if (!string.IsNullOrEmpty(extraDesc))
+                    sb.AppendLine($"    {"OA3x Description",-28}: {extraDesc}");
+
+                if (!string.IsNullOrEmpty(key))
+                {
+                    var (valid, channel, edition, partNum, winVer, oemId, sku, eulaType, isUpgrade, extPid) = CheckKeyChecksum(key!);
+                    if (valid && !string.IsNullOrEmpty(channel))
+                    {
+                        sb.AppendLine("    [PidGenX Analysis]");
+                        sb.AppendLine($"      Channel                 : {channel}");
+                        if (!string.IsNullOrEmpty(edition))   sb.AppendLine($"      Edition                 : {edition}");
+                        if (!string.IsNullOrEmpty(partNum))    sb.AppendLine($"      Part No.                : {partNum}");
+                        if (!string.IsNullOrEmpty(winVer))     sb.AppendLine($"      Win Ver.                : {winVer}");
+                        if (!string.IsNullOrEmpty(oemId))      sb.AppendLine($"      OEM ID                  : {oemId}");
+                        if (!string.IsNullOrEmpty(sku))        sb.AppendLine($"      Activation ID (SKU)     : {sku}");
+                        if (!string.IsNullOrEmpty(eulaType))   sb.AppendLine($"      EULA                    : {eulaType}");
+                        sb.AppendLine($"      Is Upgrade              : {(isUpgrade != 0 ? "Yes" : "No")}");
+                        if (!string.IsNullOrEmpty(extPid))     sb.AppendLine($"      Ext. PID                : {extPid}");
+                    }
+                    else if (!valid && System.IO.File.Exists(PkcPath))
+                    {
+                        sb.AppendLine("    [PidGenX Analysis]");
+                        sb.AppendLine("      Status                  : Key not found in pkeyconfig (possibly pre-Windows 10)");
+                    }
+                    else
+                    {
+                        sb.AppendLine("    [PidGenX Analysis]");
+                        sb.AppendLine("      Status                  : Format check only (pkeyconfig not found)");
+                    }
+                }
+                sb.AppendLine();
+            }
+
             try
             {
                 // BIOS OEM Key
-                sb.AppendLine(@"  [Source: WMI SoftwareLicensingService · OA3xOriginalProductKey]");
                 using var slsRes = WmiQuery(
                     "SELECT OA3xOriginalProductKey,OA3xOriginalProductKeyDescription FROM SoftwareLicensingService");
                 if (slsRes != null)
@@ -3505,97 +3543,38 @@ namespace WinLicApp
                         flOemKey   = obj["OA3xOriginalProductKey"]?.ToString();
                         flOa3xDesc = obj["OA3xOriginalProductKeyDescription"]?.ToString();
                     }
-                sb.AppendLine($"    {"BIOS OEM Key",-28}: {(string.IsNullOrEmpty(flOemKey) ? "(not found)" : (full ? flOemKey : MaskKey(flOemKey!)))}");
-                if (!string.IsNullOrEmpty(flOa3xDesc))
-                    sb.AppendLine($"    {"OA3x Description",-28}: {flOa3xDesc}");
-                sb.AppendLine();
+                OutputKeyEntry("BIOS OEM Key", @"WMI SoftwareLicensingService · OA3xOriginalProductKey", flOemKey, flOa3xDesc);
 
                 // Registry Backup Key
-                sb.AppendLine(@"  [Source: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform → BackupProductKeyDefault]");
                 using var spp = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
                     @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform");
                 flRegKey = spp?.GetValue("BackupProductKeyDefault")?.ToString();
-                sb.AppendLine($"    {"Registry Backup Key",-28}: {(string.IsNullOrEmpty(flRegKey) ? "(not found)" : (full ? flRegKey : MaskKey(flRegKey!)))}");
-                sb.AppendLine();
+                OutputKeyEntry("Registry Backup Key", @"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform → BackupProductKeyDefault", flRegKey);
 
                 // Installed Key
-                sb.AppendLine(@"  [Source: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion → DigitalProductId]");
                 using var cvRk = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
                     @"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
                 if (cvRk?.GetValue("DigitalProductId") is byte[] dpId)
-                {
                     flInstKey = DecodeProductKeyWin8AndUp(dpId);
-                    sb.AppendLine($"    {"Installed Key",-28}: {(string.IsNullOrEmpty(flInstKey) ? "(decode failed)" : (full ? flInstKey : MaskKey(flInstKey!)))}");
-                }
-                else
-                    sb.AppendLine($"    {"Installed Key",-28}: (not found)");
-                sb.AppendLine();
+                OutputKeyEntry("Installed Key", @"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion → DigitalProductId", flInstKey);
 
                 // Original Key (pre-upgrade)
-                sb.AppendLine(@"  [Source: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey → DigitalProductId]");
                 using var dpk = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
                     @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey");
                 if (dpk?.GetValue("DigitalProductId") is byte[] origDpId)
-                {
                     flOrigKey = DecodeProductKeyWin8AndUp(origDpId);
-                    sb.AppendLine($"    {"Original Key (pre-upgrade)",-28}: {(string.IsNullOrEmpty(flOrigKey) ? "(decode failed)" : (full ? flOrigKey : MaskKey(flOrigKey!)))}");
-                }
-                else
-                    sb.AppendLine($"    {"Original Key (pre-upgrade)",-28}: (not found)");
-                sb.AppendLine();
+                OutputKeyEntry("Original Key (pre-upgrade)", @"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey → DigitalProductId", flOrigKey);
 
                 // Original Key 2 (secondary pre-upgrade)
-                sb.AppendLine(@"  [Source: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey2 → DigitalProductId]");
                 using var dpk2 = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
                     @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey2");
                 if (dpk2?.GetValue("DigitalProductId") is byte[] origDpId2)
-                {
                     flOrigKey2 = DecodeProductKeyWin8AndUp(origDpId2);
-                    sb.AppendLine($"    {"Original Key 2 (pre-upgrade)",-28}: {(string.IsNullOrEmpty(flOrigKey2) ? "(decode failed)" : (full ? flOrigKey2 : MaskKey(flOrigKey2!)))}");
-                }
-                else
-                    sb.AppendLine($"    {"Original Key 2 (pre-upgrade)",-28}: (not found)");
+                OutputKeyEntry("Original Key 2 (pre-upgrade)", @"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey2 → DigitalProductId", flOrigKey2);
             }
             catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
-            sb.AppendLine();
 
-            // ── Section 3: PidGenX Analysis ────────────────────────────────────
-            sb.AppendLine($"── {L.Get("FL_SEC_PIDGENX")} {sec.Substring(0, 40)}");
-            sb.AppendLine("  [Source: pidgenx.dll P/Invoke + pkeyconfig.xrm-ms]");
-            void AppendPidGenX(string label, string? key)
-            {
-                if (string.IsNullOrEmpty(key)) return;
-                sb.AppendLine($"  [{label}]");
-                var (valid, channel, edition, partNum, winVer, oemId, sku, eulaType, isUpgrade, extPid) = CheckKeyChecksum(key!);
-                if (valid && !string.IsNullOrEmpty(channel))
-                {
-                    sb.AppendLine($"    Channel      : {channel}");
-                    if (!string.IsNullOrEmpty(edition))   sb.AppendLine($"    Edition      : {edition}");
-                    if (!string.IsNullOrEmpty(partNum))    sb.AppendLine($"    Part No.     : {partNum}");
-                    if (!string.IsNullOrEmpty(winVer))     sb.AppendLine($"    Win Ver.     : {winVer}");
-                    if (!string.IsNullOrEmpty(oemId))      sb.AppendLine($"    OEM ID       : {oemId}");
-                    if (!string.IsNullOrEmpty(sku))        sb.AppendLine($"    Activation ID: {sku}");
-                    if (!string.IsNullOrEmpty(eulaType))   sb.AppendLine($"    EULA         : {eulaType}");
-                    sb.AppendLine($"    Is Upgrade   : {(isUpgrade != 0 ? "Yes" : "No")}");
-                    if (!string.IsNullOrEmpty(extPid))     sb.AppendLine($"    Ext. PID     : {extPid}");
-                }
-                else if (!valid && System.IO.File.Exists(PkcPath))
-                {
-                    sb.AppendLine($"    PidGenX      : Key not found in pkeyconfig (possibly pre-Windows 10)");
-                }
-                else
-                {
-                    sb.AppendLine($"    PidGenX      : format check only (pkeyconfig not found)");
-                }
-            }
-            AppendPidGenX("BIOS OEM Key", flOemKey);
-            AppendPidGenX("Registry Backup Key", flRegKey);
-            AppendPidGenX("Installed Key", flInstKey);
-            AppendPidGenX("Original Key", flOrigKey);
-            AppendPidGenX("Original Key 2", flOrigKey2);
-            sb.AppendLine();
-
-            // ── Section 4: WMI License Status ──────────────────────────────────
+            // ── Section 3: WMI License Status ──────────────────────────────────
             sb.AppendLine($"── {L.Get("FL_SEC_WMI_LIC")} {sec.Substring(0, 40)}");
             sb.AppendLine("  [Source: WMI SoftwareLicensingProduct (WHERE PartialProductKey IS NOT NULL)]");
             try
@@ -3636,7 +3615,7 @@ namespace WinLicApp
             catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
             sb.AppendLine();
 
-            // ── Section 5: WMI Service Properties ──────────────────────────────
+            // ── Section 4: WMI Service Properties ──────────────────────────────
             sb.AppendLine($"── {L.Get("FL_SEC_WMI_SVC")} {sec.Substring(0, 40)}");
             sb.AppendLine("  [Source: WMI SoftwareLicensingService]");
             try
@@ -3662,7 +3641,7 @@ namespace WinLicApp
             catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
             sb.AppendLine();
 
-            // ── Section 6: Registry Dump ───────────────────────────────────────
+            // ── Section 5: Registry Dump ───────────────────────────────────────
             sb.AppendLine($"── {L.Get("FL_SEC_REG")} {sec.Substring(0, 40)}");
             void DumpRegKey(string path)
             {
@@ -3698,21 +3677,21 @@ namespace WinLicApp
             DumpRegKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey");
             DumpRegKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey2");
 
-            // ── Section 7: slmgr /dli ──────────────────────────────────────────
+            // ── Section 6: slmgr /dli ──────────────────────────────────────────
             sb.AppendLine($"── {L.Get("FL_SEC_DLI")} {sec.Substring(0, 40)}");
             sb.AppendLine(@"  [Source: Windows Script Host → C:\Windows\System32\slmgr.vbs /dli]");
             try { sb.AppendLine(await RunSlmgrAsync("/dli")); }
             catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
             sb.AppendLine();
 
-            // ── Section 8: slmgr /dlv ──────────────────────────────────────────
+            // ── Section 7: slmgr /dlv ──────────────────────────────────────────
             sb.AppendLine($"── {L.Get("FL_SEC_DLV")} {sec.Substring(0, 40)}");
             sb.AppendLine(@"  [Source: Windows Script Host → C:\Windows\System32\slmgr.vbs /dlv]");
             try { sb.AppendLine(await RunSlmgrAsync("/dlv")); }
             catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
             sb.AppendLine();
 
-            // ── Section 9: Digital Entitlement Analysis (enriched only) ────────
+            // ── Section 8: Digital Entitlement Analysis (enriched only) ────────
             if (enriched)
             {
                 sb.AppendLine($"── {L.Get("FL_SEC_DE")} {sec.Substring(0, 40)}");
