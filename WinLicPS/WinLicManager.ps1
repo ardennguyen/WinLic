@@ -139,11 +139,11 @@ $Str = @{
                         'Hiển thị bản dựng HĐH, Key OEM BIOS, bản quyền đang hoạt động qua WMI, key dự phòng registry,')
     'O1_OPT_DESC2' = @('installed key (from DigitalProductId), and optionally the full slmgr /dlv report.',
                         'key đã cài đặt (từ DigitalProductId) và tùy chọn báo cáo đầy đủ slmgr /dlv.')
-    'O1_STEP_OS'        = @('Querying OS information...', 'Đang truy vấn thông tin hệ điều hành...')
+    'O1_STEP_OS'        = @('Querying OS info  (WMI Win32_OperatingSystem)...', 'Đang truy vấn thông tin hệ điều hành...')
     'O1_STEP_REG'       = @('Checking Registry Backup Key...', 'Đang kiểm tra Key Dự phòng Registry...')
-    'O1_STEP_LIC'       = @('Querying active Windows license (WMI)...', 'Đang truy vấn bản quyền Windows đang hoạt động (WMI)...')
-    'O1_STEP_BIOS'      = @('Checking BIOS/UEFI OEM key...', 'Đang kiểm tra Key OEM BIOS/UEFI...')
-    'O1_STEP_INST'      = @('Decoding installed key from registry...', 'Đang giải mã Key đã cài đặt từ Registry...')
+    'O1_STEP_LIC'       = @('Querying active license  (WMI SoftwareLicensingProduct)...', 'Đang truy vấn bản quyền Windows đang hoạt động (WMI)...')
+    'O1_STEP_BIOS'      = @('Checking BIOS/UEFI OEM key  (WMI SoftwareLicensingService)...', 'Đang kiểm tra Key OEM BIOS/UEFI...')
+    'O1_STEP_INST'      = @('Decoding installed key  (HKLM\...\CurrentVersion -> DigitalProductId)...', 'Đang giải mã Key đã cài đặt từ Registry...')
     'O1_STEP_OEM_PID'   = @('Running Phase 1 analysis on BIOS OEM key...', 'Đang phân tích Giai đoạn 1 trên Key OEM BIOS...')
     'O1_OEM_PID_REJECTED' = @('  PidGenX  : Key not found in pkeyconfig.xrm-ms (possibly a pre-Windows 10 OEM key)',
                               '  PidGenX  : Key không tìm thấy trong pkeyconfig.xrm-ms (có thể là key OEM trước Windows 10)')
@@ -170,13 +170,25 @@ $Str = @{
     'O1_GRACE_MIN'         = @('{0} minutes remaining', '{0} phút còn lại')
     'O1_FETCH_ORIGKEY'     = @('Checking for pre-upgrade original key...', 'Đang kiểm tra key gốc trước nâng cấp...')
     'O1_FETCH_ORIGPIDGENX' = @('Analyzing Original Key via pidgenx...', 'Đang phân tích Key Gốc qua pidgenx...')
+    'O1_FETCH_ORIGKEY2'   = @('Checking secondary pre-upgrade key  (HKLM\...\DefaultProductKey2)...', 'Đang kiểm tra key gốc thứ hai trước nâng cấp  (HKLM\...\DefaultProductKey2)...')
+    'O1_FETCH_ORIG2PID'   = @('PidGenX analysis: Original Key 2...', 'Phân tích PidGenX: Key Gốc 2...')
+    'O1_LBL_ORIGKEY2'     = @('Original Key 2 (pre-upgrade):', 'Key Gốc 2 (trước nâng cấp):')
+    'O1_KEY_ORIG2'        = @('  Original Key 2 (pre-upgrade):', '  Key Gốc 2 (trước nâng cấp):')
+    'O1_SRC_WMI_BIOS'     = @('  (Source: WMI SoftwareLicensingService - OA3xOriginalProductKey)', '  (Nguồn: WMI SoftwareLicensingService - OA3xOriginalProductKey)')
+    'O1_SRC_REG_BACKUP'   = @('  (Source: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform -> BackupProductKeyDefault)', '  (Nguồn: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform -> BackupProductKeyDefault)')
+    'O1_SRC_REG_INST'     = @('  (Source: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion -> DigitalProductId)', '  (Nguồn: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion -> DigitalProductId)')
+    'O1_SRC_ORIG_KEY'     = @('  (Source: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey -> DigitalProductId)', '  (Nguồn: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey -> DigitalProductId)')
+    'O1_SRC_ORIG_KEY2'    = @('  (Source: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey2 -> DigitalProductId)', '  (Nguồn: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey2 -> DigitalProductId)')
+    'O1_SEC_OS'           = @('OS & Hardware Information', 'Thông tin HĐH & Phần cứng')
+    'O1_SEC_LICENSE'      = @('Activation & License Status', 'Trạng thái Kích hoạt & Bản quyền')
+    'O1_SEC_KEYS'         = @('Product Key Storage', 'Lưu trữ Key Bản Quyền')
     # Status messages
     'O1_BIOS_DETECT' = @('BIOS OEM Key: Detected', 'Key OEM BIOS: Đã phát hiện')
-    'O1_BIOS_NONE'   = @('BIOS OEM Key: None detected', 'Key OEM BIOS: Không phát hiện')
+    'O1_BIOS_NONE'   = @('BIOS OEM Key: Not found', 'Key OEM BIOS: Không phát hiện')
     'O1_REG_DETECT'  = @('Registry Backup Key: Detected', 'Key Dự phòng Registry: Đã phát hiện')
-    'O1_REG_NONE'    = @('Registry Backup Key: None found', 'Key Dự phòng Registry: Không tìm thấy')
+    'O1_REG_NONE'    = @('Registry Backup Key: Not found', 'Key Dự phòng Registry: Không tìm thấy')
     'O1_INST_OK'     = @('Installed Key: Detected', 'Key Đã Cài đặt: Đã phát hiện')
-    'O1_INST_NO'     = @('Installed Key: None found', 'Key Đã Cài đặt: Không tìm thấy')
+    'O1_INST_NO'     = @('Installed Key: Not found', 'Key Đã Cài đặt: Không tìm thấy')
     'O1_NOACT'       = @('No active Windows product license found via WMI.',
                           'Không tìm thấy bản quyền Windows đang hoạt động qua WMI.')
     'O1_NOACT_NOTE'  = @('This is normal on custom-built PCs or systems without OEM pre-activation.',
@@ -1285,6 +1297,8 @@ function Show-SystemInfo {
     param([switch]$WarnBeforeReplace)
 
     # -- 1a. OS Version -------------------------------------------------------
+    Write-Sep
+    Write-Action (T 'O1_SEC_OS')
     Write-Step (T 'O1_STEP_OS')
     Write-Cmd  'Get-CimInstance Win32_OperatingSystem'
     try {
@@ -1298,6 +1312,8 @@ function Show-SystemInfo {
         if ($productId) { Write-Data (T 'O1_LBL_PRODUCTID') $productId }
 
         # System Manufacturer (OEM)
+    Write-Blank
+    Write-Cmd 'Get-WmiObject Win32_ComputerSystem'
         $cs = Get-WmiObject Win32_ComputerSystem -ErrorAction SilentlyContinue
         if ($cs.Manufacturer) { Write-Info ((T 'O1_SYS_MFR') + $cs.Manufacturer) }
         if ($cs.Model)        { Write-Info ((T 'O1_SYS_MODEL') + $cs.Model) }
@@ -1310,6 +1326,9 @@ function Show-SystemInfo {
     Write-Sep
 
     # -- 1b. Active License (WMI) ---------------------------------------------
+    Write-Blank
+    Write-Sep
+    Write-Action (T 'O1_SEC_LICENSE')
     Write-Step (T 'O1_STEP_LIC')
     Write-Cmd  'Get-CimInstance SoftwareLicensingProduct | Where PartialProductKey and Name like Windows*'
     Write-Blank
@@ -1378,6 +1397,9 @@ function Show-SystemInfo {
     # -- 1c. BIOS OEM Key (inline display + pidgenx analysis) -----------------
     Write-Blank
     Write-Sep
+    Write-Blank
+    Write-Sep
+    Write-Action (T 'O1_SEC_KEYS')
     Write-Step (T 'O1_STEP_BIOS')
     Write-Cmd  'Get-CimInstance SoftwareLicensingService | Select OA3xOriginalProductKey'
     $sls = Get-CimInstance -ClassName SoftwareLicensingService
@@ -1387,12 +1409,13 @@ function Show-SystemInfo {
     if ($oemKey) {
         Write-OK (T 'O1_BIOS_DETECT')
         Write-Key ((T 'O1_KEY_BIOS') + (Display-Key $oemKey))
+        Write-Info (T 'O1_SRC_WMI_BIOS')
         if ($sls.OA3xOriginalProductKeyDescription) {
             Write-Data (T 'O1_LBL_OA3XDESC') $sls.OA3xOriginalProductKeyDescription
         }
 
         # PidGenX analysis on BIOS OEM key (reuses Invoke-PidGenXCheck from Option 2)
-        Write-Step (T 'O1_STEP_OEM_PID')
+        Write-Diag (T 'O1_STEP_OEM_PID')
         $oemPid = Invoke-PidGenXCheck -Key $oemKey
         if ($oemPid.SourceNote -eq 'pidgenx') {
             if ($oemPid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $oemPid.Channel) }
@@ -1424,8 +1447,9 @@ function Show-SystemInfo {
     if ($regKey) {
         Write-OK (T 'O1_REG_DETECT')
         Write-Key ((T 'O1_KEY_REG') + (Display-Key $regKey))
+        Write-Info (T 'O1_SRC_REG_BACKUP')
         
-        Write-Step (T 'O1_REG_PIDGENX')
+        Write-Diag (T 'O1_REG_PIDGENX')
         $regPid = Invoke-PidGenXCheck -Key $regKey
         if ($regPid.SourceNote -eq 'pidgenx') {
             if ($regPid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $regPid.Channel) }
@@ -1454,8 +1478,9 @@ function Show-SystemInfo {
     if ($installedKey) {
         Write-OK (T 'O1_INST_OK')
         Write-Key ((T 'O1_KEY_INST') + (Display-Key $installedKey))
+        Write-Info (T 'O1_SRC_REG_INST')
         
-        Write-Step (T 'O1_INST_PIDGENX')
+        Write-Diag (T 'O1_INST_PIDGENX')
         $instPid = Invoke-PidGenXCheck -Key $installedKey
         if ($instPid.SourceNote -eq 'pidgenx') {
             if ($instPid.Channel)     { Write-Info ((T 'O2_PIDGX_CHANNEL') + $instPid.Channel) }
@@ -1477,13 +1502,17 @@ function Show-SystemInfo {
         Write-Warn (T 'O1_INST_NO')
     }
 
-    Write-Diag (T 'O1_FETCH_ORIGKEY')
+    Write-Blank
+    Write-Sep
+    Write-Step (T 'O1_FETCH_ORIGKEY')
     try {
         $origDpId = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey' -Name 'DigitalProductId' -ErrorAction SilentlyContinue).DigitalProductId
         if ($origDpId) {
             $origKey = Decode-ProductKey $origDpId
             if ($origKey) {
+                Write-OK ((T 'O1_LBL_ORIGKEY') + ' ' + (T 'O3_BiosDetected'))
                 Write-Key ((T 'O1_LBL_ORIGKEY') + ' ' + (Display-Key $origKey))
+                Write-Info (T 'O1_SRC_ORIG_KEY')
                 Write-Diag (T 'O1_FETCH_ORIGPIDGENX')
                 $origPid = Invoke-PidGenXCheck -Key $origKey
                 if ($origPid.SourceNote -eq 'pidgenx') {
@@ -1503,6 +1532,42 @@ function Show-SystemInfo {
             }
         }
     } catch {}
+
+    # -- 1f. Original Key 2 (DefaultProductKey2 - double-upgrade) ----------
+    Write-Blank
+    Write-Sep
+    Write-Step (T 'O1_FETCH_ORIGKEY2')
+    try {
+        $origDpId2 = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey2' -Name 'DigitalProductId' -ErrorAction SilentlyContinue).DigitalProductId
+        if ($origDpId2) {
+            $origKey2 = Decode-ProductKey $origDpId2
+            if ($origKey2) {
+                Write-OK ((T 'O1_LBL_ORIGKEY2') + ' ' + (T 'O3_BiosDetected'))
+                Write-Key ((T 'O1_KEY_ORIG2') + ' ' + (Display-Key $origKey2))
+                Write-Info (T 'O1_SRC_ORIG_KEY2')
+                Write-Diag (T 'O1_FETCH_ORIG2PID')
+                $orig2Pid = Invoke-PidGenXCheck -Key $origKey2
+                if ($orig2Pid.SourceNote -eq 'pidgenx') {
+                    if ($orig2Pid.Channel)    { Write-Info ((T 'O2_PIDGX_CHANNEL') + $orig2Pid.Channel) }
+                    if ($orig2Pid.Edition)    { Write-Info ((T 'O2_PIDGX_EDITION') + $orig2Pid.Edition) }
+                    if ($orig2Pid.PartNumber) { Write-Info ((T 'O2_PIDGX_PARTNO')  + $orig2Pid.PartNumber) }
+                    if ($orig2Pid.WinVersion) { Write-Info ((T 'O2_PIDGX_WINVER')  + $orig2Pid.WinVersion) }
+                    if ($orig2Pid.OemId)      { Write-Info ((T 'O2_PIDGX_OEMID')   + $orig2Pid.OemId) }
+                    if ($orig2Pid.Sku)        { Write-Info ((T 'O2_PIDGX_SKU')     + $orig2Pid.Sku) }
+                    if ($orig2Pid.EulaType)   { Write-Info ((T 'O2_PIDGX_EULA')    + $orig2Pid.EulaType) }
+                    $ut2 = if ($orig2Pid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
+                    Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $ut2)
+                    if ($orig2Pid.ExtPid)     { Write-Info ((T 'O2_PIDGX_EXTPID')  + $orig2Pid.ExtPid) }
+                } elseif ($orig2Pid.SourceNote -eq 'pidgenx-rejected') {
+                    Write-Warn (T 'O2_PIDGX_REJECTED')
+                }
+            }
+        } else {
+            Write-Warn ((T 'O1_LBL_ORIGKEY2') + ' ' + (T 'O1_INST_NO'))
+        }
+    } catch {
+        Write-Warn ((T 'O1_LBL_ORIGKEY2') + ' ' + (T 'O1_INST_NO'))
+    }
 
     # -- Save-key advisory (inline, right after installed key) ----------------
     if ($WarnBeforeReplace -and $installedKey) {

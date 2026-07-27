@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -359,7 +359,7 @@ namespace WinLicApp
 
         private void LogSep()
             => LogDocument.Blocks.Add(
-               new Paragraph(new Run("  " + new string('─', 62)))
+               new Paragraph(new Run("  " + new string((char)0x2500, 62)))
                { Margin = new Thickness(0), Foreground = ColSep });
 
         private void LogBlank()
@@ -590,27 +590,7 @@ namespace WinLicApp
         {
             CollapseAllPanels(); SetActiveButton(BtnVersionInfo);
             LogAction("Act1");
-            _ = ShowSystemInfoAsync();
-
-            // ── slmgr /dli — License Channel info ────────────────
-            LogBlank();
-            LogSep();
-            LogFetch(L.Get("Act1_DliHeader"));
-            LogInfo(L.Get("O2_Note"));
-            LogBlank();
-            var dliOutput = await RunSlmgrAsync("/dli");
-            if (string.IsNullOrWhiteSpace(dliOutput))
-                LogWarn(L.Get("O2_NoOutput"));
-            else
-                LogSlmgrOutput(dliOutput);
-
-            // ── Extended info: slmgr /dlv — show panel instead of MessageBox ────
-            DlvTitle.Text  = L.Get("DLV_PANEL_TITLE");
-            DlvDesc1.Text  = L.Get("DLV_DESC1");
-            DlvDesc2.Text  = L.Get("DLV_DESC2");
-            BtnDlvCancel.Content = L.Get("DLV_CANCEL");
-            BtnDlvRun.Content    = L.Get("DLV_RUN");
-            DlvPanel.Visibility  = Visibility.Visible;
+            await ShowSystemInfoAsync();
         }
 
         private void RunPidGenXAnalysis(string key)
@@ -641,7 +621,12 @@ namespace WinLicApp
 
         private async System.Threading.Tasks.Task ShowSystemInfoAsync(bool warnBeforeReplace = false)
         {
-            // ── OS information ──────────────────────────────────────────────────
+            // ═══════════════════════════════════════════════════════════════════
+            // SECTION 1 — OS & Hardware Information
+            // ═══════════════════════════════════════════════════════════════════
+            LogSep(); LogAction(L.Get("Sec_OS")); LogSep();
+
+            // ── OS (WMI Win32_OperatingSystem) ─────────────────────────────────
             LogFetch(L.Get("Fetch_OS"));
             using var osRes = WmiQuery(
                 "SELECT Caption,Version,BuildNumber,OSArchitecture FROM Win32_OperatingSystem");
@@ -654,17 +639,23 @@ namespace WinLicApp
                     LogData(L.Get("D_Arch"),        obj["OSArchitecture"]?.ToString() ?? "—");
                 }
 
-            // Product ID
+            // Product ID (registry)
             try
             {
                 using var pvRk = Registry.LocalMachine.OpenSubKey(
                     @"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
                 var pid = pvRk?.GetValue("ProductId")?.ToString();
-                if (!string.IsNullOrEmpty(pid)) LogData(L.Get("D_ProductId"), pid);
+                if (!string.IsNullOrEmpty(pid))
+                {
+                    LogData(L.Get("D_ProductId"), pid);
+                    LogInfo(L.Get("D_ProductIdSrc"));
+                }
             }
             catch { }
 
-            // System Manufacturer (OEM)
+            // ── Hardware (WMI Win32_ComputerSystem) ────────────────────────────
+            LogBlank();
+            LogFetch(L.Get("Fetch_HW_WMI"));
             using var csRes = WmiQuery("SELECT Manufacturer,Model FROM Win32_ComputerSystem");
             if (csRes != null)
                 foreach (ManagementObject csObj in csRes)
@@ -675,9 +666,7 @@ namespace WinLicApp
                     if (!string.IsNullOrEmpty(mdl))  LogInfo(L.Get("Sys_Model") + mdl);
                 }
 
-            // ── Registry backup key (read first for DE detection) ─────────
-            LogBlank();
-            LogFetch(L.Get("Fetch_RegKey"));
+            // ── Read registry backup key silently (needed for DE detection) ────
             string? regKey = null;
             try
             {
@@ -687,7 +676,12 @@ namespace WinLicApp
             }
             catch (Exception ex) { LogError(L.Get("O3_RegReadErr") + ex.Message); }
 
-            // ── Active Windows license (WMI) ───────────────────
+            // ═══════════════════════════════════════════════════════════════════
+            // SECTION 2 — Activation & License Status
+            // ═══════════════════════════════════════════════════════════════════
+            LogBlank(); LogSep(); LogAction(L.Get("Sec_License")); LogSep();
+
+            // ── Active Windows license (WMI SoftwareLicensingProduct) ──────────
             LogFetch(L.Get("Fetch_License"));
             string? partialKey  = null;
             bool    foundActive = false;
@@ -742,7 +736,7 @@ namespace WinLicApp
             }
             if (!foundActive) LogWarn(L.Get("O3_NoLicense"));
 
-            // ── Activation method block ─────────────────────────────
+            // ── Activation method diagnosis ─────────────────────────────────────
             LogBlank();
             switch (activationMethod)
             {
@@ -786,9 +780,42 @@ namespace WinLicApp
                     break;
             }
 
+            if (warnBeforeReplace)
+            {
+                // Channel warnings relevant when about to replace key
+                // (mirrored from old inline position)
+            }
+
+            // ── slmgr /dli — License channel detail ────────────────────────────
+            LogBlank(); LogSep();
+            LogFetch(L.Get("Act1_DliHeader"));
+            LogInfo(L.Get("O2_Note"));
+            LogBlank();
+            var dliOutput = await RunSlmgrAsync("/dli");
+            if (string.IsNullOrWhiteSpace(dliOutput))
+                LogWarn(L.Get("O2_NoOutput"));
+            else
+                LogSlmgrOutput(dliOutput);
+
+            // ── slmgr /dlv — Extended report (panel button) ────────────────────
+            if (!warnBeforeReplace)
+            {
+                DlvTitle.Text        = L.Get("DLV_PANEL_TITLE");
+                DlvDesc1.Text        = L.Get("DLV_DESC1");
+                DlvDesc2.Text        = L.Get("DLV_DESC2");
+                BtnDlvCancel.Content = L.Get("DLV_CANCEL");
+                BtnDlvRun.Content    = L.Get("DLV_RUN");
+                DlvPanel.Visibility  = Visibility.Visible;
+            }
+
+            // ═══════════════════════════════════════════════════════════════════
+            // SECTION 3 — Product Key Storage
+            // ═══════════════════════════════════════════════════════════════════
+            LogBlank(); LogSep(); LogAction(L.Get("Sec_Keys")); LogSep();
+
             bool showFull = ShowFullKey;
 
-            // ── BIOS OEM key (inline display + pidgenx analysis) ───────────────────
+            // ── BIOS OEM key (WMI SoftwareLicensingService) ────────────────────
             LogBlank();
             LogFetch(L.Get("Fetch_BiosKey"));
             string? oemKey = null;
@@ -797,36 +824,44 @@ namespace WinLicApp
             if (svcRes != null)
                 foreach (ManagementObject obj in svcRes)
                 {
-                    oemKey = obj["OA3xOriginalProductKey"]?.ToString();
+                    oemKey   = obj["OA3xOriginalProductKey"]?.ToString();
                     oa3xDesc = obj["OA3xOriginalProductKeyDescription"]?.ToString();
                 }
 
             bool hasOem = !string.IsNullOrWhiteSpace(oemKey);
-            LogData(L.Get("D_BiosOemKey"), hasOem ? L.Get("O3_BiosDetected") : L.Get("O3_BiosNone"));
             if (hasOem)
             {
-                // Show key inline immediately after detection
+                LogOk(L.Get("D_BiosOemKey") + " " + L.Get("O3_BiosDetected"));
                 LogKey(L.Get("O3_KeyBios") + (showFull ? oemKey! : MaskKey(oemKey!)));
-
+                LogInfo(L.Get("D_SrcWmiBios"));
                 if (!string.IsNullOrEmpty(oa3xDesc)) LogData(L.Get("D_OA3xDesc"), oa3xDesc);
-
                 LogFetch(L.Get("Fetch_OemPidGenX"));
                 RunPidGenXAnalysis(oemKey!);
             }
+            else
+            {
+                LogWarn(L.Get("D_BiosOemKey") + " " + L.Get("O3_BiosNone"));
+            }
 
-            // ── Registry backup key (inline display) ──────────────────────────────
-            LogBlank();
+            // ── Registry backup key ─────────────────────────────────────────────
+            LogBlank(); LogSep();
+            LogFetch(L.Get("Fetch_RegKey"));
             bool hasReg = !string.IsNullOrWhiteSpace(regKey);
-            LogData(L.Get("D_RegBackupKey"), hasReg ? L.Get("O3_BiosDetected") : L.Get("O3_RegNone"));
             if (hasReg)
             {
+                LogOk(L.Get("D_RegBackupKey") + " " + L.Get("O3_BiosDetected"));
                 LogKey(L.Get("O3_KeyReg") + (showFull ? regKey! : MaskKey(regKey!)));
+                LogInfo(L.Get("D_SrcRegBackup"));
                 LogFetch(L.Get("Fetch_RegPidGenX"));
                 RunPidGenXAnalysis(regKey!);
             }
+            else
+            {
+                LogWarn(L.Get("D_RegBackupKey") + " " + L.Get("O3_RegNone"));
+            }
 
-            // ── Installed Key (DigitalProductId decoder, inline display) ──────────
-            LogBlank();
+            // ── Installed Key (DigitalProductId decoder) ────────────────────────
+            LogBlank(); LogSep();
             LogFetch(L.Get("Fetch_InstalledKey"));
             string? installedKey = null;
             try
@@ -839,41 +874,87 @@ namespace WinLicApp
             catch { }
 
             bool hasInstalled = !string.IsNullOrWhiteSpace(installedKey);
-            LogData(L.Get("D_InstalledKey"),
-                    hasInstalled ? L.Get("O3_BiosDetected") : L.Get("O3_RegNone"));
             if (hasInstalled)
             {
+                LogOk(L.Get("D_InstalledKey") + " " + L.Get("O3_BiosDetected"));
                 LogKey(L.Get("O3_KeyInstalled") + (showFull ? installedKey! : MaskKey(installedKey!)));
+                LogInfo(L.Get("D_SrcRegInstalled"));
                 LogFetch(L.Get("Fetch_InstPidGenX"));
                 RunPidGenXAnalysis(installedKey!);
             }
+            else
+            {
+                LogWarn(L.Get("D_InstalledKey") + " " + L.Get("O3_RegNone"));
+            }
 
-            // ── Original Key (pre-upgrade) ─────────────────────────────────────────
+            // ── Original Key (pre-upgrade, DefaultProductKey) ───────────────────
+            LogBlank(); LogSep();
             LogFetch(L.Get("Fetch_OrigKey"));
+            string? origKey = null;
             try
             {
                 using var dpk = Registry.LocalMachine.OpenSubKey(
                     @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey");
                 if (dpk?.GetValue("DigitalProductId") is byte[] origDpId)
-                {
-                    var origKey = DecodeProductKeyWin8AndUp(origDpId);
-                    if (!string.IsNullOrEmpty(origKey))
-                    {
-                        LogKey(L.Get("D_OriginalKey") + (ShowFullKey ? origKey : MaskKey(origKey)));
-                        LogFetch(L.Get("Fetch_OrigPidGenX"));
-                        RunPidGenXAnalysis(origKey);
-                    }
-                }
+                    origKey = DecodeProductKeyWin8AndUp(origDpId);
             }
             catch { }
 
-            // ── Save-key advisory (inline, right after installed key display) ──────
-            // Suppress only for DE (generic placeholder) and KMS (volume key).
-            // Do NOT suppress based on GVLK table match alone — a user may have a GVLK
-            // placeholder installed on a Standard-activated system and still need to save it.
+            if (!string.IsNullOrEmpty(origKey))
+            {
+                LogOk(L.Get("D_OriginalKey") + " " + L.Get("O3_BiosDetected"));
+                LogKey(L.Get("O3_KeyOrig") + " " + (showFull ? origKey : MaskKey(origKey)));
+                LogInfo(L.Get("D_SrcOrigKey"));
+                LogFetch(L.Get("Fetch_OrigPidGenX"));
+                RunPidGenXAnalysis(origKey);
+            }
+            else
+            {
+                LogWarn(L.Get("D_OriginalKey") + " " + L.Get("O3_RegNone"));
+            }
+
+            // ── Original Key 2 (DefaultProductKey2 — double-upgrade scenario) ───
+            LogBlank(); LogSep();
+            LogFetch(L.Get("Fetch_OrigKey2"));
+            string? origKey2 = null;
+            try
+            {
+                using var dpk2 = Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey2");
+                if (dpk2?.GetValue("DigitalProductId") is byte[] origDpId2)
+                    origKey2 = DecodeProductKeyWin8AndUp(origDpId2);
+            }
+            catch { }
+
+            if (!string.IsNullOrEmpty(origKey2))
+            {
+                LogOk(L.Get("D_OriginalKey2") + " " + L.Get("O3_BiosDetected"));
+                LogKey(L.Get("O3_KeyOrig2") + " " + (showFull ? origKey2 : MaskKey(origKey2)));
+                LogInfo(L.Get("D_SrcOrigKey2"));
+                LogFetch(L.Get("Fetch_Orig2PidGenX"));
+                RunPidGenXAnalysis(origKey2);
+            }
+            else
+            {
+                LogWarn(L.Get("D_OriginalKey2") + " " + L.Get("O3_RegNone"));
+            }
+
+            LogBlank(); LogSep();
+
+            // ── Save-key advisory ───────────────────────────────────────────────
             bool saveKeyWarnNeeded = false;
             if (warnBeforeReplace && hasInstalled)
             {
+                bool isDE  = activationMethod == ActivationMethod.DE;
+                bool isKms = activationMethod == ActivationMethod.KMS;
+                saveKeyWarnNeeded = !isDE && !isKms;
+            }
+            if (saveKeyWarnNeeded)
+                LogWarn(L.Get("O2_SAVE_KEY_WARN"));
+            _saveKeyWarnNeeded = saveKeyWarnNeeded;
+
+            // ── Key mismatch detection ───────────────�
+         {
                 bool isDE  = activationMethod == ActivationMethod.DE;
                 bool isKms = activationMethod == ActivationMethod.KMS;
                 saveKeyWarnNeeded = !isDE && !isKms;
@@ -3253,8 +3334,8 @@ namespace WinLicApp
         {
             bool full = ShowFullKey;
             var sb = new System.Text.StringBuilder(8192);
-            string sep  = new string('═', 60);
-            string sec  = new string('─', 60);
+            string sep  = new string((char)0x2550, 60);
+            string sec  = new string((char)0x2500, 60);
             string mode = enriched ? L.Get("FL_ENRICHED") : L.Get("FL_RAW");
 
             sb.AppendLine(sep);
