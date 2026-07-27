@@ -77,7 +77,9 @@ namespace WinLicApp
                 }
                 else
                 {
-                    SetVerStatus(L.Get("About_UpToDate"), isNew: false,
+                    bool isPreRel = IsTagNewer(AppVersion, latestTag);
+                    string locStr = isPreRel ? "About_PreRelease" : "About_UpToDate";
+                    SetVerStatus(L.Get(locStr), isNew: false,
                         color: System.Windows.Media.Color.FromRgb(0x16, 0xa3, 0x4a));
                 }
             }

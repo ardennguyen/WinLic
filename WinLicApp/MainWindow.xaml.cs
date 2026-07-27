@@ -594,7 +594,7 @@ namespace WinLicApp
             await ShowSystemInfoAsync();
         }
 
-        private void RunPidGenXAnalysis(string key)
+        private void RunPidGenXAnalysis(string key, bool warnIfUnique = false)
         {
             var (valid, channel, edition, partNumber, winVer, oemId, sku, eulaType, isUpgrade, extPid) = CheckKeyChecksum(key);
             bool pkcPresent = System.IO.File.Exists(PkcPath);
@@ -609,6 +609,18 @@ namespace WinLicApp
                 if (!string.IsNullOrEmpty(eulaType))    LogInfo(L.Get("OemPid_EulaType")+ eulaType);
                 LogInfo(L.Get("OemPid_IsUpgrade") + (isUpgrade != 0 ? L.Get("OemPid_UpgradeYes") : L.Get("OemPid_UpgradeNo")));
                 if (!string.IsNullOrEmpty(extPid))      LogInfo(L.Get("OemPid_ExtPid")  + extPid);
+
+                if (warnIfUnique)
+                {
+                    bool isGvlk = channel.IndexOf("GVLK", StringComparison.OrdinalIgnoreCase) >= 0 || channel.IndexOf("CSVLK", StringComparison.OrdinalIgnoreCase) >= 0;
+                    string last5 = key.Length >= 5 ? key.Substring(key.Length - 5).ToUpperInvariant() : "";
+                    bool isGeneric = AppSettings.AllGenericKeySuffixes.Contains(last5);
+                    if (!isGvlk && !isGeneric)
+                    {
+                        LogBlank();
+                        LogWarn(L.Get("O2_SAVE_KEY_WARN"));
+                    }
+                }
             }
             else if (!valid && pkcPresent)
             {
@@ -792,7 +804,7 @@ namespace WinLicApp
             LogFetch(L.Get("Act1_DliHeader"));
             LogInfo(L.Get("O2_Note"));
             LogBlank();
-            var dliOutput = await RunSlmgrAsync("/dli");
+            var dliOutput = await RunSlmgrAsync("/dli", logCmd: false);
             if (string.IsNullOrWhiteSpace(dliOutput))
                 LogWarn(L.Get("O2_NoOutput"));
             else
@@ -818,7 +830,7 @@ namespace WinLicApp
                     LogBlank(); LogSep();
                     LogFetch(L.Get("DLV_RUNNING"));
                     LogBlank();
-                    var dlvOutput = await RunSlmgrAsync("/dlv");
+                    var dlvOutput = await RunSlmgrAsync("/dlv", logCmd: false);
                     if (string.IsNullOrWhiteSpace(dlvOutput))
                         LogWarn(L.Get("O2_NoOutput"));
                     else
@@ -858,7 +870,7 @@ namespace WinLicApp
                 LogInfo(L.Get("D_SrcWmiBios"));
                 if (!string.IsNullOrEmpty(oa3xDesc)) LogData(L.Get("D_OA3xDesc"), oa3xDesc!);
                 LogFetch(L.Get("Fetch_OemPidGenX"));
-                RunPidGenXAnalysis(oemKey!);
+                RunPidGenXAnalysis(oemKey!, warnIfUnique: true);
             }
             else
             {
@@ -875,7 +887,7 @@ namespace WinLicApp
                 LogKey(L.Get("O3_KeyReg") + (showFull ? regKey! : MaskKey(regKey!)));
                 LogInfo(L.Get("D_SrcRegBackup"));
                 LogFetch(L.Get("Fetch_RegPidGenX"));
-                RunPidGenXAnalysis(regKey!);
+                RunPidGenXAnalysis(regKey!, warnIfUnique: true);
             }
             else
             {
@@ -902,7 +914,7 @@ namespace WinLicApp
                 LogKey(L.Get("O3_KeyInstalled") + (showFull ? installedKey! : MaskKey(installedKey!)));
                 LogInfo(L.Get("D_SrcRegInstalled"));
                 LogFetch(L.Get("Fetch_InstPidGenX"));
-                RunPidGenXAnalysis(installedKey!);
+                RunPidGenXAnalysis(installedKey!, warnIfUnique: true);
             }
             else
             {
@@ -928,7 +940,7 @@ namespace WinLicApp
                 LogKey(L.Get("O3_KeyOrig") + " " + (showFull ? origKey! : MaskKey(origKey!)));
                 LogInfo(L.Get("D_SrcOrigKey"));
                 LogFetch(L.Get("Fetch_OrigPidGenX"));
-                RunPidGenXAnalysis(origKey!);
+                RunPidGenXAnalysis(origKey!, warnIfUnique: true);
             }
             else
             {
@@ -954,7 +966,7 @@ namespace WinLicApp
                 LogKey(L.Get("O3_KeyOrig2") + " " + (showFull ? origKey2! : MaskKey(origKey2!)));
                 LogInfo(L.Get("D_SrcOrigKey2"));
                 LogFetch(L.Get("Fetch_Orig2PidGenX"));
-                RunPidGenXAnalysis(origKey2!);
+                RunPidGenXAnalysis(origKey2!, warnIfUnique: true);
             }
             else
             {

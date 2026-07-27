@@ -33,6 +33,8 @@ namespace WinLicApp
             ["About_CheckingVer"]   = ("Checking for updates…",     "Đang kiểm tra cập nhật…"),
             ["About_UpToDate"]      = ("✔ You are on the latest version.",
                                       "✔ Bạn đang dùng phiên bản mới nhất."),
+            ["About_PreRelease"]    = ("✔ You are using a pre-release version.", 
+                                      "✔ Bạn đang dùng phiên bản thử nghiệm."),
             ["About_NewVer"]        = ("↑ New version available: ", "↑ Có phiên bản mới: "),
             ["About_VerError"]      = ("Could not check for updates.", "Không thể kiểm tra cập nhật."),
 
