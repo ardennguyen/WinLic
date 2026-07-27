@@ -51,6 +51,8 @@ namespace WinLicApp
                                     "Tùy chọn 1 — Thông tin Hệ thống & Bản quyền"),
             ["Act1_DliHeader"]   = ("License Channel Info  (slmgr /dli)",
                                     "Thông tin Kênh Bản Quyền  (slmgr /dli)"),
+            ["Act1_DlvHeader"]   = ("Extended License Report  (slmgr /dlv)",
+                                    "Báo cáo Bản Quyền Mở Rộng  (slmgr /dlv)"),
             ["Act2"]             = ("Option 2 — Test & Install New Product Key",
                                     "Tùy chọn 2 — Kiểm thử & Cài Key Mới"),
             ["Act3"]             = ("Option 3 — Remove Activation",

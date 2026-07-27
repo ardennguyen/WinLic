@@ -1388,6 +1388,47 @@ function Show-SystemInfo {
     Write-Blank
     Write-Sep
 
+    # -- License Channel /dli -------------------------------------------------
+    Write-Blank
+    Write-Sep
+    Write-Host ('  ' + (T 'O1_DLI_HDR')) -ForegroundColor Cyan
+    Write-Diag (T 'O1_DLI_NOTE')
+    $out = Run-Slmgr '/dli' (T 'O1_RUNNING_DLI')
+    if ($out) {
+        Write-Blank
+        foreach ($line in $out) {
+            $t = $line.Trim()
+            if (-not $t) { continue }
+            if ($t -match '^License Status:') { Write-Host ('  {0}' -f $t) -ForegroundColor Green }
+            elseif ($t -match '^Name:|^Description:') { Write-Host ('  {0}' -f $t) -ForegroundColor Cyan }
+            else { Write-Host ('  {0}' -f $t) }
+        }
+    } else {
+        Write-Warn (T 'O1_NO_OUTPUT')
+    }
+
+    # -- Extended info /dlv (optional) -----------------------------------
+    if (-not $WarnBeforeReplace) {
+        Write-Blank
+        Write-Sep
+        Write-Host ('  ' + (T 'O1_DLV_HDR')) -ForegroundColor Cyan
+        Write-Diag (T 'O1_DLV_REVEAL')
+        Write-Blank
+        if (Ask-YesNo (T 'O1_DLV_ASK')) {
+            $out = Run-Slmgr '/dlv' (T 'O1_RUNNING_DLV')
+            if ($out) {
+                Write-Blank
+                foreach ($line in $out) {
+                    $t = $line.Trim()
+                    if (-not $t) { continue }
+                    if ($t -match '^License Status:') { Write-Host ('  {0}' -f $t) -ForegroundColor Green }
+                    elseif ($t -match '^Name:|^Description:|^Activation ID:') { Write-Host ('  {0}' -f $t) -ForegroundColor Cyan }
+                    else { Write-Host ('  {0}' -f $t) }
+                }
+            }
+        }
+    }
+
     # -- Determine display mode (ask once, apply to all three keys) -----------
     # In Option 1: ask user. In Option 2 (WarnBeforeReplace): always show partial only.
     if ($WarnBeforeReplace) {
@@ -1629,47 +1670,6 @@ function Get-VersionInfo {
     Show-SystemInfo
 
 
-    # -- 1e. License Channel /dli ─────────────────────────────────────────────
-    Write-Blank
-    Write-Host ("  " + (T 'O1_DLI_HDR')) -ForegroundColor Cyan
-    Write-Diag (T 'O1_DLI_NOTE')
-    $out = Run-Slmgr "/dli" (T 'O1_RUNNING_DLI')
-    if ($out) {
-        Write-Blank
-        foreach ($line in $out) {
-            $t = $line.Trim()
-            if (-not $t) { continue }
-            if ($t -match '^License Status:') { Write-Host ("  {0}" -f $t) -ForegroundColor Green }
-            elseif ($t -match '^Name:|^Description:') { Write-Host ("  {0}" -f $t) -ForegroundColor Cyan }
-            else { Write-Host ("  {0}" -f $t) }
-        }
-    } else {
-        Write-Warn (T 'O1_NO_OUTPUT')
-    }
-
-    Write-Blank
-    Write-Sep
-
-    # ── 1f. Extended info /dlv (optional) ─────────────────────────────────
-    Write-Blank
-    Write-Host ("  " + (T 'O1_DLV_HDR')) -ForegroundColor Cyan
-    Write-Diag (T 'O1_DLV_REVEAL')
-    Write-Blank
-
-    if (Ask-YesNo (T 'O1_DLV_ASK')) {
-        $out = Run-Slmgr "/dlv" (T 'O1_RUNNING_DLV')
-        if ($out) {
-            Write-Blank
-            foreach ($line in $out) {
-                $t = $line.Trim()
-                if (-not $t) { continue }
-                if ($t -match '^License Status:') { Write-Host ("  {0}" -f $t) -ForegroundColor Green }
-                elseif ($t -match '^Name:|^Description:|^Activation ID:') { Write-Host ("  {0}" -f $t) -ForegroundColor Cyan }
-                else { Write-Host ("  {0}" -f $t) }
-            }
-        }
-    }
-    Write-Blank
 }
 
 # =============================================================================

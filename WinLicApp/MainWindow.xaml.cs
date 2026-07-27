@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -117,6 +117,7 @@ namespace WinLicApp
 
         private void CollapseAllPanels()
         {
+            _dlvTcs?.TrySetResult(false);
             KeyEntryPanel.Visibility       = Visibility.Collapsed;
             DlvPanel.Visibility            = Visibility.Collapsed;
             RemoveConfirmPanel.Visibility  = Visibility.Collapsed;
@@ -805,7 +806,24 @@ namespace WinLicApp
                 DlvDesc2.Text        = L.Get("DLV_DESC2");
                 BtnDlvCancel.Content = L.Get("DLV_CANCEL");
                 BtnDlvRun.Content    = L.Get("DLV_RUN");
+                
+                _dlvTcs = new System.Threading.Tasks.TaskCompletionSource<bool>();
                 DlvPanel.Visibility  = Visibility.Visible;
+
+                bool runDlv = await _dlvTcs.Task;
+                DlvPanel.Visibility  = Visibility.Collapsed;
+
+                if (runDlv)
+                {
+                    LogBlank(); LogSep();
+                    LogFetch(L.Get("Act1_DlvHeader"));
+                    LogBlank();
+                    var dlvOutput = await RunSlmgrAsync("/dlv");
+                    if (string.IsNullOrWhiteSpace(dlvOutput))
+                        LogWarn(L.Get("O2_NoOutput"));
+                    else
+                        LogSlmgrOutput(dlvOutput);
+                }
             }
 
             // ═══════════════════════════════════════════════════════════════════
@@ -1001,13 +1019,15 @@ namespace WinLicApp
 
 
         private void BtnDlvCancel_Click(object sender, RoutedEventArgs e)
-            => DlvPanel.Visibility = Visibility.Collapsed;
-
-        private async void BtnDlvRun_Click(object sender, RoutedEventArgs e)
         {
             DlvPanel.Visibility = Visibility.Collapsed;
-            LogBlank();
-            LogSlmgrOutput(await RunSlmgrAsync("/dlv"));
+            _dlvTcs?.TrySetResult(false);
+        }
+
+        private void BtnDlvRun_Click(object sender, RoutedEventArgs e)
+        {
+            DlvPanel.Visibility = Visibility.Collapsed;
+            _dlvTcs?.TrySetResult(true);
         }
 
 
@@ -1120,6 +1140,7 @@ namespace WinLicApp
             = (false, "", "", "", "", "", "", "", 0, "");
         private string _lastBannerKey = "";
         private bool   _saveKeyWarnNeeded = false;
+        private System.Threading.Tasks.TaskCompletionSource<bool>? _dlvTcs;
 
         /// <summary>
         /// Decodes a PidGenX part number prefix to a human-readable Windows release string.
