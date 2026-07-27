@@ -3354,7 +3354,7 @@ namespace WinLicApp
         private async System.Threading.Tasks.Task GenerateAndShowFullLogAsync(bool enriched)
         {
             bool full = ShowFullKey;
-            var sb = new System.Text.StringBuilder(8192);
+            var sb = new System.Text.StringBuilder(16384);
             string sep  = new string((char)0x2550, 60);
             string sec  = new string((char)0x2500, 60);
             string mode = enriched ? L.Get("FL_ENRICHED") : L.Get("FL_RAW");
@@ -3367,6 +3367,9 @@ namespace WinLicApp
 
             // ── Section 1: OS Information ──────────────────────────────────────
             sb.AppendLine($"── {L.Get("FL_SEC_OS")} {sec.Substring(0, 40)}");
+            
+            // Sub-source 1.1: Registry CurrentVersion
+            sb.AppendLine(@"  [Source: Registry HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion]");
             try
             {
                 using var rk = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
@@ -3375,108 +3378,185 @@ namespace WinLicApp
                 {
                     void RegLine(string label, string name) {
                         var v = rk.GetValue(name)?.ToString();
-                        if (!string.IsNullOrEmpty(v)) sb.AppendLine($"  {label,-28}: {v}");
+                        if (!string.IsNullOrEmpty(v)) sb.AppendLine($"    {label,-28}: {v}");
                     }
-                    RegLine("Product Name",      "ProductName");
-                    RegLine("Product ID",         "ProductId");
-                    RegLine("Edition ID",         "EditionID");
-                    RegLine("Current Build",      "CurrentBuild");
-                    RegLine("Build Branch",       "BuildBranch");
-                    RegLine("Registered Owner",   "RegisteredOwner");
-                    RegLine("Install Type",       "InstallationType");
-                    // InstallDate is a DWORD (Unix timestamp)
+                    RegLine("Product Name",               "ProductName");
+                    RegLine("Display Version",            "DisplayVersion");
+                    RegLine("Product ID",                 "ProductId");
+                    RegLine("Edition ID",                 "EditionID");
+                    RegLine("Composition Edition ID",     "CompositionEditionID");
+                    RegLine("Current Build",              "CurrentBuild");
+                    RegLine("Current Build Number",       "CurrentBuildNumber");
+                    RegLine("Build Branch",               "BuildBranch");
+                    RegLine("Build Lab",                  "BuildLab");
+                    RegLine("Registered Owner",           "RegisteredOwner");
+                    RegLine("Registered Organization",    "RegisteredOrganization");
+                    RegLine("Installation Type",          "InstallationType");
+                    RegLine("System Root",                "SystemRoot");
                     var instDate = rk.GetValue("InstallDate");
                     if (instDate is int unixTs && unixTs > 0)
                     {
                         var dt = DateTimeOffset.FromUnixTimeSeconds(unixTs).LocalDateTime;
-                        sb.AppendLine($"  {"Install Date",-28}: {dt:yyyy-MM-dd HH:mm:ss}");
+                        sb.AppendLine($"    {"Install Date",-28}: {dt:yyyy-MM-dd HH:mm:ss}");
                     }
                 }
-                using var osRes = WmiQuery("SELECT Caption,Version,OSArchitecture FROM Win32_OperatingSystem");
+                else { sb.AppendLine("    (registry key not found)"); }
+            }
+            catch (Exception ex) { sb.AppendLine($"    [Error: {ex.Message}]"); }
+            sb.AppendLine();
+
+            // Sub-source 1.2: WMI Win32_OperatingSystem
+            sb.AppendLine("  [Source: WMI Win32_OperatingSystem]");
+            try
+            {
+                using var osRes = WmiQuery("SELECT Caption,Version,BuildNumber,OSArchitecture,SerialNumber,OperatingSystemSKU,MUILanguages,Status,RegisteredUser,Organization FROM Win32_OperatingSystem");
                 if (osRes != null)
+                {
                     foreach (ManagementObject obj in osRes)
                     {
-                        sb.AppendLine($"  {"OS Caption",-28}: {obj["Caption"]}");
-                        sb.AppendLine($"  {"Version",-28}: {obj["Version"]}");
-                        sb.AppendLine($"  {"Architecture",-28}: {obj["OSArchitecture"]}");
+                        void W(string l, object? v) { if (v != null) sb.AppendLine($"    {l,-28}: {v}"); }
+                        W("OS Caption",               obj["Caption"]);
+                        W("Version",                  obj["Version"]);
+                        W("Build Number",             obj["BuildNumber"]);
+                        W("Architecture",             obj["OSArchitecture"]);
+                        W("OS Serial Number",         obj["SerialNumber"]);
+                        W("OS SKU ID",                obj["OperatingSystemSKU"]);
+                        W("Status",                   obj["Status"]);
+                        W("Registered User",          obj["RegisteredUser"]);
+                        W("Registered Organization",  obj["Organization"]);
+                        if (obj["MUILanguages"] is string[] muis)
+                            W("MUI Display Languages", string.Join(", ", muis));
                     }
-                // System Manufacturer / Model (ASUS, DELL, LENOVO, HP, etc.)
-                using var csRes = WmiQuery("SELECT Manufacturer,Model FROM Win32_ComputerSystem");
+                }
+                else { sb.AppendLine("    (WMI query failed or returned no results)"); }
+            }
+            catch (Exception ex) { sb.AppendLine($"    [Error: {ex.Message}]"); }
+            sb.AppendLine();
+
+            // Sub-source 1.3: WMI Win32_ComputerSystem
+            sb.AppendLine("  [Source: WMI Win32_ComputerSystem]");
+            try
+            {
+                using var csRes = WmiQuery("SELECT Manufacturer,Model,SystemSKUNumber,SystemFamily,SystemType,TotalPhysicalMemory,NumberOfProcessors,NumberOfLogicalProcessors,Domain,PartOfDomain,HypervisorPresent FROM Win32_ComputerSystem");
                 if (csRes != null)
+                {
                     foreach (ManagementObject obj in csRes)
                     {
-                        var mfr = obj["Manufacturer"]?.ToString();
-                        var mdl = obj["Model"]?.ToString();
-                        if (!string.IsNullOrEmpty(mfr)) sb.AppendLine($"  {"System Manufacturer",-28}: {mfr}");
-                        if (!string.IsNullOrEmpty(mdl))  sb.AppendLine($"  {"System Model",-28}: {mdl}");
+                        void W(string l, object? v) { if (v != null) sb.AppendLine($"    {l,-28}: {v}"); }
+                        W("System Manufacturer",      obj["Manufacturer"]);
+                        W("System Model",             obj["Model"]);
+                        W("System SKU Number",        obj["SystemSKUNumber"]);
+                        W("System Family",            obj["SystemFamily"]);
+                        W("System Architecture",      obj["SystemType"]);
+                        W("Physical CPU Sockets",     obj["NumberOfProcessors"]);
+                        W("Logical CPU Cores",        obj["NumberOfLogicalProcessors"]);
+                        W("Domain / Workgroup",       obj["Domain"]);
+                        W("Joined to Domain",         obj["PartOfDomain"]);
+                        W("Hypervisor Present",       obj["HypervisorPresent"]);
+                        var ram = obj["TotalPhysicalMemory"];
+                        if (ram != null && ulong.TryParse(ram.ToString(), out ulong bytes))
+                            W("Total Installed RAM",  $"{bytes / (1024.0 * 1024 * 1024):F2} GB ({bytes:N0} bytes)");
                     }
-                // BIOS info
-                using var biosRes = WmiQuery("SELECT Manufacturer,SMBIOSBIOSVersion,SerialNumber FROM Win32_BIOS");
+                }
+                else { sb.AppendLine("    (WMI query failed or returned no results)"); }
+            }
+            catch (Exception ex) { sb.AppendLine($"    [Error: {ex.Message}]"); }
+            sb.AppendLine();
+
+            // Sub-source 1.4: WMI Win32_BIOS
+            sb.AppendLine("  [Source: WMI Win32_BIOS]");
+            try
+            {
+                using var biosRes = WmiQuery("SELECT Manufacturer,SMBIOSBIOSVersion,SerialNumber,ReleaseDate FROM Win32_BIOS");
                 if (biosRes != null)
+                {
                     foreach (ManagementObject obj in biosRes)
                     {
-                        var bmfr = obj["Manufacturer"]?.ToString();
-                        var bver = obj["SMBIOSBIOSVersion"]?.ToString();
-                        var bsn  = obj["SerialNumber"]?.ToString();
-                        if (!string.IsNullOrEmpty(bmfr)) sb.AppendLine($"  {"BIOS Manufacturer",-28}: {bmfr}");
-                        if (!string.IsNullOrEmpty(bver)) sb.AppendLine($"  {"BIOS Version",-28}: {bver}");
-                        if (!string.IsNullOrEmpty(bsn))  sb.AppendLine($"  {"BIOS Serial Number",-28}: {bsn}");
+                        void W(string l, object? v) { if (v != null) sb.AppendLine($"    {l,-28}: {v}"); }
+                        W("BIOS Manufacturer",        obj["Manufacturer"]);
+                        W("BIOS Version",             obj["SMBIOSBIOSVersion"]);
+                        W("BIOS Serial Number",       obj["SerialNumber"]);
+                        W("BIOS Release Date",        obj["ReleaseDate"]);
                     }
+                }
+                else { sb.AppendLine("    (WMI query failed or returned no results)"); }
             }
-            catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
+            catch (Exception ex) { sb.AppendLine($"    [Error: {ex.Message}]"); }
             sb.AppendLine();
 
             // ── Section 2: Product Keys ────────────────────────────────────────
             sb.AppendLine($"── {L.Get("FL_SEC_KEYS")} {sec.Substring(0, 40)}");
-            string? flOemKey = null, flRegKey = null, flInstKey = null, flOrigKey = null;
+            string? flOemKey = null, flRegKey = null, flInstKey = null, flOrigKey = null, flOrigKey2 = null;
             string? flOa3xDesc = null;
             try
             {
                 // BIOS OEM Key
+                sb.AppendLine(@"  [Source: WMI SoftwareLicensingService · OA3xOriginalProductKey]");
                 using var slsRes = WmiQuery(
                     "SELECT OA3xOriginalProductKey,OA3xOriginalProductKeyDescription FROM SoftwareLicensingService");
                 if (slsRes != null)
                     foreach (ManagementObject obj in slsRes)
                     {
-                        flOemKey  = obj["OA3xOriginalProductKey"]?.ToString();
+                        flOemKey   = obj["OA3xOriginalProductKey"]?.ToString();
                         flOa3xDesc = obj["OA3xOriginalProductKeyDescription"]?.ToString();
                     }
-                sb.AppendLine($"  {"BIOS OEM Key",-28}: {(string.IsNullOrEmpty(flOemKey) ? "(not found)" : (full ? flOemKey : MaskKey(flOemKey!)))}");
+                sb.AppendLine($"    {"BIOS OEM Key",-28}: {(string.IsNullOrEmpty(flOemKey) ? "(not found)" : (full ? flOemKey : MaskKey(flOemKey!)))}");
                 if (!string.IsNullOrEmpty(flOa3xDesc))
-                    sb.AppendLine($"  {"OA3x Description",-28}: {flOa3xDesc}");
+                    sb.AppendLine($"    {"OA3x Description",-28}: {flOa3xDesc}");
+                sb.AppendLine();
 
                 // Registry Backup Key
+                sb.AppendLine(@"  [Source: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform → BackupProductKeyDefault]");
                 using var spp = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
                     @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform");
                 flRegKey = spp?.GetValue("BackupProductKeyDefault")?.ToString();
-                sb.AppendLine($"  {"Registry Backup Key",-28}: {(string.IsNullOrEmpty(flRegKey) ? "(not found)" : (full ? flRegKey : MaskKey(flRegKey!)))}");
+                sb.AppendLine($"    {"Registry Backup Key",-28}: {(string.IsNullOrEmpty(flRegKey) ? "(not found)" : (full ? flRegKey : MaskKey(flRegKey!)))}");
+                sb.AppendLine();
 
-                // Installed Key (decoded from DigitalProductId)
+                // Installed Key
+                sb.AppendLine(@"  [Source: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion → DigitalProductId]");
                 using var cvRk = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
                     @"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
                 if (cvRk?.GetValue("DigitalProductId") is byte[] dpId)
                 {
                     flInstKey = DecodeProductKeyWin8AndUp(dpId);
-                    sb.AppendLine($"  {"Installed Key",-28}: {(string.IsNullOrEmpty(flInstKey) ? "(decode failed)" : (full ? flInstKey : MaskKey(flInstKey!)))}");
+                    sb.AppendLine($"    {"Installed Key",-28}: {(string.IsNullOrEmpty(flInstKey) ? "(decode failed)" : (full ? flInstKey : MaskKey(flInstKey!)))}");
                 }
                 else
-                    sb.AppendLine($"  {"Installed Key",-28}: (not found)");
+                    sb.AppendLine($"    {"Installed Key",-28}: (not found)");
+                sb.AppendLine();
 
                 // Original Key (pre-upgrade)
+                sb.AppendLine(@"  [Source: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey → DigitalProductId]");
                 using var dpk = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
                     @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey");
                 if (dpk?.GetValue("DigitalProductId") is byte[] origDpId)
                 {
                     flOrigKey = DecodeProductKeyWin8AndUp(origDpId);
-                    if (!string.IsNullOrEmpty(flOrigKey))
-                        sb.AppendLine($"  {"Original Key (pre-upgrade)",-28}: {(full ? flOrigKey : MaskKey(flOrigKey!))}");
+                    sb.AppendLine($"    {"Original Key (pre-upgrade)",-28}: {(string.IsNullOrEmpty(flOrigKey) ? "(decode failed)" : (full ? flOrigKey : MaskKey(flOrigKey!)))}");
                 }
+                else
+                    sb.AppendLine($"    {"Original Key (pre-upgrade)",-28}: (not found)");
+                sb.AppendLine();
+
+                // Original Key 2 (secondary pre-upgrade)
+                sb.AppendLine(@"  [Source: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey2 → DigitalProductId]");
+                using var dpk2 = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey2");
+                if (dpk2?.GetValue("DigitalProductId") is byte[] origDpId2)
+                {
+                    flOrigKey2 = DecodeProductKeyWin8AndUp(origDpId2);
+                    sb.AppendLine($"    {"Original Key 2 (pre-upgrade)",-28}: {(string.IsNullOrEmpty(flOrigKey2) ? "(decode failed)" : (full ? flOrigKey2 : MaskKey(flOrigKey2!)))}");
+                }
+                else
+                    sb.AppendLine($"    {"Original Key 2 (pre-upgrade)",-28}: (not found)");
             }
             catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
             sb.AppendLine();
 
             // ── Section 3: PidGenX Analysis ────────────────────────────────────
             sb.AppendLine($"── {L.Get("FL_SEC_PIDGENX")} {sec.Substring(0, 40)}");
+            sb.AppendLine("  [Source: pidgenx.dll P/Invoke + pkeyconfig.xrm-ms]");
             void AppendPidGenX(string label, string? key)
             {
                 if (string.IsNullOrEmpty(key)) return;
@@ -3484,35 +3564,35 @@ namespace WinLicApp
                 var (valid, channel, edition, partNum, winVer, oemId, sku, eulaType, isUpgrade, extPid) = CheckKeyChecksum(key!);
                 if (valid && !string.IsNullOrEmpty(channel))
                 {
-                    sb.AppendLine($"    Channel     : {channel}");
-                    if (!string.IsNullOrEmpty(edition))   sb.AppendLine($"    Edition     : {edition}");
-                    if (!string.IsNullOrEmpty(partNum))    sb.AppendLine($"    Part No.    : {partNum}");
-                    if (!string.IsNullOrEmpty(winVer))     sb.AppendLine($"    Win Ver.    : {winVer}");
-                    if (!string.IsNullOrEmpty(oemId))      sb.AppendLine($"    OEM ID      : {oemId}");
+                    sb.AppendLine($"    Channel      : {channel}");
+                    if (!string.IsNullOrEmpty(edition))   sb.AppendLine($"    Edition      : {edition}");
+                    if (!string.IsNullOrEmpty(partNum))    sb.AppendLine($"    Part No.     : {partNum}");
+                    if (!string.IsNullOrEmpty(winVer))     sb.AppendLine($"    Win Ver.     : {winVer}");
+                    if (!string.IsNullOrEmpty(oemId))      sb.AppendLine($"    OEM ID       : {oemId}");
                     if (!string.IsNullOrEmpty(sku))        sb.AppendLine($"    Activation ID: {sku}");
-                    if (!string.IsNullOrEmpty(eulaType))   sb.AppendLine($"    EULA        : {eulaType}");
-                    sb.AppendLine($"    Is Upgrade  : {(isUpgrade != 0 ? "Yes" : "No")}");
-                    if (!string.IsNullOrEmpty(extPid))     sb.AppendLine($"    Ext. PID    : {extPid}");
-                    if (enriched)
-                        sb.AppendLine($"    Source      : pidgenx.dll + pkeyconfig.xrm-ms");
+                    if (!string.IsNullOrEmpty(eulaType))   sb.AppendLine($"    EULA         : {eulaType}");
+                    sb.AppendLine($"    Is Upgrade   : {(isUpgrade != 0 ? "Yes" : "No")}");
+                    if (!string.IsNullOrEmpty(extPid))     sb.AppendLine($"    Ext. PID     : {extPid}");
                 }
                 else if (!valid && System.IO.File.Exists(PkcPath))
                 {
-                    sb.AppendLine($"    PidGenX     : Key not found in pkeyconfig (possibly pre-Windows 10)");
+                    sb.AppendLine($"    PidGenX      : Key not found in pkeyconfig (possibly pre-Windows 10)");
                 }
                 else
                 {
-                    sb.AppendLine($"    PidGenX     : format check only (pkeyconfig not found)");
+                    sb.AppendLine($"    PidGenX      : format check only (pkeyconfig not found)");
                 }
             }
             AppendPidGenX("BIOS OEM Key", flOemKey);
             AppendPidGenX("Registry Backup Key", flRegKey);
             AppendPidGenX("Installed Key", flInstKey);
             AppendPidGenX("Original Key", flOrigKey);
+            AppendPidGenX("Original Key 2", flOrigKey2);
             sb.AppendLine();
 
             // ── Section 4: WMI License Status ──────────────────────────────────
             sb.AppendLine($"── {L.Get("FL_SEC_WMI_LIC")} {sec.Substring(0, 40)}");
+            sb.AppendLine("  [Source: WMI SoftwareLicensingProduct (WHERE PartialProductKey IS NOT NULL)]");
             try
             {
                 using var licRes = WmiQuery(
@@ -3524,27 +3604,27 @@ namespace WinLicApp
                 if (licRes != null)
                     foreach (ManagementObject mo in licRes)
                     {
-                        void W(string l, object? v) { if (v != null) sb.AppendLine($"  {l,-28}: {v}"); }
-                        W("Name",               mo["Name"]);
-                        W("Description",         mo["Description"]);
-                        W("Partial Product Key", mo["PartialProductKey"]);
-                        W("Product Key Channel", mo["ProductKeyChannel"]);
+                        void W(string l, object? v) { if (v != null) sb.AppendLine($"    {l,-28}: {v}"); }
+                        W("Name",                        mo["Name"]);
+                        W("Description",                 mo["Description"]);
+                        W("Partial Product Key",         mo["PartialProductKey"]);
+                        W("Product Key Channel",         mo["ProductKeyChannel"]);
                         var ls = mo["LicenseStatus"];
                         if (ls != null)
                         {
                             var lsi = Convert.ToInt32(ls);
                             string lsText = enriched ? $"{lsi} ({GetLicenseStatusText(lsi)})" : lsi.ToString();
-                            W("License Status", lsText);
+                            W("License Status",          lsText);
                         }
                         var lsr = mo["LicenseStatusReason"];
                         if (lsr != null) W("License Status Reason", $"0x{Convert.ToUInt32(lsr):X8}");
-                        W("Activation ID",       mo["ID"]);
-                        W("Application ID",      mo["ApplicationId"]);
-                        W("Product Key ID (ExtPID)", mo["ProductKeyID"]);
-                        W("Grace Period Remaining", mo["GracePeriodRemaining"] + " min");
-                        W("Evaluation End Date",  mo["EvaluationEndDate"]);
-                        W("Discovered KMS",      mo["DiscoveredKeyManagementServiceMachineName"]);
-                        W("KMS Current Count",   mo["KeyManagementServiceCurrentCount"]);
+                        W("Activation ID",               mo["ID"]);
+                        W("Application ID",              mo["ApplicationId"]);
+                        W("Product Key ID (ExtPID)",     mo["ProductKeyID"]);
+                        W("Grace Period Remaining",      mo["GracePeriodRemaining"] + " min");
+                        W("Evaluation End Date",          mo["EvaluationEndDate"]);
+                        W("Discovered KMS Host",         mo["DiscoveredKeyManagementServiceMachineName"]);
+                        W("KMS Current Count",           mo["KeyManagementServiceCurrentCount"]);
                         sb.AppendLine();
                     }
             }
@@ -3553,6 +3633,7 @@ namespace WinLicApp
 
             // ── Section 5: WMI Service Properties ──────────────────────────────
             sb.AppendLine($"── {L.Get("FL_SEC_WMI_SVC")} {sec.Substring(0, 40)}");
+            sb.AppendLine("  [Source: WMI SoftwareLicensingService]");
             try
             {
                 using var svcRes = WmiQuery(
@@ -3563,14 +3644,14 @@ namespace WinLicApp
                 if (svcRes != null)
                     foreach (ManagementObject mo in svcRes)
                     {
-                        void W(string l, object? v) { if (v != null) sb.AppendLine($"  {l,-28}: {v}"); }
-                        W("OA3x Key",            full ? mo["OA3xOriginalProductKey"]?.ToString() : "(use Show Full Key)");
-                        W("OA3x Description",    mo["OA3xOriginalProductKeyDescription"]);
-                        W("Client Machine ID",   mo["ClientMachineID"]);
-                        W("Remaining Rearm",     mo["RemainingWindowsREARMCount"]);
-                        W("KMS Machine",         mo["KeyManagementServiceMachine"]);
-                        W("KMS Port",            mo["KeyManagementServicePort"]);
-                        W("Version",             mo["Version"]);
+                        void W(string l, object? v) { if (v != null) sb.AppendLine($"    {l,-28}: {v}"); }
+                        W("OA3x Key",                    full ? mo["OA3xOriginalProductKey"]?.ToString() : "(use Show Full Key)");
+                        W("OA3x Description",            mo["OA3xOriginalProductKeyDescription"]);
+                        W("Client Machine ID",           mo["ClientMachineID"]);
+                        W("Remaining Rearm Count",       mo["RemainingWindowsREARMCount"]);
+                        W("KMS Machine Name",            mo["KeyManagementServiceMachine"]);
+                        W("KMS Port",                    mo["KeyManagementServicePort"]);
+                        W("Licensing Service Version",  mo["Version"]);
                     }
             }
             catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
@@ -3580,11 +3661,11 @@ namespace WinLicApp
             sb.AppendLine($"── {L.Get("FL_SEC_REG")} {sec.Substring(0, 40)}");
             void DumpRegKey(string path)
             {
-                sb.AppendLine($"  [{path}]");
+                sb.AppendLine(@"  [Source: Registry HKLM\" + path + "]");
                 try
                 {
                     using var rk = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(path);
-                    if (rk == null) { sb.AppendLine("    (not found)"); return; }
+                    if (rk == null) { sb.AppendLine("    (not found)"); sb.AppendLine(); return; }
                     foreach (var name in rk.GetValueNames())
                     {
                         var val = rk.GetValue(name);
@@ -3593,19 +3674,23 @@ namespace WinLicApp
                     }
                 }
                 catch (Exception ex) { sb.AppendLine($"    [Error: {ex.Message}]"); }
+                sb.AppendLine();
             }
             DumpRegKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
             DumpRegKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform");
-            sb.AppendLine();
+            DumpRegKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey");
+            DumpRegKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\DefaultProductKey2");
 
             // ── Section 7: slmgr /dli ──────────────────────────────────────────
             sb.AppendLine($"── {L.Get("FL_SEC_DLI")} {sec.Substring(0, 40)}");
+            sb.AppendLine(@"  [Source: Windows Script Host → C:\Windows\System32\slmgr.vbs /dli]");
             try { sb.AppendLine(await RunSlmgrAsync("/dli")); }
             catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
             sb.AppendLine();
 
             // ── Section 8: slmgr /dlv ──────────────────────────────────────────
             sb.AppendLine($"── {L.Get("FL_SEC_DLV")} {sec.Substring(0, 40)}");
+            sb.AppendLine(@"  [Source: Windows Script Host → C:\Windows\System32\slmgr.vbs /dlv]");
             try { sb.AppendLine(await RunSlmgrAsync("/dlv")); }
             catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
             sb.AppendLine();
@@ -3614,6 +3699,7 @@ namespace WinLicApp
             if (enriched)
             {
                 sb.AppendLine($"── {L.Get("FL_SEC_DE")} {sec.Substring(0, 40)}");
+                sb.AppendLine("  [Source: WinLic Heuristic Analysis Engine]");
                 try
                 {
                     // Check if installed key is a generic GVLK
@@ -3621,13 +3707,13 @@ namespace WinLicApp
                     if (!string.IsNullOrEmpty(flInstKey))
                         isGvlk = GvlkTable.Any(t => t.Key.Equals(flInstKey, StringComparison.OrdinalIgnoreCase));
 
-                    sb.AppendLine($"  Installed Key is GVLK    : {(isGvlk ? "Yes" : "No")}");
+                    sb.AppendLine($"    Installed Key is GVLK    : {(isGvlk ? "Yes" : "No")}");
 
                     // Compare BIOS vs Installed
                     if (!string.IsNullOrEmpty(flOemKey) && !string.IsNullOrEmpty(flInstKey))
                     {
                         bool same = flOemKey!.Equals(flInstKey, StringComparison.OrdinalIgnoreCase);
-                        sb.AppendLine($"  BIOS == Installed        : {(same ? "Yes (OEM activation)" : "No (key was changed)")}");
+                        sb.AppendLine($"    BIOS == Installed        : {(same ? "Yes (OEM activation)" : "No (key was changed)")}");
                     }
 
                     // Check for Digital Entitlement indicators
@@ -3640,10 +3726,10 @@ namespace WinLicApp
                             if (!n.StartsWith("Windows", StringComparison.OrdinalIgnoreCase)) continue;
                             var status = Convert.ToInt32(mo["LicenseStatus"]);
                             bool deCandidate = isGvlk && status == 1;
-                            sb.AppendLine($"  Digital Entitlement      : {(deCandidate ? "Likely (GVLK + Licensed)" : "Not detected")}");
+                            sb.AppendLine($"    Digital Entitlement      : {(deCandidate ? "Likely (GVLK + Licensed)" : "Not detected")}");
                         }
                 }
-                catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
+                catch (Exception ex) { sb.AppendLine($"    [Error: {ex.Message}]"); }
                 sb.AppendLine();
             }
 
