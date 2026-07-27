@@ -414,12 +414,12 @@ namespace WinLicApp
                 Environment.GetEnvironmentVariable("SystemRoot") ?? @"C:\Windows",
                 @"System32\slmgr.vbs");
 
-        private async System.Threading.Tasks.Task<string> RunSlmgrAsync(string option)
+        private async System.Threading.Tasks.Task<string> RunSlmgrAsync(string option, bool logCmd = true)
         {
             var path = SlmgrPath;
             if (!System.IO.File.Exists(path)) { LogError(string.Format(L.Get("Fetch_SlmgrNotFound"), path)); return ""; }
             var args = $"//nologo \"{path}\" {option}";
-            LogCmd($"cscript.exe {args}");
+            if (logCmd) LogCmd($"cscript.exe {args}");
             try
             {
                 var psi = new ProcessStartInfo("cscript.exe", args)
@@ -816,13 +816,17 @@ namespace WinLicApp
                 if (runDlv)
                 {
                     LogBlank(); LogSep();
-                    LogFetch(L.Get("Act1_DlvHeader"));
+                    LogFetch(L.Get("DLV_RUNNING"));
                     LogBlank();
                     var dlvOutput = await RunSlmgrAsync("/dlv");
                     if (string.IsNullOrWhiteSpace(dlvOutput))
                         LogWarn(L.Get("O2_NoOutput"));
                     else
                         LogSlmgrOutput(dlvOutput);
+                }
+                else
+                {
+                    LogInfo(L.Get("DLV_SKIPPED"));
                 }
             }
 
@@ -3341,14 +3345,26 @@ namespace WinLicApp
         {
             FullLogModePanel.Visibility = Visibility.Collapsed;
             StatusBar.Text = L.Get("FL_GENERATING");
-            Dispatcher.BeginInvoke(new Action(async () => await GenerateAndShowFullLogAsync(enriched: false)));
+            LogBlank(); LogSep();
+            LogFetch(L.Get("FL_LOG_START"));
+            Dispatcher.BeginInvoke(new Action(async () =>
+            {
+                await GenerateAndShowFullLogAsync(enriched: false);
+                LogOk(L.Get("FL_LOG_DONE"));
+            }));
         }
 
         private void BtnFlEnriched_Click(object sender, RoutedEventArgs e)
         {
             FullLogModePanel.Visibility = Visibility.Collapsed;
             StatusBar.Text = L.Get("FL_GENERATING");
-            Dispatcher.BeginInvoke(new Action(async () => await GenerateAndShowFullLogAsync(enriched: true)));
+            LogBlank(); LogSep();
+            LogFetch(L.Get("FL_LOG_START"));
+            Dispatcher.BeginInvoke(new Action(async () =>
+            {
+                await GenerateAndShowFullLogAsync(enriched: true);
+                LogOk(L.Get("FL_LOG_DONE"));
+            }));
         }
 
         private void BtnFlCancel_Click(object sender, RoutedEventArgs e)
@@ -3680,14 +3696,14 @@ namespace WinLicApp
             // ── Section 6: slmgr /dli ──────────────────────────────────────────
             sb.AppendLine($"── {L.Get("FL_SEC_DLI")} {sec.Substring(0, 40)}");
             sb.AppendLine(@"  [Source: Windows Script Host → C:\Windows\System32\slmgr.vbs /dli]");
-            try { sb.AppendLine(await RunSlmgrAsync("/dli")); }
+            try { sb.AppendLine(await RunSlmgrAsync("/dli", logCmd: false)); }
             catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
             sb.AppendLine();
 
             // ── Section 7: slmgr /dlv ──────────────────────────────────────────
             sb.AppendLine($"── {L.Get("FL_SEC_DLV")} {sec.Substring(0, 40)}");
             sb.AppendLine(@"  [Source: Windows Script Host → C:\Windows\System32\slmgr.vbs /dlv]");
-            try { sb.AppendLine(await RunSlmgrAsync("/dlv")); }
+            try { sb.AppendLine(await RunSlmgrAsync("/dlv", logCmd: false)); }
             catch (Exception ex) { sb.AppendLine($"  [Error: {ex.Message}]"); }
             sb.AppendLine();
 
