@@ -577,7 +577,7 @@ namespace WinLicApp
             // Backup-key tail ≠ active key tail → Microsoft cloud-assigned a new key = DE
             if (!string.IsNullOrEmpty(regKey) && !string.IsNullOrEmpty(partialKey))
             {
-                if (!regKey.EndsWith(partialKey, StringComparison.OrdinalIgnoreCase))
+                if (!regKey!.EndsWith(partialKey!, StringComparison.OrdinalIgnoreCase))
                     return ActivationMethod.DE;
             }
 
@@ -648,7 +648,7 @@ namespace WinLicApp
                 var pid = pvRk?.GetValue("ProductId")?.ToString();
                 if (!string.IsNullOrEmpty(pid))
                 {
-                    LogData(L.Get("D_ProductId"), pid);
+                    LogData(L.Get("D_ProductId"), pid!);
                     LogInfo(L.Get("D_ProductIdSrc"));
                 }
             }
@@ -716,7 +716,7 @@ namespace WinLicApp
                     LogData(L.Get("D_PartialKey"), partialKey ?? "—");
 
                     var keyChannel = obj["ProductKeyChannel"]?.ToString();
-                    if (!string.IsNullOrEmpty(keyChannel)) LogData(L.Get("D_ProdKeyChannel"), keyChannel);
+                    if (!string.IsNullOrEmpty(keyChannel)) LogData(L.Get("D_ProdKeyChannel"), keyChannel!);
 
                     if (isLicensed) LogOk(L.Get("O3_Activation") + LicenseStatusText(raw));
                     else            LogWarn(L.Get("O3_Activation") + LicenseStatusText(raw));
@@ -773,7 +773,7 @@ namespace WinLicApp
                 case ActivationMethod.KMS:
                     LogOk(L.Get("KMS_Detected"));
                     if (!string.IsNullOrEmpty(kmsServer))
-                        LogData(L.Get("KMS_Server"), kmsServer);
+                        LogData(L.Get("KMS_Server"), kmsServer!);
                     break;
                 case ActivationMethod.Standard:
                     if (isLicensed) LogOk(L.Get("MAK_Detected"));
@@ -852,7 +852,7 @@ namespace WinLicApp
                 LogOk(L.Get("D_BiosOemKey") + " " + L.Get("O3_BiosDetected"));
                 LogKey(L.Get("O3_KeyBios") + (showFull ? oemKey! : MaskKey(oemKey!)));
                 LogInfo(L.Get("D_SrcWmiBios"));
-                if (!string.IsNullOrEmpty(oa3xDesc)) LogData(L.Get("D_OA3xDesc"), oa3xDesc);
+                if (!string.IsNullOrEmpty(oa3xDesc)) LogData(L.Get("D_OA3xDesc"), oa3xDesc!);
                 LogFetch(L.Get("Fetch_OemPidGenX"));
                 RunPidGenXAnalysis(oemKey!);
             }
@@ -921,10 +921,10 @@ namespace WinLicApp
             if (!string.IsNullOrEmpty(origKey))
             {
                 LogOk(L.Get("D_OriginalKey") + " " + L.Get("O3_BiosDetected"));
-                LogKey(L.Get("O3_KeyOrig") + " " + (showFull ? origKey : MaskKey(origKey)));
+                LogKey(L.Get("O3_KeyOrig") + " " + (showFull ? origKey! : MaskKey(origKey!)));
                 LogInfo(L.Get("D_SrcOrigKey"));
                 LogFetch(L.Get("Fetch_OrigPidGenX"));
-                RunPidGenXAnalysis(origKey);
+                RunPidGenXAnalysis(origKey!);
             }
             else
             {
@@ -947,10 +947,10 @@ namespace WinLicApp
             if (!string.IsNullOrEmpty(origKey2))
             {
                 LogOk(L.Get("D_OriginalKey2") + " " + L.Get("O3_BiosDetected"));
-                LogKey(L.Get("O3_KeyOrig2") + " " + (showFull ? origKey2 : MaskKey(origKey2)));
+                LogKey(L.Get("O3_KeyOrig2") + " " + (showFull ? origKey2! : MaskKey(origKey2!)));
                 LogInfo(L.Get("D_SrcOrigKey2"));
                 LogFetch(L.Get("Fetch_Orig2PidGenX"));
-                RunPidGenXAnalysis(origKey2);
+                RunPidGenXAnalysis(origKey2!);
             }
             else
             {
@@ -1118,7 +1118,7 @@ namespace WinLicApp
                        CallingConvention = CallingConvention.StdCall,
                        CharSet = CharSet.Unicode)]
             internal static extern int PidGenX(
-                string pk, string pkcPath, string mpc, string oemId,
+                string pk, string pkcPath, string mpc, string? oemId,
                 ref DigitalProductId2 dpid2,
                 ref DigitalProductId3 dpid3,
                 ref DigitalProductId4 dpid4);
@@ -1732,8 +1732,8 @@ namespace WinLicApp
             if (!string.IsNullOrWhiteSpace(currentInstalled))
             {
                 LogData(L.Get("D_InstalledKey"),
-                    ShowFullKey ? currentInstalled : MaskKey(currentInstalled));
-                RunPidGenXAnalysis(currentInstalled);
+                    ShowFullKey ? currentInstalled! : MaskKey(currentInstalled!));
+                RunPidGenXAnalysis(currentInstalled!);
                 if (!isGenericForRemove)
                     LogWarn(L.Get("O3_SAVE_KEY_WARN"));
             }
@@ -1749,7 +1749,7 @@ namespace WinLicApp
             {
                 RcpKeyInfo.Visibility = Visibility.Visible;
                 RcpKeyInfo.Text = L.Get("D_InstalledKey") + "    "
-                    + (ShowFullKey ? currentInstalled : MaskKey(currentInstalled));
+                    + (ShowFullKey ? currentInstalled! : MaskKey(currentInstalled!));
             }
             else
             {
@@ -1983,10 +1983,10 @@ namespace WinLicApp
             }
             else
             {
-                LogData(L.Get("P7_KmsName"), kmsHost);
+                LogData(L.Get("P7_KmsName"), kmsHost!);
 
                 // 1a. Local loopback — local KMS emulator (KMSpico, vlmcsd…)
-                bool isLocal = kmsHost.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+                bool isLocal = kmsHost!.Equals("localhost", StringComparison.OrdinalIgnoreCase)
                             || kmsHost.StartsWith("127.") || kmsHost.StartsWith("::1")
                             || kmsHost == "0.0.0.0";
 
@@ -2244,7 +2244,7 @@ namespace WinLicApp
 
                         bool isLicensed     = licStatus == 1;
                         bool isPermanent    = graceMins == 0 && isLicensed;
-                        bool isGvlk         = AppSettings.AllGvlkSuffixes.Contains(ppk);
+                        bool isGvlk         = AppSettings.AllGvlkSuffixes.Contains(ppk!);
                         // Channel check: VOLUME_KMSCLIENT = KMS (corporate or pirate), RETAIL/OEM_DM = DE
                         bool isVolumeKms    = desc.IndexOf("VOLUME_KMSCLIENT", StringComparison.OrdinalIgnoreCase) >= 0;
                         // Also check the ProductKeyChannel property if present (more reliable)
@@ -2292,10 +2292,10 @@ namespace WinLicApp
                             if (!string.IsNullOrWhiteSpace(offKms))
                             {
                                 bool offPiracy = AppSettings.AllKmsPiracyDomains
-                                    .Any(d => offKms.IndexOf(d, StringComparison.OrdinalIgnoreCase) >= 0);
+                                    .Any(d => offKms!.IndexOf(d, StringComparison.OrdinalIgnoreCase) >= 0);
                                 bool offExternal =
-                                    !Regex.IsMatch(offKms, @"^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|127\.)") &&
-                                    !offKms.Equals("localhost", StringComparison.OrdinalIgnoreCase);
+                                    !Regex.IsMatch(offKms!, @"^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|127\.)") &&
+                                    !offKms!.Equals("localhost", StringComparison.OrdinalIgnoreCase);
                                 if (offPiracy || offExternal)
                                 {
                                     LogWarn(string.Format(L.Get("P7_OfficeKmsFound"), offKms));
@@ -3179,8 +3179,8 @@ namespace WinLicApp
                 {
                     var h = key.GetValue("KeyManagementServiceName") as string;
                     var p = key.GetValue("KeyManagementServicePort") as string;
-                    if (!string.IsNullOrWhiteSpace(h)) regHost = h;
-                    if (!string.IsNullOrWhiteSpace(p)) regPort = p;
+                    if (!string.IsNullOrWhiteSpace(h)) regHost = h!;
+                    if (!string.IsNullOrWhiteSpace(p)) regPort = p!;
                 }
             }
             catch { }
@@ -3194,7 +3194,7 @@ namespace WinLicApp
                 foreach (var mo in col)
                 {
                     var h = mo["DiscoveredKeyManagementServiceMachineName"]?.ToString();
-                    if (!string.IsNullOrWhiteSpace(h)) { dlvHost = h; break; }
+                    if (!string.IsNullOrWhiteSpace(h)) { dlvHost = h!; break; }
                 }
             }
             catch { }
