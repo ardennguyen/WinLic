@@ -1037,8 +1037,9 @@
                             </Button.Template>
                         </Button>
 
-                        <!-- Enriched mode button -->
+                        <!-- Enriched mode button (hidden for now - DE logic needs more work) -->
                         <Button x:Name="BtnFlEnriched" Click="BtnFlEnriched_Click"
+                                Visibility="Collapsed"
                                 Background="#ecfdf5" BorderBrush="#6ee7b7"
                                 Foreground="#047857" Padding="16,12"
                                 Margin="0,0,0,16" Cursor="Hand"

@@ -3293,8 +3293,10 @@ namespace WinLicApp
         // Full System License Log
         // =========================================================================
 
-        private void BtnFullLog_Click(object sender, RoutedEventArgs e)
+        private async void BtnFullLog_Click(object sender, RoutedEventArgs e)
         {
+            await System.Threading.Tasks.Task.Yield();
+
             // Populate and show mode selection panel
             FlTitle.Text       = L.Get("FL_PANEL_TITLE");
             FlModeDesc.Text    = L.Get("FL_MODE_DESC");
@@ -3304,6 +3306,9 @@ namespace WinLicApp
             BtnFlRaw.Content      = BuildModeButton(L.Get("FL_MODE_RAW"), L.Get("FL_MODE_RAW_DESC"));
             BtnFlEnriched.Content = BuildModeButton(L.Get("FL_MODE_ENRICHED"), L.Get("FL_MODE_ENRICHED_DESC"));
             BtnFlCancel.Content   = L.Get("FL_CANCEL");
+
+            // Hide enriched mode button for now (DE logic needs more work)
+            BtnFlEnriched.Visibility = Visibility.Collapsed;
 
             FullLogModePanel.Visibility = Visibility.Visible;
             EnsurePanelFits(FullLogModePanel);
@@ -3673,17 +3678,7 @@ namespace WinLicApp
                         {
                             string hex = BitConverter.ToString(bytes).Replace("-", " ");
                             if (hex.Length > 60) hex = hex.Substring(0, 60) + "...";
-                            
-                            string extra = "";
-                            if (name.StartsWith("DigitalProductId", StringComparison.OrdinalIgnoreCase) && bytes.Length >= 164)
-                            {
-                                var decodedKey = DecodeProductKeyWin8AndUp(bytes);
-                                if (!string.IsNullOrEmpty(decodedKey))
-                                {
-                                    extra = $" -> Decoded Key: {(full ? decodedKey : MaskKey(decodedKey!))}";
-                                }
-                            }
-                            sb.AppendLine($"    {name,-36} = [{bytes.Length} bytes] {hex}{extra}");
+                            sb.AppendLine($"    {name,-36} = [{bytes.Length} bytes] {hex}");
                         }
                         else if (val is string[] strArr)
                         {
