@@ -3669,8 +3669,30 @@ namespace WinLicApp
                     foreach (var name in rk.GetValueNames())
                     {
                         var val = rk.GetValue(name);
-                        if (val is byte[]) continue; // skip binary blobs
-                        sb.AppendLine($"    {name,-36} = {val}");
+                        if (val is byte[] bytes)
+                        {
+                            string hex = BitConverter.ToString(bytes).Replace("-", " ");
+                            if (hex.Length > 60) hex = hex.Substring(0, 60) + "...";
+                            
+                            string extra = "";
+                            if (name.StartsWith("DigitalProductId", StringComparison.OrdinalIgnoreCase) && bytes.Length >= 164)
+                            {
+                                var decodedKey = DecodeProductKeyWin8AndUp(bytes);
+                                if (!string.IsNullOrEmpty(decodedKey))
+                                {
+                                    extra = $" -> Decoded Key: {(full ? decodedKey : MaskKey(decodedKey!))}";
+                                }
+                            }
+                            sb.AppendLine($"    {name,-36} = [{bytes.Length} bytes] {hex}{extra}");
+                        }
+                        else if (val is string[] strArr)
+                        {
+                            sb.AppendLine($"    {name,-36} = {{ {string.Join(", ", strArr)} }}");
+                        }
+                        else
+                        {
+                            sb.AppendLine($"    {name,-36} = {val}");
+                        }
                     }
                 }
                 catch (Exception ex) { sb.AppendLine($"    [Error: {ex.Message}]"); }
