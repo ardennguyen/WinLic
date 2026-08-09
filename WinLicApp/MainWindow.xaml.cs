@@ -607,7 +607,6 @@ namespace WinLicApp
                 if (!string.IsNullOrEmpty(oemId))       LogInfo(L.Get("OemPid_OemId")   + oemId);
                 if (!string.IsNullOrEmpty(sku))         LogInfo(L.Get("OemPid_Sku")     + sku);
                 if (!string.IsNullOrEmpty(eulaType))    LogInfo(L.Get("OemPid_EulaType")+ eulaType);
-                LogInfo(L.Get("OemPid_IsUpgrade") + (isUpgrade != 0 ? L.Get("OemPid_UpgradeYes") : L.Get("OemPid_UpgradeNo")));
                 if (!string.IsNullOrEmpty(extPid))      LogInfo(L.Get("OemPid_ExtPid")  + extPid);
 
                 if (warnIfUnique)
@@ -1470,7 +1469,6 @@ namespace WinLicApp
                             LogInfo(L.Get("OemPid_Sku") + sku);
                         if (!string.IsNullOrEmpty(eulaType))
                             LogInfo(L.Get("OemPid_EulaType") + eulaType);
-                        LogInfo(L.Get("OemPid_IsUpgrade") + (isUpgrade != 0 ? L.Get("OemPid_UpgradeYes") : L.Get("OemPid_UpgradeNo")));
                         if (!string.IsNullOrEmpty(extPid))
                             LogInfo(L.Get("OemPid_ExtPid") + extPid);
                     }
@@ -3543,7 +3541,6 @@ namespace WinLicApp
                         if (!string.IsNullOrEmpty(oemId))      sb.AppendLine($"      OEM ID                  : {oemId}");
                         if (!string.IsNullOrEmpty(sku))        sb.AppendLine($"      Activation ID (SKU)     : {sku}");
                         if (!string.IsNullOrEmpty(eulaType))   sb.AppendLine($"      EULA                    : {eulaType}");
-                        sb.AppendLine($"      Is Upgrade              : {(isUpgrade != 0 ? "Yes" : "No")}");
                         if (!string.IsNullOrEmpty(extPid))     sb.AppendLine($"      Ext. PID                : {extPid}");
                     }
                     else if (!valid && System.IO.File.Exists(PkcPath))
@@ -3788,3 +3785,4 @@ namespace WinLicApp
         }
     }
 }
+

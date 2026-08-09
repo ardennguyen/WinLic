@@ -396,10 +396,7 @@ $Str = @{
     'O2_PIDGX_OEMID'       = @('  OEM ID   : ', '  Mã OEM   : ')
     'O2_PIDGX_SKU'         = @('  Activation ID: ', '  Mã kích hoạt : ')
     'O2_PIDGX_EULA'        = @('  EULA     : ', '  EULA     : ')
-    'O2_PIDGX_ISUPGRADE'   = @('  Upgrade  : ', '  Nâng cấp : ')
     'O2_PIDGX_EXTPID'      = @('  Ext. PID : ', '  PID mở rộng: ')
-    'O2_PIDGX_UPG_YES'     = @('Yes (upgrade license)', 'Có (key nâng cấp)')
-    'O2_PIDGX_UPG_NO'      = @('No (full license)', 'Không (key đầy đủ)')
     'O2_PIDGX_CHKSUM_OK'   = @('  Format   : OK (25 alphanumeric chars, 5x5 groups)',
                                 '  Định dạng: HỢP LỆ (25 ký tự chữ-số, 5 nhóm 5)')
     'O2_PIDGX_CHKSUM_FAIL' = @('  Format   : FAIL (must be 25 alphanumeric chars in 5x5 groups)',
@@ -1466,8 +1463,6 @@ function Show-SystemInfo {
             if ($oemPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $oemPid.OemId) }
             if ($oemPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $oemPid.Sku) }
             if ($oemPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $oemPid.EulaType) }
-            $upgText = if ($oemPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
-            Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
             if ($oemPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $oemPid.ExtPid) }
         } elseif ($oemPid.SourceNote -eq 'pidgenx-rejected') {
             Write-Warn (T 'O1_OEM_PID_REJECTED')
@@ -1500,8 +1495,6 @@ function Show-SystemInfo {
             if ($regPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $regPid.OemId) }
             if ($regPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $regPid.Sku) }
             if ($regPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $regPid.EulaType) }
-            $upgText = if ($regPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
-            Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
             if ($regPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $regPid.ExtPid) }
         } elseif ($regPid.SourceNote -eq 'pidgenx-rejected') {
             Write-Warn (T 'O1_OEM_PID_REJECTED')
@@ -1531,8 +1524,6 @@ function Show-SystemInfo {
             if ($instPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $instPid.OemId) }
             if ($instPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $instPid.Sku) }
             if ($instPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $instPid.EulaType) }
-            $upgText = if ($instPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
-            Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
             if ($instPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $instPid.ExtPid) }
         } elseif ($instPid.SourceNote -eq 'pidgenx-rejected') {
             Write-Warn (T 'O1_OEM_PID_REJECTED')
@@ -1564,8 +1555,6 @@ function Show-SystemInfo {
                     if ($origPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $origPid.OemId) }
                     if ($origPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $origPid.Sku) }
                     if ($origPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $origPid.EulaType) }
-                    $ut = if ($origPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
-                    Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $ut)
                     if ($origPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $origPid.ExtPid) }
                 } elseif ($origPid.SourceNote -eq 'pidgenx-rejected') {
                     Write-Warn (T 'O2_PIDGX_REJECTED')
@@ -1596,8 +1585,6 @@ function Show-SystemInfo {
                     if ($orig2Pid.OemId)      { Write-Info ((T 'O2_PIDGX_OEMID')   + $orig2Pid.OemId) }
                     if ($orig2Pid.Sku)        { Write-Info ((T 'O2_PIDGX_SKU')     + $orig2Pid.Sku) }
                     if ($orig2Pid.EulaType)   { Write-Info ((T 'O2_PIDGX_EULA')    + $orig2Pid.EulaType) }
-                    $ut2 = if ($orig2Pid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
-                    Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $ut2)
                     if ($orig2Pid.ExtPid)     { Write-Info ((T 'O2_PIDGX_EXTPID')  + $orig2Pid.ExtPid) }
                 } elseif ($orig2Pid.SourceNote -eq 'pidgenx-rejected') {
                     Write-Warn (T 'O2_PIDGX_REJECTED')
@@ -1968,8 +1955,6 @@ function Test-ProductKey {
     if ($pidResult.EulaType -ne '') {
         Write-Host ((T 'O2_PIDGX_EULA') + $pidResult.EulaType) -ForegroundColor Cyan
     }
-    $upgText = if ($pidResult.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
-    Write-Host ((T 'O2_PIDGX_ISUPGRADE') + $upgText) -ForegroundColor Cyan
     if ($pidResult.ExtPid -ne '') {
         Write-Host ((T 'O2_PIDGX_EXTPID') + $pidResult.ExtPid) -ForegroundColor Cyan
     }
@@ -2143,8 +2128,6 @@ function Remove-License {
             if ($o3Pid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $o3Pid.OemId) }
             if ($o3Pid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $o3Pid.Sku) }
             if ($o3Pid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $o3Pid.EulaType) }
-            $upgText = if ($o3Pid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
-            Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
             if ($o3Pid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $o3Pid.ExtPid) }
         }
         $isGeneric = $ppk -and $genericKeys.ContainsKey($ppk)
@@ -2983,8 +2966,6 @@ function Set-ActivationChannel {
             if ($chPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $chPid.OemId) }
             if ($chPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $chPid.Sku) }
             if ($chPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $chPid.EulaType) }
-            $upgText = if ($chPid.IsUpgrade -ne 0) { T 'O2_PIDGX_UPG_YES' } else { T 'O2_PIDGX_UPG_NO' }
-            Write-Info ((T 'O2_PIDGX_ISUPGRADE') + $upgText)
             if ($chPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $chPid.ExtPid) }
         }
     } else {
