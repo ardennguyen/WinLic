@@ -1365,6 +1365,38 @@ function Get-LicenseStatusText {
     }
 }
 
+function Get-ActivationMethod {
+    param(
+        $WmiObj,
+        [string]$PartialKey,
+        [string]$RegKey
+    )
+    if (-not $WmiObj) { return 'Standard' }
+
+    $desc = $WmiObj.Description
+    if ($desc -and $desc.ToUpper().Contains('VOLUME')) {
+        $kmsName = $WmiObj.DiscoveredKeyManagementServiceMachineName
+        $kmsCnt  = 0
+        try { $kmsCnt = [uint32]$WmiObj.KeyManagementServiceCurrentCount } catch {}
+        if ($kmsName -or ($kmsCnt -gt 0)) {
+            return 'KMS'
+        }
+        return 'Standard'
+    }
+
+    if ($PartialKey -and $global:genericKeys.ContainsKey($PartialKey)) {
+        return 'DE'
+    }
+
+    if ($RegKey -and $PartialKey) {
+        if (-not $RegKey.EndsWith($PartialKey, [StringComparison]::OrdinalIgnoreCase)) {
+            return 'DE'
+        }
+    }
+
+    return 'Standard'
+}
+
 # =============================================================================
 # Show-SystemInfo  -- shared OS / license / key info block
 # Used by both Get-VersionInfo (Option 1) and Test-ProductKey (Option 2).
@@ -1683,10 +1715,12 @@ function Show-SystemInfo {
         Write-Warn ((T 'O1_LBL_ORIGKEY2') + ' ' + (T 'O1_INST_NO'))
     }
 
+    $actMethod = Get-ActivationMethod -WmiObj $activeProduct -PartialKey $partialKey -RegKey $regKey
+    $isDE        = $actMethod -eq 'DE'
+    $isKmsClient = $actMethod -eq 'KMS'
+
     # -- Save-key advisory (inline, right after installed key) ----------------
     if ($WarnBeforeReplace -and $installedKey) {
-        $isDE        = $genericKeys.ContainsKey($partialKey) -and -not $isVolume
-        $isKmsClient = $isVolume
         $isFullGvlk = $global:fullGvlkKeys.ContainsKey($installedKey)
         $isFullGeneric = $global:fullGenericKeys.ContainsKey($installedKey)
         if (-not $isDE -and -not $isKmsClient -and -not $isFullGvlk -and -not $isFullGeneric) {
@@ -1698,7 +1732,6 @@ function Show-SystemInfo {
     Write-Sep
 
     # Key mismatch check
-    $isDE = $partialKey -and $genericKeys.ContainsKey($partialKey) -and -not $isVolume
     if ($regKey -and $partialKey -and -not $regKey.EndsWith($partialKey)) {
         Write-Warn (T 'O1_MISMATCH')
         Write-Data (T 'O1_ACTIVE_ENDS') $partialKey 'Yellow'
@@ -2198,12 +2231,18 @@ function Remove-License {
 
     # Show current key so user can save it
     try {
-        $product = Get-CimInstance -Query "SELECT PartialProductKey FROM SoftwareLicensingProduct WHERE PartialProductKey IS NOT NULL AND Name LIKE 'Windows%'" -ErrorAction SilentlyContinue | Select-Object -First 1
-        $ppk = $product.PartialProductKey
-    } catch { $ppk = $null }
+        $product = Get-CimInstance -ClassName SoftwareLicensingProduct -Filter "PartialProductKey IS NOT NULL AND Name LIKE 'Windows%'" -ErrorAction SilentlyContinue | Select-Object -First 1
+        $ppk = if ($product) { $product.PartialProductKey } else { $null }
+    } catch { $product = $null; $ppk = $null }
 
     $instKey = $null
     try { $instKey = Get-InstalledProductKey } catch {}
+
+    $regKey = $null
+    try {
+        $regDpId = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'DigitalProductId' -ErrorAction SilentlyContinue).DigitalProductId
+        if ($regDpId) { $regKey = Decode-ProductKey $regDpId }
+    } catch {}
 
     if ($instKey) {
         Write-Info ((T 'O3_CURRENT_KEY') + ' ' + (Display-Key $instKey))
@@ -2218,10 +2257,13 @@ function Remove-License {
             if ($o3Pid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $o3Pid.EulaType) }
             if ($o3Pid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $o3Pid.ExtPid) }
         }
-        $isGeneric = $ppk -and $genericKeys.ContainsKey($ppk)
+        $actMethod = Get-ActivationMethod -WmiObj $product -PartialKey $ppk -RegKey $regKey
+        $isDE = $actMethod -eq 'DE'
+        $isKmsClient = $actMethod -eq 'KMS'
+        
         $isFullGvlk = $instKey -and $global:fullGvlkKeys.ContainsKey($instKey)
         $isFullGeneric = $instKey -and $global:fullGenericKeys.ContainsKey($instKey)
-        if (-not $isGeneric -and -not $isFullGvlk -and -not $isFullGeneric) {
+        if (-not $isDE -and -not $isKmsClient -and -not $isFullGvlk -and -not $isFullGeneric) {
             Write-Warn (T 'O3_SAVE_WARN')
         }
     }
