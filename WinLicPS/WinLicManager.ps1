@@ -418,6 +418,10 @@ $Str = @{
     'O2_INSPECT_ONLY'      = @('Key info noted. No changes made.', 'Đã ghi nhận thông tin key. Không có thay đổi nào được thực hiện.')
     'O2_PROCEED_ANYWAY'    = @('Proceed with installation despite invalid format?',
                                 'Tiếp tục cài đặt dù định dạng không hợp lệ?')
+    'Notice_GenericMatch'  = @('Notice: This matches a known GENERIC / HWID placeholder key.',
+                               'Lưu ý: Đây là key chung (GENERIC / HWID placeholder).')
+    'Notice_KmsMatch'      = @('Notice: This matches a known KMS / GVLK volume key.',
+                               'Lưu ý: Đây là key cấp phép số lượng lớn (KMS / GVLK).')
 
     # =========================================================================
     # Option 3 -- Remove Activation
@@ -441,7 +445,7 @@ $Str = @{
     'O1_INST_PIDGENX'   = @('Analyzing Installed Key via pidgenx...', 'Đang phân tích Key Đã Cài Đặt qua pidgenx...')
     'O3_CURRENT_KEY'    = @('Current installed key:', 'Key đang cài đặt:')
     'O3_SAVE_WARN'      = @('This appears to be a unique Retail / MAK / OEM key. Save it now before removing -- you will NOT be able to recover it afterwards.',
-                            'Đây có vẻ là key Retail / MAK / OEM riêng. Hãy lưu lại trước khi gỡ -- bạn sẽ KHÔNG thể khôi phục sau này.')
+                            'Đây có vẻ là key Retail / MAK / OEM riêng. Hãy lưu lại trước khi gỡ bỏ -- bạn sẽ KHÔNG thể khôi phục sau này.')
 
 
     # =========================================================================
@@ -505,7 +509,7 @@ $Str = @{
     'O5_CAN5'        = @('(5) File / folder paths          ->  installation leftovers + KMS38 GenuineTicket + MAS renewal artifacts',
                           '(5) Đường dẫn tệp / thư mục      →  phần còn lại sau khi cài đặt công cụ kích hoạt')
     'O5_CAN6'        = @('(6) Running processes            ->  active activation tool processes at scan time',
-                          '(6) Tiến trình đang chạy         ->  công cụ kích hoạt đang hoạt động tại thời điểm quét')
+                          '(6) Tiến trình đang chạy         →  công cụ kích hoạt đang hoạt động tại thời điểm quét')
     'O5_CAN7'        = @('(7) GVLK key + permanent act.    ->  detects TSforge / KMS38 / HWID piracy patterns',
                           '(7) Khóa GVLK + kích hoạt vĩnh viễn →  phát hiện kiểu kích hoạt TSforge / KMS38 / HWID lậu')
     'O5_CAN8'        = @('(8) Activation expiry anomaly    ->  year 2038 (KMS38), 2100+ (TSforge KMS4k), ~180d (Online KMS)',
@@ -987,6 +991,65 @@ $genericKeys = @{
     "2YV77" = "Win 10 Pro for Workstations (HWID placeholder)"
     "8DEC2" = "Win 10 Enterprise (HWID placeholder)"
 }
+# --- INJECT FULL KEYS HERE ---
+
+$global:fullGvlkKeys = @{
+    "W269N-WFGWX-YVC9B-4J6C9-T83GX" = "Windows 11/10 Pro"
+    "MH37W-N47XK-V7XM9-C7227-GCQG9" = "Windows 11/10 Pro N"
+    "NRG8B-VKK3Q-CXVCJ-9G2XF-6Q84J" = "Windows 11/10 Pro for Workstations"
+    "9FNHH-K3HBT-3W4TD-6383H-6XYWF" = "Windows 11/10 Pro for Workstations N"
+    "6TP4R-GNPTD-KYYHQ-7B7DP-J447Y" = "Windows 11/10 Pro Education"
+    "YVWGF-BXNMC-HTQYQ-CPQ99-66QFC" = "Windows 11/10 Pro Education N"
+    "NW6C2-QMPVW-D7KKK-3GKT6-VCFB2" = "Windows 11/10 Education"
+    "2WH4N-8QGBV-H22JP-CT43Q-MDWWJ" = "Windows 11/10 Education N"
+    "NPPR9-FWDCX-D2C8J-H872K-2YT43" = "Windows 11/10 Enterprise"
+    "DPH2V-TTNVB-4X9Q3-TJR4H-KHJW4" = "Windows 11/10 Enterprise N"
+    "YYVX9-NTFWV-6MDM3-9PT4T-4M68B" = "Windows 11/10 Enterprise G"
+    "44RPN-FTY23-9VTTB-MP9BX-T84FV" = "Windows 11/10 Enterprise G N"
+    "M7XTQ-FN8P6-TTKYV-9D4CC-J462D" = "Windows 11 LTSC 2024 / Win10 LTSC 2021/2019"
+    "92NFX-8DJQP-P6BBQ-THF9C-7CG2H" = "Windows 11/10 Enterprise N LTSC"
+    "KBN8V-HFGQ4-MGXVD-347P6-PDQGT" = "Windows IoT Enterprise LTSC 2024/2021"
+    "DCPHK-NFMTC-H88MJ-PFHPY-QJ4BJ" = "Windows 10 Enterprise LTSB 2016"
+    "QFFDN-GRT3P-VKWWX-X7T3R-8B639" = "Windows 10 Enterprise N LTSB 2016"
+    "WNMTR-4C88C-JK8YV-HQ7T2-76DF9" = "Windows 10 Enterprise LTSB 2015"
+    "2F77B-TNFGY-69QQF-B8YKP-D69TJ" = "Windows 10 Enterprise N LTSB 2015"
+    "FWN7H-PF93Q-4GGP8-M8RF3-MDWWW" = "Windows 10 Enterprise S (KMS)"
+}
+
+$global:fullGenericKeys = @{
+    "GCRJD-8NW9H-F2CDX-CCM8D-9D6T9" = "Windows 8.1 Pro"
+    "HMCNV-VVBFX-7HMBH-CTY9B-B4FXY" = "Windows 8.1 Pro N"
+    "MHF9N-XY6XB-WVXMC-BTDCT-MKKG7" = "Windows 8.1 Enterprise"
+    "TT4HM-HN7YT-62K67-RGRQJ-JFFXW" = "Windows 8.1 Enterprise N"
+    "YTMG3-N6DKC-DKB77-7M9GH-8HVX7" = "Windows 11/10 Home (RTM)"
+    "4CPRK-NM3K3-X6XXQ-RXX86-WXCHW" = "Windows 11/10 Home N (RTM)"
+    "BT79Q-G7N6G-PGBYW-4YWX6-6F4BT" = "Windows 11/10 Home Single Language (RTM)"
+    "N2434-X9D7W-8PF6X-8DV9T-8TYMD" = "Windows 11 Home Country Specific (RTM)"
+    "VK7JG-NPHTM-C97JM-9MPGT-3V66T" = "Windows 11/10 Pro (RTM / HWID)"
+    "2B87N-8KFHP-DKV6R-Y2C8J-PKCKT" = "Windows 11/10 Pro N (RTM)"
+    "DXG7C-N36C4-C4HTG-X4T3X-2YV77" = "Windows 11/10 Pro for Workstations (RTM)"
+    "WYPNQ-8C467-V2W6J-TX4WX-WT2RQ" = "Windows 11/10 Pro N for Workstations (RTM)"
+    "8PTT6-RNW4C-6V7J2-C2D3X-MHBPB" = "Windows 11/10 Pro Education (RTM)"
+    "GJTYN-HDMQY-FRR76-HVGC7-QPF8P" = "Windows 11/10 Pro Education N (RTM)"
+    "YNMGQ-8RYV3-4PGQ3-C8XTP-7CFBY" = "Windows 11/10 Education (RTM)"
+    "84NGF-MHBT6-FXBX8-QWJK7-DRR8H" = "Windows 11/10 Education N (RTM)"
+    "XGVPP-NMH47-7TTHJ-W3FW7-8HV2C" = "Windows 11/10 Enterprise (RTM)"
+    "WGGHN-J84D6-QYCPR-T7PJ7-X766F" = "Windows 11/10 Enterprise N (RTM)"
+    "FW7NV-4T673-HF4VX-9X4MM-B4H4T" = "Windows 11/10 Enterprise G N (RTM)"
+    "3NF4D-GF9GY-63VKH-QRC3V-7QW8P" = "Windows 10 S (RTM)"
+    "NK96Y-D9CD8-W44CQ-R8YTK-DYJWX" = "Windows 10 Enterprise S (RTM)"
+    "46J3N-RY6B3-BJFDY-VBFT9-V22HG" = "Windows 10 Home (Default)"
+    "PGGM7-N77TC-KVR98-D82KJ-DGPHV" = "Windows 10 Home N (Default)"
+    "RHGJR-N7FVY-Q3B8F-KBQ6V-46YP4" = "Windows 10 Pro / Pro N (Default)"
+    "GH37Y-TNG7X-PP2TK-CMRMT-D3WV4" = "Windows 10 SL (Default)"
+    "68WP7-N2JMW-B676K-WR24Q-9D7YC" = "Windows 10 CHN SL (Default)"
+    "37GNV-YCQVD-38XP9-T848R-FC2HD" = "Windows 10 Home (OEM 3.0)"
+    "33CY4-NPKCC-V98JP-42G8W-VH636" = "Windows 10 Home N (OEM 3.0)"
+    "NF6HC-QH89W-F8WYV-WWXV4-WFG6P" = "Windows 10 Pro (OEM 3.0)"
+    "NH7W7-BMC3R-4W9XT-94B6D-TCQG3" = "Windows 10 Pro N (OEM 3.0)"
+    "NTRHT-XTHTG-GBWCG-4MTMP-HH64C" = "Windows 10 SL (OEM 3.0)"
+    "7B6NC-V3438-TRQG7-8TCCX-H6DDY" = "Windows 10 CHN SL (OEM 3.0)"
+}
 
 # ---- settings.ini parser ----------------------------------------------------
 function Read-IniSection {
@@ -1019,6 +1082,12 @@ foreach ($_gkLine in $_gkLines) {
     if ($alnum.Length -ge 5) {
         $suffix = $alnum.Substring($alnum.Length - 5).ToUpper()
         $desc   = if ($_gkLine -match '=') { ($_gkLine -split '=', 2)[1].Trim() } else { 'Custom generic key' }
+        if ($keyPart.Length -ge 29) {
+            $global:fullGenericKeys[$keyPart.ToUpper()] = $desc
+        }
+        if ($keyPart.Length -ge 29) {
+            $global:fullGenericKeys[$keyPart.ToUpper()] = $desc
+        }
         if (-not $genericKeys.ContainsKey($suffix)) {
             $genericKeys[$suffix] = $desc
         }
@@ -1073,6 +1142,10 @@ function Get-ScanLists {
         # and bare key forms
         $keyPart = if ($_ -match '=') { ($_ -split '=')[0].Trim() } else { $_.Trim() }
         $alnum   = $keyPart -replace "[^A-Za-z0-9]",''
+        if ($keyPart.Length -ge 29) {
+            $desc = if ($_ -match '=') { ($_ -split '=', 2)[1].Trim() } else { 'Custom GVLK key' }
+            $global:fullGvlkKeys[$keyPart.ToUpper()] = $desc
+        }
         if ($alnum.Length -ge 5) { $alnum.Substring($alnum.Length - 5).ToUpper() }
     } | Where-Object { $_ } | Sort-Object -Unique
 
@@ -1109,6 +1182,15 @@ function Write-Data  {
 }
 # Write-Key: teal/cyan for key values -- mirrors GUI LogKey (ColKey #0e7490, bold, 🔑 prefix)
 function Write-Key   { param([string]$msg) Write-Host "  [KEY] $msg" -ForegroundColor Cyan }
+
+function Show-NoticeIfGeneric {
+    param([string]$KeyToCheck)
+    if ($global:fullGenericKeys.ContainsKey($KeyToCheck)) {
+        Write-Host "    $((T 'Notice_GenericMatch'))" -ForegroundColor Cyan
+    } elseif ($global:fullGvlkKeys.ContainsKey($KeyToCheck)) {
+        Write-Host "    $((T 'Notice_KmsMatch'))" -ForegroundColor Cyan
+    }
+}
 # Write-DE: Magenta for Digital Entitlement -- mirrors GUI LogDE (ColDE #7c3aed, bold, 💡 prefix)
 function Write-DE    { param([string]$msg) Write-Host "  [DE] $msg" -ForegroundColor Magenta }
 
@@ -1447,6 +1529,7 @@ function Show-SystemInfo {
     if ($oemKey) {
         Write-OK (T 'O1_BIOS_DETECT')
         Write-Key ((T 'O1_KEY_BIOS') + (Display-Key $oemKey))
+        Show-NoticeIfGeneric $oemKey
         Write-Info (T 'O1_SRC_WMI_BIOS')
         if ($sls.OA3xOriginalProductKeyDescription) {
             Write-Data (T 'O1_LBL_OA3XDESC') $sls.OA3xOriginalProductKeyDescription
@@ -1483,6 +1566,7 @@ function Show-SystemInfo {
     if ($regKey) {
         Write-OK (T 'O1_REG_DETECT')
         Write-Key ((T 'O1_KEY_REG') + (Display-Key $regKey))
+        Show-NoticeIfGeneric $regKey
         Write-Info (T 'O1_SRC_REG_BACKUP')
         
         Write-Diag (T 'O1_REG_PIDGENX')
@@ -1512,6 +1596,7 @@ function Show-SystemInfo {
     if ($installedKey) {
         Write-OK (T 'O1_INST_OK')
         Write-Key ((T 'O1_KEY_INST') + (Display-Key $installedKey))
+        Show-NoticeIfGeneric $installedKey
         Write-Info (T 'O1_SRC_REG_INST')
         
         Write-Diag (T 'O1_INST_PIDGENX')
@@ -1543,7 +1628,8 @@ function Show-SystemInfo {
             $origKey = Decode-ProductKey $origDpId
             if ($origKey) {
                 Write-OK ((T 'O1_LBL_ORIGKEY') + ' ' + (T 'O3_BiosDetected'))
-                Write-Key ((T 'O1_LBL_ORIGKEY') + ' ' + (Display-Key $origKey))
+                Write-Key ((T 'O1_LBL_ORIGKEY2') + ' ' + (Display-Key $origKey))
+                Show-NoticeIfGeneric $origKey
                 Write-Info (T 'O1_SRC_ORIG_KEY')
                 Write-Diag (T 'O1_FETCH_ORIGPIDGENX')
                 $origPid = Invoke-PidGenXCheck -Key $origKey
@@ -1601,7 +1687,9 @@ function Show-SystemInfo {
     if ($WarnBeforeReplace -and $installedKey) {
         $isDE        = $genericKeys.ContainsKey($partialKey) -and -not $isVolume
         $isKmsClient = $isVolume
-        if (-not $isDE -and -not $isKmsClient) {
+        $isFullGvlk = $global:fullGvlkKeys.ContainsKey($installedKey)
+        $isFullGeneric = $global:fullGenericKeys.ContainsKey($installedKey)
+        if (-not $isDE -and -not $isKmsClient -and -not $isFullGvlk -and -not $isFullGeneric) {
             Write-Warn (T 'O2_SAVE_KEY_WARN')
         }
     }
@@ -2131,7 +2219,9 @@ function Remove-License {
             if ($o3Pid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $o3Pid.ExtPid) }
         }
         $isGeneric = $ppk -and $genericKeys.ContainsKey($ppk)
-        if (-not $isGeneric) {
+        $isFullGvlk = $instKey -and $global:fullGvlkKeys.ContainsKey($instKey)
+        $isFullGeneric = $instKey -and $global:fullGenericKeys.ContainsKey($instKey)
+        if (-not $isGeneric -and -not $isFullGvlk -and -not $isFullGeneric) {
             Write-Warn (T 'O3_SAVE_WARN')
         }
     }

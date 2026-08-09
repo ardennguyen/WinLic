@@ -609,7 +609,20 @@ namespace WinLicApp
                 if (!string.IsNullOrEmpty(eulaType))    LogInfo(L.Get("OemPid_EulaType")+ eulaType);
                 if (!string.IsNullOrEmpty(extPid))      LogInfo(L.Get("OemPid_ExtPid")  + extPid);
 
-                if (warnIfUnique)
+                bool isFullGvlk = AppSettings.FullGvlkKeys.Contains(key);
+                bool isFullGeneric = AppSettings.FullGenericKeys.Contains(key);
+
+                if (isFullGvlk)
+                {
+                    LogBlank();
+                    LogInfo(L.Get("Notice_KmsMatch"));
+                }
+                else if (isFullGeneric)
+                {
+                    LogBlank();
+                    LogInfo(L.Get("Notice_GenericMatch"));
+                }
+                else if (warnIfUnique)
                 {
                     bool isGvlk = channel.IndexOf("GVLK", StringComparison.OrdinalIgnoreCase) >= 0 || channel.IndexOf("CSVLK", StringComparison.OrdinalIgnoreCase) >= 0;
                     string last5 = key.Length >= 5 ? key.Substring(key.Length - 5).ToUpperInvariant() : "";
@@ -869,7 +882,7 @@ namespace WinLicApp
                 LogInfo(L.Get("D_SrcWmiBios"));
                 if (!string.IsNullOrEmpty(oa3xDesc)) LogData(L.Get("D_OA3xDesc"), oa3xDesc!);
                 LogFetch(L.Get("Fetch_OemPidGenX"));
-                RunPidGenXAnalysis(oemKey!, warnIfUnique: true);
+                RunPidGenXAnalysis(oemKey!, warnIfUnique: false);
             }
             else
             {
@@ -976,25 +989,18 @@ namespace WinLicApp
 
             // ── Save-key advisory ───────────────────────────────────────────────
             bool saveKeyWarnNeeded = false;
-            if (warnBeforeReplace && hasInstalled)
+            if (warnBeforeReplace && hasInstalled && !string.IsNullOrEmpty(installedKey))
             {
                 bool isDE  = activationMethod == ActivationMethod.DE;
                 bool isKms = activationMethod == ActivationMethod.KMS;
-                saveKeyWarnNeeded = !isDE && !isKms;
+                bool isFullGvlk = AppSettings.FullGvlkKeys.Contains(installedKey);
+                bool isFullGeneric = AppSettings.FullGenericKeys.Contains(installedKey);
+                saveKeyWarnNeeded = !isDE && !isKms && !isFullGvlk && !isFullGeneric;
             }
             if (saveKeyWarnNeeded)
                 LogWarn(L.Get("O2_SAVE_KEY_WARN"));
             _saveKeyWarnNeeded = saveKeyWarnNeeded;
 
-            // ── Key mismatch detection ───────────────�
-         {
-                bool isDE  = activationMethod == ActivationMethod.DE;
-                bool isKms = activationMethod == ActivationMethod.KMS;
-                saveKeyWarnNeeded = !isDE && !isKms;
-            }
-            if (saveKeyWarnNeeded)
-                LogWarn(L.Get("O2_SAVE_KEY_WARN"));
-            _saveKeyWarnNeeded = saveKeyWarnNeeded;
 
             // ── Mismatch detection ────────────────────────────────────────────────
             if (hasReg && !string.IsNullOrEmpty(partialKey))

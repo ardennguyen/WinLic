@@ -663,6 +663,12 @@ namespace WinLicApp
                                            "Tiếp tục theo yêu cầu người dùng — key không được nhận diện bởi pidgenx cho phiên bản Windows này."),
 
 
+            // ── Advisory notices for known generic / volume keys ──
+            ["Notice_GenericMatch"] = ("Notice: This matches a known GENERIC / HWID placeholder key.",
+                                       "Lưu ý: Đây là key chung (GENERIC / HWID placeholder)."),
+            ["Notice_KmsMatch"]     = ("Notice: This matches a known KMS / GVLK volume key.",
+                                       "Lưu ý: Đây là key cấp phép số lượng lớn (KMS / GVLK)."),
+
             // ── Option 2 — save-key advisory for non-generic Retail/MAK/OEM keys ──
             ["O2_SAVE_KEY_WARN"] = ("This appears to be a unique Retail / MAK / OEM key. " +
                                     "Save it now before installing a new key — " +
