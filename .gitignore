@@ -28,4 +28,3 @@ releases/
 
 # Agent-generated docs, work files, and rules (local only)
 agent/
-.agents/
