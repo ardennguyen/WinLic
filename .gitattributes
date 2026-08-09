@@ -1,0 +1,3 @@
+# Exclude agent directories from GitHub auto-generated release source code ZIPs
+.agents/ export-ignore
+agent/ export-ignore
