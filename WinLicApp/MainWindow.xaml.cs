@@ -1055,7 +1055,7 @@ namespace WinLicApp
         // Tier 1: format check (25 alphanum chars, 5×5).
         // Tier 2: real PidGenX P/Invoke with correct struct layout.
         //         Struct fix: all string fields in DigitalProductId2/4 are WCHAR.
-        //         Third param is MPC ("12345"), NOT the pkeyconfig path repeated.
+        //         Third param is MPC ("XXXXX"), NOT the pkeyconfig path repeated.
         //         Confirmed working on Win10/11 from live testing.
         // No side effects, no network, no key replacement.
         // =========================================================================
@@ -1214,7 +1214,7 @@ namespace WinLicApp
                 var dpid4 = new DigitalProductId4();
                 dpid4.m_length = (uint)Marshal.SizeOf<DigitalProductId4>();
 
-                int hr = PidGenXNative.PidGenX(key, PkcPath, "12345", null,
+                int hr = PidGenXNative.PidGenX(key, PkcPath, "XXXXX", null,
                                                ref dpid2, ref dpid3, ref dpid4);
                 if (hr != 0) return (false, "", "", "", "", "", "", "", 0, "");  // not in pkeyconfig \u2014 REJECTED (e.g. Win8 key on Win10)
 

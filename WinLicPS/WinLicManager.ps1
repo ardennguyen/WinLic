@@ -1725,7 +1725,7 @@ function Get-InstalledProductKey {
 # Struct layout (critical):
 #   DigPid2 / DigPid4 use CharSet.Unicode (WCHAR fields)
 #   DigPid3 uses CharSet.Ansi + Pack=1 to give exactly 164 bytes
-#   3rd param (mpc) must be '12345', NOT the pkeyconfig path repeated
+#   3rd param (mpc) must be 'XXXXX', NOT the pkeyconfig path repeated
 if (-not ([System.Management.Automation.PSTypeName]'WinLicPidGenX').Type) {
     try {
         Add-Type -TypeDefinition @'
@@ -1841,7 +1841,7 @@ function Invoke-PidGenXCheck {
 
     # -- Tier 2: PidGenX P/Invoke with correct struct layout ----------------
     # Requires: DigPid3 Pack=1 (164 bytes), DigPid4 WCHAR fields (1272 bytes)
-    # mpc = '12345' (generic MPC code, NOT the pkeyconfig path repeated)
+    # mpc = 'XXXXX' (generic MPC code, NOT the pkeyconfig path repeated)
     $pkcPath = "$env:SystemRoot\System32\spp\tokens\pkeyconfig\pkeyconfig.xrm-ms"
     $typeOk  = try { [WinLicPidGenX] | Out-Null; $true } catch { $false }
 
@@ -1853,7 +1853,7 @@ function Invoke-PidGenXCheck {
             $d4  = New-Object WL_DigPid4
             $d4.m_length = [uint32][System.Runtime.InteropServices.Marshal]::SizeOf($d4)
 
-            $hr = [WinLicPidGenX]::PidGenX($Key, $pkcPath, '12345', $null,
+            $hr = [WinLicPidGenX]::PidGenX($Key, $pkcPath, 'XXXXX', $null,
                                            [ref]$d2, [ref]$d3, [ref]$d4)
 
             if ($hr -eq 0) {
