@@ -22,6 +22,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace WinLicApp
@@ -656,8 +657,11 @@ namespace WinLicApp
                     var existing = File.ReadAllLines(SettingsPath);
                     int markerLine = Array.FindIndex(existing, l => l.Contains(UserBlockMarker));
                     if (markerLine >= 0)
-                        userBlock = string.Join(Environment.NewLine,
-                            existing.Skip(markerLine));
+                    {
+                        // Take from the top border of the user block
+                        int startIndex = markerLine > 0 ? markerLine - 1 : markerLine;
+                        userBlock = string.Join(Environment.NewLine, existing.Skip(startIndex));
+                    }
                 }
 
                 // Build the timestamp comment
@@ -667,13 +671,13 @@ namespace WinLicApp
                     "Last-Updated:",
                     $"Last-Updated: {timestamp}  ;");
 
+                string finalUserBlock = string.IsNullOrWhiteSpace(userBlock) 
+                    ? GetDefaultUserBlock() 
+                    : userBlock;
+
                 var combined = updatedDefault.TrimEnd()
                     + Environment.NewLine + Environment.NewLine
-                    + "# " + new string('═', 73) + Environment.NewLine
-                    + "# ║  USER BLOCK  --  Edit freely. NEVER overwritten by \"Update defaults\".    ║" + Environment.NewLine
-                    + "# " + new string('═', 73) + Environment.NewLine
-                    + Environment.NewLine
-                    + (string.IsNullOrWhiteSpace(userBlock) ? GetDefaultUserBlock() : userBlock);
+                    + finalUserBlock;
 
                 File.WriteAllText(SettingsPath, combined);
                 Load(); // Reload after update
