@@ -2988,20 +2988,86 @@ function Update-DefaultSettings {
         "# ╚═══════════════════════════════════════════════════════════════════════════╝" + $br
     )
 
-    $userSections  = "[UserGvlkKeys]" + $br
-    $userSections += "; Add custom GVLK/suspicious keys here: FULL-KEY = Description" + $br + $br
-    $userSections += "[UserKmsPiracyDomains]" + $br
-    $userSections += "; Add your own KMS piracy hostnames here" + $br + $br
-    $userSections += "[ExtraPorts]" + $br
-    $userSections += "; Additional TCP ports to probe on localhost" + $br + $br
-    $userSections += "[ExtraServices]" + $br
-    $userSections += "; Additional service name keywords" + $br + $br
-    $userSections += "[ExtraTaskKeywords]" + $br
-    $userSections += "; Additional scheduled task keywords" + $br + $br
-    $userSections += "[ExtraProcesses]" + $br
-    $userSections += "; Additional process name keywords" + $br + $br
-    $userSections += "[ExtraFilePaths]" + $br
-    $userSections += "; Additional file paths to check" + $br
+    $userSections = @"
+# =============================================================================
+# [UserGvlkKeys]
+# Add custom GVLK or suspicious keys here. Same format as [GvlkKeys]:
+#   FULL-KEY = Description
+# =============================================================================
+[UserGvlkKeys]
+; MY-CUSTOM-XXXXX-XXXXX-XXXXX = Custom suspicious key
+
+
+# =============================================================================
+# [UserGenericKeys]
+# Add custom HWID/DE placeholder keys here.
+# Same format as [GenericKeys]:  FULL-KEY = Description
+# =============================================================================
+[UserGenericKeys]
+; YYYYY-YYYYY-YYYYY-YYYYY-XXXXX = My additional placeholder key
+
+
+# =============================================================================
+# [UserKmsPiracyDomains]
+# Add your own known piracy KMS hostnames here (one keyword per line).
+# The built-in [KmsPiracyDomains] above is also always active.
+# =============================================================================
+[UserKmsPiracyDomains]
+; my.custom.piracy.kms.example.com
+
+
+# =============================================================================
+# [ExtraPorts]
+# Additional TCP ports to probe on localhost for KMS listeners.
+# Built-in default: 1688 (standard Microsoft KMS port).
+# Some vlmcsd instances use non-standard ports configured with -P flag.
+# Valid range: 1-65535 (non-integer lines are silently ignored)
+# =============================================================================
+[ExtraPorts]
+; 1689
+; 8080
+
+
+# =============================================================================
+# [ExtraServices]
+# Additional Windows service name keywords to flag as suspicious.
+# Matching is case-insensitive wildcard (*keyword*).
+# =============================================================================
+[ExtraServices]
+; MyKmsService
+; CustomActivator
+
+
+# =============================================================================
+# [ExtraTaskKeywords]
+# Additional scheduled task name keywords to flag as suspicious.
+# Matching is case-insensitive (*keyword* substring).
+# =============================================================================
+[ExtraTaskKeywords]
+; AutoActivate
+; LicenseRenew
+
+
+# =============================================================================
+# [ExtraProcesses]
+# Additional process name keywords to flag as suspicious.
+# Matching is case-insensitive (*keyword* substring). .exe extension optional.
+# =============================================================================
+[ExtraProcesses]
+; mykms.exe
+; kms_server
+
+
+# =============================================================================
+# [ExtraFilePaths]
+# Additional absolute file or folder paths to check for activation tool traces.
+# Provide FULL absolute paths. Environment variables are NOT expanded here.
+# =============================================================================
+[ExtraFilePaths]
+; C:\Tools\KMSTool
+; C:\ProgramData\CustomKMS\server.exe
+"@
+
 
     if ($userBlock) {
         $combined = $downloaded.TrimEnd() + $br + $br + $userBlock

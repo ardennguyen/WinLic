@@ -690,26 +690,83 @@ namespace WinLicApp
         }
 
         private static string GetDefaultUserBlock() =>
-            @"[UserGvlkKeys]
-; Add custom GVLK/suspicious keys here: FULL-KEY = Description
+            @"# =============================================================================
+# [UserGvlkKeys]
+# Add custom GVLK or suspicious keys here. Same format as [GvlkKeys]:
+#   FULL-KEY = Description
+# =============================================================================
+[UserGvlkKeys]
+; MY-CUSTOM-XXXXX-XXXXX-XXXXX = Custom suspicious key
 
+
+# =============================================================================
+# [UserGenericKeys]
+# Add custom HWID/DE placeholder keys here.
+# Same format as [GenericKeys]:  FULL-KEY = Description
+# =============================================================================
+[UserGenericKeys]
+; YYYYY-YYYYY-YYYYY-YYYYY-XXXXX = My additional placeholder key
+
+
+# =============================================================================
+# [UserKmsPiracyDomains]
+# Add your own known piracy KMS hostnames here (one keyword per line).
+# The built-in [KmsPiracyDomains] above is also always active.
+# =============================================================================
 [UserKmsPiracyDomains]
-; Add your own KMS piracy hostnames here
+; my.custom.piracy.kms.example.com
 
+
+# =============================================================================
+# [ExtraPorts]
+# Additional TCP ports to probe on localhost for KMS listeners.
+# Built-in default: 1688 (standard Microsoft KMS port).
+# Some vlmcsd instances use non-standard ports configured with -P flag.
+# Valid range: 1-65535 (non-integer lines are silently ignored)
+# =============================================================================
 [ExtraPorts]
-; Additional TCP ports to probe on localhost
+; 1689
+; 8080
 
+
+# =============================================================================
+# [ExtraServices]
+# Additional Windows service name keywords to flag as suspicious.
+# Matching is case-insensitive wildcard (*keyword*).
+# =============================================================================
 [ExtraServices]
-; Additional service name keywords
+; MyKmsService
+; CustomActivator
 
+
+# =============================================================================
+# [ExtraTaskKeywords]
+# Additional scheduled task name keywords to flag as suspicious.
+# Matching is case-insensitive (*keyword* substring).
+# =============================================================================
 [ExtraTaskKeywords]
-; Additional scheduled task keywords
+; AutoActivate
+; LicenseRenew
 
+
+# =============================================================================
+# [ExtraProcesses]
+# Additional process name keywords to flag as suspicious.
+# Matching is case-insensitive (*keyword* substring). .exe extension optional.
+# =============================================================================
 [ExtraProcesses]
-; Additional process name keywords
+; mykms.exe
+; kms_server
 
+
+# =============================================================================
+# [ExtraFilePaths]
+# Additional absolute file or folder paths to check for activation tool traces.
+# Provide FULL absolute paths. Environment variables are NOT expanded here.
+# =============================================================================
 [ExtraFilePaths]
-; Additional file paths to check
+; C:\Tools\KMSTool
+; C:\ProgramData\CustomKMS\server.exe
 ";
 
         public static string SettingsFilePath => SettingsPath;
