@@ -690,7 +690,12 @@ namespace WinLicApp
         }
 
         private static string GetDefaultUserBlock() =>
-            @"# =============================================================================
+            @"# ╔═══════════════════════════════════════════════════════════════════════════╗
+# ║  USER BLOCK  --  Edit freely. NEVER overwritten by ""Update defaults"".     ║
+# ╚═══════════════════════════════════════════════════════════════════════════╝
+
+
+# =============================================================================
 # [UserGvlkKeys]
 # Add custom GVLK or suspicious keys here. Same format as [GvlkKeys]:
 #   FULL-KEY = Description
