@@ -3077,7 +3077,8 @@ function Update-DefaultSettings {
 
 
     try {
-        [System.IO.File]::WriteAllText($SETTINGS_FILE, $combined, [System.Text.Encoding]::UTF8)
+        $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::WriteAllText($SETTINGS_FILE, $combined, $utf8NoBom)
         Write-OK  ((T 'OU_SUCCESS') -f $BRANCH_VERSION)
         Write-Data (T 'OU_FILE')      $SETTINGS_FILE
         Write-Data (T 'OU_TIMESTAMP') $ts

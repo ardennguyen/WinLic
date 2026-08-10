@@ -550,7 +550,7 @@ namespace WinLicApp
 
                 // Build the new user block content
                 using var ms = new System.IO.MemoryStream();
-                using var writer = new StreamWriter(ms, System.Text.Encoding.UTF8, 4096, true);
+                using var writer = new StreamWriter(ms, new System.Text.UTF8Encoding(false), 4096, true);
                 WriteUserBlock(writer); // generate WITHOUT header
                 writer.Flush();
                 ms.Position = 0;
@@ -564,7 +564,8 @@ namespace WinLicApp
                     var linesToTake = markerLine + 2 <= lines.Count ? markerLine + 2 : lines.Count;
                     var defaultPart = string.Join(Environment.NewLine, lines.Take(linesToTake));
                     File.WriteAllText(SettingsPath,
-                        defaultPart + Environment.NewLine + Environment.NewLine + newUserBlock);
+                        defaultPart + Environment.NewLine + Environment.NewLine + newUserBlock,
+                        new System.Text.UTF8Encoding(false));
                 }
                 else
                 {
@@ -736,7 +737,7 @@ namespace WinLicApp
                     + Environment.NewLine + Environment.NewLine
                     + finalUserBlock;
 
-                File.WriteAllText(SettingsPath, combined);
+                File.WriteAllText(SettingsPath, combined, new System.Text.UTF8Encoding(false));
                 Load(); // Reload after update
                 return branch;
             }
@@ -749,7 +750,7 @@ namespace WinLicApp
         private static string GetDefaultUserBlock()
         {
             using var ms = new System.IO.MemoryStream();
-            using var writer = new StreamWriter(ms, System.Text.Encoding.UTF8, 4096, true);
+            using var writer = new StreamWriter(ms, new System.Text.UTF8Encoding(false), 4096, true);
             WriteUserBlock(writer, includeHeader: true);
             writer.Flush();
             ms.Position = 0;
