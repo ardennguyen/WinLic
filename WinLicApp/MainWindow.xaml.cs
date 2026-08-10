@@ -607,7 +607,17 @@ namespace WinLicApp
                 if (!string.IsNullOrEmpty(oemId))       LogInfo(L.Get("OemPid_OemId")   + oemId);
                 if (!string.IsNullOrEmpty(sku))         LogInfo(L.Get("OemPid_Sku")     + sku);
                 if (!string.IsNullOrEmpty(eulaType))    LogInfo(L.Get("OemPid_EulaType")+ eulaType);
-                if (!string.IsNullOrEmpty(extPid))      LogInfo(L.Get("OemPid_ExtPid")  + extPid);
+                if (!string.IsNullOrEmpty(extPid))
+                {
+                    LogInfo(L.Get("OemPid_ExtPid")  + extPid);
+                    var parts = extPid.Split('-');
+                    if (parts.Length >= 4)
+                    {
+                        string coa = parts[1] + parts[2] + parts[3];
+                        LogInfo(L.Get("OemPid_CoaBarcode") + coa);
+                        LogWarn(L.Get("OemPid_CoaWarn"));
+                    }
+                }
 
                 bool isFullGvlk = AppSettings.FullGvlkKeys.Contains(key);
                 bool isFullGeneric = AppSettings.FullGenericKeys.Contains(key);

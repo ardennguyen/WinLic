@@ -1682,7 +1682,15 @@ function Show-SystemInfo {
             if ($oemPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $oemPid.OemId) }
             if ($oemPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $oemPid.Sku) }
             if ($oemPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $oemPid.EulaType) }
-            if ($oemPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $oemPid.ExtPid) }
+            if ($oemPid.ExtPid) {
+                Write-Info ((T 'O2_PIDGX_EXTPID') + $oemPid.ExtPid)
+                $parts = $oemPid.ExtPid.Split('-')
+                if ($parts.Length -ge 4) {
+                    $coa = $parts[1] + $parts[2] + $parts[3]
+                    Write-Info ((T 'OemPid_CoaBarcode') + " $coa")
+                    Write-Warn (T 'OemPid_CoaWarn')
+                }
+            }
         } elseif ($oemPid.SourceNote -eq 'pidgenx-rejected') {
             Write-Warn (T 'O1_OEM_PID_REJECTED')
         } else {
@@ -1715,7 +1723,15 @@ function Show-SystemInfo {
             if ($regPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $regPid.OemId) }
             if ($regPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $regPid.Sku) }
             if ($regPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $regPid.EulaType) }
-            if ($regPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $regPid.ExtPid) }
+            if ($regPid.ExtPid) {
+                Write-Info ((T 'O2_PIDGX_EXTPID') + $regPid.ExtPid)
+                $parts = $regPid.ExtPid.Split('-')
+                if ($parts.Length -ge 4) {
+                    $coa = $parts[1] + $parts[2] + $parts[3]
+                    Write-Info ((T 'OemPid_CoaBarcode') + " $coa")
+                    Write-Warn (T 'OemPid_CoaWarn')
+                }
+            }
         } elseif ($regPid.SourceNote -eq 'pidgenx-rejected') {
             Write-Warn (T 'O1_OEM_PID_REJECTED')
         } else {
@@ -1745,7 +1761,15 @@ function Show-SystemInfo {
             if ($instPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $instPid.OemId) }
             if ($instPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $instPid.Sku) }
             if ($instPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $instPid.EulaType) }
-            if ($instPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $instPid.ExtPid) }
+            if ($instPid.ExtPid) {
+                Write-Info ((T 'O2_PIDGX_EXTPID') + $instPid.ExtPid)
+                $parts = $instPid.ExtPid.Split('-')
+                if ($parts.Length -ge 4) {
+                    $coa = $instPid.ExtPid.Split('-')[1] + $instPid.ExtPid.Split('-')[2] + $instPid.ExtPid.Split('-')[3]
+                    Write-Info ((T 'OemPid_CoaBarcode') + " $coa")
+                    Write-Warn (T 'OemPid_CoaWarn')
+                }
+            }
         } elseif ($instPid.SourceNote -eq 'pidgenx-rejected') {
             Write-Warn (T 'O1_OEM_PID_REJECTED')
         } else {
@@ -1777,7 +1801,15 @@ function Show-SystemInfo {
                     if ($origPid.OemId)       { Write-Info ((T 'O2_PIDGX_OEMID') + $origPid.OemId) }
                     if ($origPid.Sku)         { Write-Info ((T 'O2_PIDGX_SKU') + $origPid.Sku) }
                     if ($origPid.EulaType)    { Write-Info ((T 'O2_PIDGX_EULA') + $origPid.EulaType) }
-                    if ($origPid.ExtPid)      { Write-Info ((T 'O2_PIDGX_EXTPID') + $origPid.ExtPid) }
+                    if ($origPid.ExtPid) {
+                        Write-Info ((T 'O2_PIDGX_EXTPID') + $origPid.ExtPid)
+                        $parts = $origPid.ExtPid.Split('-')
+                        if ($parts.Length -ge 4) {
+                            $coa = $parts[1] + $parts[2] + $parts[3]
+                            Write-Info ((T 'OemPid_CoaBarcode') + " $coa")
+                            Write-Warn (T 'OemPid_CoaWarn')
+                        }
+                    }
                 } elseif ($origPid.SourceNote -eq 'pidgenx-rejected') {
                     Write-Warn (T 'O2_PIDGX_REJECTED')
                 }
