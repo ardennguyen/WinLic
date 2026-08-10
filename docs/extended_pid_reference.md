@@ -12,7 +12,7 @@ A standard Extended PID consists of 8 distinct sections separated by dashes, typ
 
 > **`AAAAA-BBBBB-CCC-DDDDDD-EE-FFFF-GGGGG.0000-HHHHHHH`**
 
-Using your example EPID (`XXXXX-03307-137-617516-02-1033-26200.0000-2222026`), here is how to read each section:
+Using your example EPID (`XXXXX-03307-137-617537-02-1033-26200.0000-2222026`), here is how to read each section:
 
 ### 1. `AAAAA` (OS Family / Application ID)
 *   **Example:** `XXXXX`, `03612`, `55041`
@@ -29,12 +29,12 @@ Using your example EPID (`XXXXX-03307-137-617516-02-1033-26200.0000-2222026`), h
 > **Why do I see `XXXXX` in WinLic?** When you use third-party or offline key checking tools (like `WinLic` or `ShowKeyPlus`), these programs call the internal `PidGenX` Windows API directly. The `PidGenX` function requires an `MPC` (Microsoft Product Code) parameter to generate the EPID string. Because offline checkers don't always know the exact OS ID for every key ahead of time, developers often pass a generic placeholder string into the API. The `PidGenX` DLL does not actually validate this string—it blindly prepends it to the final EPID output! `WinLic` explicitly uses `"XXXXX"` as its default placeholder so it is instantly obvious to the user that the OS ID portion of the EPID is a placeholder and not a genuine Microsoft OS ID.
 
 ### 2. `BBBBB-CCC-DDDDDD` (Product Key ID / Serial Number)
-*   **Example:** `03307-137-617516`
+*   **Example:** `03307-137-617537`
 *   **Meaning:** This 14-digit block (`BBBBBCCCDDDDDD`) is the **Unique Serial Number** (or Key ID) of your specific product key.
     *   **`BBBBB`**: Often refers to the Branch Product Code (BPC) or specific Key Group ID.
     *   **`CCC-DDDDDD`**: The sequential serial identifier within that group.
 *   > [!TIP]
-    > **Physical Verification:** If you have a physical retail or OEM package, removing the dashes from this section (e.g., `03307137617516`) will perfectly match the 14-digit **COA Barcode** printed on your physical Microsoft sticker.
+    > **Physical Verification:** If you have a physical retail or OEM package, removing the dashes from this section (e.g., `03307137617537`) will perfectly match the 14-digit **COA Barcode** printed on your physical Microsoft sticker.
 
 ![COA Barcode Sample](./assets/coa_sample.png)
 
@@ -67,12 +67,12 @@ Using your example EPID (`XXXXX-03307-137-617516-02-1033-26200.0000-2222026`), h
 
 ## Summary Example Breakdown
 
-If we decode your EPID **`XXXXX-03307-137-617516-02-1033-26200.0000-2222026`**:
+If we decode your EPID **`XXXXX-03307-137-617537-02-1033-26200.0000-2222026`**:
 
 | Section | Value | Interpretation |
 | :--- | :--- | :--- |
 | **OS ID** | `XXXXX` | (Placeholder injected by WinLic offline tool) |
-| **Serial / COA** | `03307-137-617516` | Key ID matches physical barcode `03307137617516`. |
+| **Serial / COA** | `03307-137-617537` | Key ID matches physical barcode `03307137617537`. |
 | **Channel** | `02` | This is an **OEM** license. |
 | **Language** | `1033` | Validated in an **English (US)** environment. |
 | **OS Build** | `26200.0000` | Checked using OS build **26200**. |

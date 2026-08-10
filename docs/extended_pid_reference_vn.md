@@ -12,7 +12,7 @@ Một Extended PID tiêu chuẩn bao gồm 8 phần riêng biệt được phân
 
 > **`AAAAA-BBBBB-CCC-DDDDDD-EE-FFFF-GGGGG.0000-HHHHHHH`**
 
-Sử dụng EPID mẫu của bạn (`XXXXX-03307-137-617516-02-1033-26200.0000-2222026`), dưới đây là cách đọc từng phần:
+Sử dụng EPID mẫu của bạn (`XXXXX-03307-137-617537-02-1033-26200.0000-2222026`), dưới đây là cách đọc từng phần:
 
 ### 1. `AAAAA` (Nhóm Hệ điều hành / ID Ứng dụng)
 *   **Ví dụ:** `XXXXX`, `03612`, `55041`
@@ -29,12 +29,12 @@ Sử dụng EPID mẫu của bạn (`XXXXX-03307-137-617516-02-1033-26200.0000-2
 > **Tại sao tôi lại thấy `XXXXX` trong WinLic?** Khi bạn sử dụng các công cụ ngoại tuyến hoặc của bên thứ ba để kiểm tra key (như `WinLic` hoặc `ShowKeyPlus`), các chương trình này gọi trực tiếp API nội bộ `PidGenX` của Windows. Hàm `PidGenX` yêu cầu một tham số `MPC` (Microsoft Product Code) để tạo chuỗi EPID. Vì các trình kiểm tra ngoại tuyến không phải lúc nào cũng biết chính xác OS ID cho mỗi key trước thời điểm kiểm tra, các nhà phát triển thường truyền một chuỗi thay thế chung chung vào API. File DLL `PidGenX` không thực sự xác thực chuỗi này—nó chỉ sao chép một cách mù quáng vào phần đầu của EPID kết quả! `WinLic` cố tình sử dụng `"XXXXX"` làm chuỗi giữ chỗ (placeholder) mặc định để người dùng nhận ra ngay lập tức rằng phần OS ID của EPID chỉ là một chuỗi thay thế, không phải là OS ID thực sự của Microsoft.
 
 ### 2. `BBBBB-CCC-DDDDDD` (ID Product Key / Số Sê-ri)
-*   **Ví dụ:** `03307-137-617516`
+*   **Ví dụ:** `03307-137-617537`
 *   **Ý nghĩa:** Khối 14 chữ số này (`BBBBBCCCDDDDDD`) chính là **Số Sê-ri duy nhất** (hoặc Key ID) của khóa sản phẩm cụ thể của bạn.
     *   **`BBBBB`**: Thường là Mã sản phẩm nhánh (BPC - Branch Product Code) hoặc ID của Nhóm Key cụ thể.
     *   **`CCC-DDDDDD`**: Số định danh sê-ri tuần tự trong nhóm đó.
 *   > [!TIP]
-    > **Xác minh vật lý:** Nếu bạn có bao bì đóng gói Retail hoặc OEM vật lý, việc bỏ các dấu gạch ngang khỏi phần này (ví dụ: `03307137617516`) sẽ khớp hoàn toàn với **Mã vạch COA** 14 chữ số được in trên tem chống giả vật lý của Microsoft.
+    > **Xác minh vật lý:** Nếu bạn có bao bì đóng gói Retail hoặc OEM vật lý, việc bỏ các dấu gạch ngang khỏi phần này (ví dụ: `03307137617537`) sẽ khớp hoàn toàn với **Mã vạch COA** 14 chữ số được in trên tem chống giả vật lý của Microsoft.
 
 ![COA Barcode Sample](./assets/coa_sample.png)
 
@@ -67,12 +67,12 @@ Sử dụng EPID mẫu của bạn (`XXXXX-03307-137-617516-02-1033-26200.0000-2
 
 ## Phân tích Tóm tắt theo Ví dụ
 
-Nếu chúng ta giải mã EPID của bạn **`XXXXX-03307-137-617516-02-1033-26200.0000-2222026`**:
+Nếu chúng ta giải mã EPID của bạn **`XXXXX-03307-137-617537-02-1033-26200.0000-2222026`**:
 
 | Thành phần | Giá trị | Giải thích |
 | :--- | :--- | :--- |
 | **OS ID** | `XXXXX` | (Giữ chỗ do công cụ WinLic chèn vào) |
-| **Số Sê-ri / COA** | `03307-137-617516` | ID của key khớp với mã vạch vật lý `03307137617516`. |
+| **Số Sê-ri / COA** | `03307-137-617537` | ID của key khớp với mã vạch vật lý `03307137617537`. |
 | **Kênh (Channel)** | `02` | Đây là giấy phép loại **OEM**. |
 | **Ngôn ngữ** | `1033` | Được xác thực trong môi trường **Tiếng Anh (Mỹ)**. |
 | **OS Build** | `26200.0000` | Được kiểm tra bằng hệ điều hành bản build **26200**. |
