@@ -3190,6 +3190,10 @@ function Update-DefaultSettings {
         $combined = $downloaded.TrimEnd() + $br + $separator + $br + $userSections
     }
 
+    # Normalize to strict CRLF
+    $combined = $combined -replace "`r`n", "`n"
+    $combined = $combined -replace "`r", "`n"
+    $combined = $combined -replace "`n", "`r`n"
 
     try {
         $utf8NoBom = New-Object System.Text.UTF8Encoding $false

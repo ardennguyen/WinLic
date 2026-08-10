@@ -725,6 +725,8 @@ namespace WinLicApp
                     + Environment.NewLine + Environment.NewLine
                     + finalUserBlock;
 
+                combined = combined.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", "\r\n");
+
                 File.WriteAllText(SettingsPath, combined, new System.Text.UTF8Encoding(false));
                 Load(); // Reload after update
                 return branch;
