@@ -1650,6 +1650,8 @@ function Show-SystemInfo {
         $script:showFullKeys = $false
     }
 
+    $foundCoa = $false
+
     # -- 1c. BIOS OEM Key (inline display + pidgenx analysis) -----------------
     Write-Blank
     Write-Sep
@@ -1688,7 +1690,7 @@ function Show-SystemInfo {
                 if ($parts.Length -ge 4) {
                     $coa = $parts[1] + $parts[2] + $parts[3]
                     Write-Info ((T 'OemPid_CoaBarcode') + " $coa")
-                    Write-Warn (T 'OemPid_CoaWarn')
+                    $foundCoa = $true
                 }
             }
         } elseif ($oemPid.SourceNote -eq 'pidgenx-rejected') {
@@ -1729,7 +1731,7 @@ function Show-SystemInfo {
                 if ($parts.Length -ge 4) {
                     $coa = $parts[1] + $parts[2] + $parts[3]
                     Write-Info ((T 'OemPid_CoaBarcode') + " $coa")
-                    Write-Warn (T 'OemPid_CoaWarn')
+                    $foundCoa = $true
                 }
             }
         } elseif ($regPid.SourceNote -eq 'pidgenx-rejected') {
@@ -1767,7 +1769,7 @@ function Show-SystemInfo {
                 if ($parts.Length -ge 4) {
                     $coa = $instPid.ExtPid.Split('-')[1] + $instPid.ExtPid.Split('-')[2] + $instPid.ExtPid.Split('-')[3]
                     Write-Info ((T 'OemPid_CoaBarcode') + " $coa")
-                    Write-Warn (T 'OemPid_CoaWarn')
+                    $foundCoa = $true
                 }
             }
         } elseif ($instPid.SourceNote -eq 'pidgenx-rejected') {
@@ -1807,7 +1809,7 @@ function Show-SystemInfo {
                         if ($parts.Length -ge 4) {
                             $coa = $parts[1] + $parts[2] + $parts[3]
                             Write-Info ((T 'OemPid_CoaBarcode') + " $coa")
-                            Write-Warn (T 'OemPid_CoaWarn')
+                            $foundCoa = $true
                         }
                     }
                 } elseif ($origPid.SourceNote -eq 'pidgenx-rejected') {
@@ -1854,6 +1856,11 @@ function Show-SystemInfo {
     $actMethod = Get-ActivationMethod -WmiObj $activeProduct -PartialKey $partialKey -RegKey $regKey
     $isDE        = $actMethod -eq 'DE'
     $isKmsClient = $actMethod -eq 'KMS'
+
+    if ($foundCoa) {
+        Write-Warn (T 'OemPid_CoaWarn')
+        Write-Blank
+    }
 
     # -- Save-key advisory (inline, right after installed key) ----------------
     if ($WarnBeforeReplace -and $installedKey) {

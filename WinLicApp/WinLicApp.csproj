@@ -22,5 +22,6 @@
   <ItemGroup>
     <Resource Include="winlic.ico" />
     <Resource Include="winlic_256.png" />
+    <Resource Include="Resources\coa_sample.png" />
   </ItemGroup>
 </Project>

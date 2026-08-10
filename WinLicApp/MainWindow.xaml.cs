@@ -397,6 +397,35 @@ namespace WinLicApp
             LogBox.ScrollToEnd();
         }
 
+        private void LogImage(string packUri, double width)
+        {
+            try
+            {
+                var bitmap = new System.Windows.Media.Imaging.BitmapImage();
+                bitmap.BeginInit();
+                bitmap.UriSource = new Uri(packUri, UriKind.Absolute);
+                bitmap.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                bitmap.EndInit();
+                
+                var image = new System.Windows.Controls.Image
+                {
+                    Source = bitmap,
+                    Width = width,
+                    Margin = new Thickness(25, 5, 0, 15),
+                    HorizontalAlignment = HorizontalAlignment.Left
+                };
+
+                var container = new InlineUIContainer(image);
+                var para = new Paragraph(container) { Margin = new Thickness(0) };
+                LogDocument.Blocks.Add(para);
+                LogBox.ScrollToEnd();
+            }
+            catch (Exception ex)
+            {
+                LogError("Image load error: " + ex.Message);
+            }
+        }
+
         // =========================================================================
         // WMI
         // =========================================================================
@@ -594,8 +623,9 @@ namespace WinLicApp
             await ShowSystemInfoAsync();
         }
 
-        private void RunPidGenXAnalysis(string key, bool warnIfUnique = false)
+        private bool RunPidGenXAnalysis(string key, bool warnIfUnique = false)
         {
+            bool foundCoa = false;
             var (valid, channel, edition, partNumber, winVer, oemId, sku, eulaType, isUpgrade, extPid) = CheckKeyChecksum(key);
             bool pkcPresent = System.IO.File.Exists(PkcPath);
             if (valid && !string.IsNullOrEmpty(channel))
@@ -615,7 +645,7 @@ namespace WinLicApp
                     {
                         string coa = parts[1] + parts[2] + parts[3];
                         LogInfo(L.Get("OemPid_CoaBarcode") + coa);
-                        LogWarn(L.Get("OemPid_CoaWarn"));
+                        foundCoa = true;
                     }
                 }
 
@@ -652,6 +682,7 @@ namespace WinLicApp
             {
                 LogInfo(L.Get("OemPid_FormatOnly"));
             }
+            return foundCoa;
         }
 
         private async System.Threading.Tasks.Task ShowSystemInfoAsync(bool warnBeforeReplace = false)
@@ -870,6 +901,7 @@ namespace WinLicApp
             LogBlank(); LogSep(); LogAction(L.Get("Sec_Keys")); LogSep();
 
             bool showFull = ShowFullKey;
+            bool foundCoa = false;
 
             // ── BIOS OEM key (WMI SoftwareLicensingService) ────────────────────
             LogBlank();
@@ -892,7 +924,7 @@ namespace WinLicApp
                 LogInfo(L.Get("D_SrcWmiBios"));
                 if (!string.IsNullOrEmpty(oa3xDesc)) LogData(L.Get("D_OA3xDesc"), oa3xDesc!);
                 LogFetch(L.Get("Fetch_OemPidGenX"));
-                RunPidGenXAnalysis(oemKey!, warnIfUnique: false);
+                foundCoa |= RunPidGenXAnalysis(oemKey!, warnIfUnique: false);
             }
             else
             {
@@ -909,7 +941,7 @@ namespace WinLicApp
                 LogKey(L.Get("O3_KeyReg") + (showFull ? regKey! : MaskKey(regKey!)));
                 LogInfo(L.Get("D_SrcRegBackup"));
                 LogFetch(L.Get("Fetch_RegPidGenX"));
-                RunPidGenXAnalysis(regKey!, warnIfUnique: true);
+                foundCoa |= RunPidGenXAnalysis(regKey!, warnIfUnique: true);
             }
             else
             {
@@ -936,7 +968,7 @@ namespace WinLicApp
                 LogKey(L.Get("O3_KeyInstalled") + (showFull ? installedKey! : MaskKey(installedKey!)));
                 LogInfo(L.Get("D_SrcRegInstalled"));
                 LogFetch(L.Get("Fetch_InstPidGenX"));
-                RunPidGenXAnalysis(installedKey!, warnIfUnique: true);
+                foundCoa |= RunPidGenXAnalysis(installedKey!, warnIfUnique: true);
             }
             else
             {
@@ -962,7 +994,7 @@ namespace WinLicApp
                 LogKey(L.Get("O3_KeyOrig") + " " + (showFull ? origKey! : MaskKey(origKey!)));
                 LogInfo(L.Get("D_SrcOrigKey"));
                 LogFetch(L.Get("Fetch_OrigPidGenX"));
-                RunPidGenXAnalysis(origKey!, warnIfUnique: true);
+                foundCoa |= RunPidGenXAnalysis(origKey!, warnIfUnique: true);
             }
             else
             {
@@ -988,7 +1020,7 @@ namespace WinLicApp
                 LogKey(L.Get("O3_KeyOrig2") + " " + (showFull ? origKey2! : MaskKey(origKey2!)));
                 LogInfo(L.Get("D_SrcOrigKey2"));
                 LogFetch(L.Get("Fetch_Orig2PidGenX"));
-                RunPidGenXAnalysis(origKey2!, warnIfUnique: true);
+                foundCoa |= RunPidGenXAnalysis(origKey2!, warnIfUnique: true);
             }
             else
             {
@@ -996,6 +1028,13 @@ namespace WinLicApp
             }
 
             LogBlank(); LogSep();
+
+            if (foundCoa)
+            {
+                LogWarn(L.Get("OemPid_CoaWarn"));
+                LogImage("pack://application:,,,/Resources/coa_sample.png", 400);
+                LogBlank(); LogSep();
+            }
 
             // ── Save-key advisory ───────────────────────────────────────────────
             bool saveKeyWarnNeeded = false;
@@ -1784,7 +1823,12 @@ namespace WinLicApp
             {
                 LogData(L.Get("D_InstalledKey"),
                     ShowFullKey ? currentInstalled! : MaskKey(currentInstalled!));
-                RunPidGenXAnalysis(currentInstalled!);
+                bool foundCoa = RunPidGenXAnalysis(currentInstalled!);
+                if (foundCoa)
+                {
+                    LogWarn(L.Get("OemPid_CoaWarn"));
+                    LogImage("pack://application:,,,/Resources/coa_sample.png", 400);
+                }
                 if (!isGenericForRemove)
                     LogWarn(L.Get("O3_SAVE_KEY_WARN"));
             }
