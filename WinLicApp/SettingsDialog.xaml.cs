@@ -137,22 +137,28 @@ namespace WinLicApp
         private async void BtnUpdateDefaults_Click(object sender, RoutedEventArgs e)
         {
             BtnUpdateDefaults.IsEnabled = false;
-            BtnUpdateDefaults.Content   = L.Get("P7_UpdateChecking");
+            TxtSaveNote.Text = L.Get("P7_UpdateChecking");
+            TxtSaveNote.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x80, 0x80, 0x80));
 
-            bool ok = await AppSettings.UpdateDefaultsAsync();
-
-            if (ok)
+            try
             {
-                PopulateFields();
-                TxtSaveNote.Text = L.Get("P7_UpdateSuccess");
-                BtnUpdateDefaults.Foreground = new System.Windows.Media.SolidColorBrush(
-                    (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#4ade80"));
+                string branch = await AppSettings.UpdateDefaultsAsync();
+                if (!string.IsNullOrEmpty(branch))
+                {
+                    PopulateFields();
+                    TxtSaveNote.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x40, 0xA0, 0x50));
+                    TxtSaveNote.Text = string.Format(L.Get("P7_UpdateSuccess"), branch);
+                }
+                else
+                {
+                    TxtSaveNote.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xD0, 0x40, 0x40));
+                    TxtSaveNote.Text = L.Get("P7_UpdateFail");
+                }
             }
-            else
+            catch
             {
+                TxtSaveNote.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xD0, 0x40, 0x40));
                 TxtSaveNote.Text = L.Get("P7_UpdateFail");
-                BtnUpdateDefaults.Foreground = new System.Windows.Media.SolidColorBrush(
-                    (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#f87171"));
             }
 
             BtnUpdateDefaults.Content   = L.Get("P7_UpdateDefaults");

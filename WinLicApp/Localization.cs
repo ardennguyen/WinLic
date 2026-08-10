@@ -521,8 +521,8 @@ namespace WinLicApp
             // ── Update defaults ────────────────────────────────────────────────
             ["P7_UpdateDefaults"]  = ("↻ Update Defaults",
                                       "↻ Cập nhật mặc định"),
-            ["P7_UpdateSuccess"]   = ("✔ Scan defaults updated successfully from GitHub repository.",
-                                      "✔ Đã cập nhật mặc định quét thành công từ kho GitHub."),
+            ["P7_UpdateSuccess"]   = ("✔ Scan defaults updated successfully from GitHub branch: {0}",
+                                      "✔ Đã cập nhật mặc định quét thành công từ nhánh GitHub: {0}"),
             ["P7_UpdateFail"]      = ("⚠ Could not update defaults — check internet connection or try again later.",
                                       "⚠ Không thể cập nhật mặc định — kiểm tra kết nối internet hoặc thử lại sau."),
             ["P7_UpdateChecking"]  = ("Checking for updated scan defaults from GitHub…",

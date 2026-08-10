@@ -695,8 +695,8 @@ namespace WinLicApp
         /// Downloads the latest default settings block from GitHub and replaces
         /// the DEFAULT block in settings.ini while preserving the USER block.
         /// </summary>
-        /// <returns>True on success, false on network/IO error.</returns>
-        public static async Task<bool> UpdateDefaultsAsync()
+        /// <returns>Branch name on success, null on network/IO error.</returns>
+        public static async Task<string> UpdateDefaultsAsync()
         {
             try
             {
@@ -738,11 +738,11 @@ namespace WinLicApp
 
                 File.WriteAllText(SettingsPath, combined);
                 Load(); // Reload after update
-                return true;
+                return branch;
             }
             catch
             {
-                return false;
+                return null;
             }
         }
 

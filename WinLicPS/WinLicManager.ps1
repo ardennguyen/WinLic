@@ -1,4 +1,4 @@
-﻿# =============================================================================
+# =============================================================================
 # WinLicManager.ps1  --  Windows Licensing & Information Manager  v1.8-beta1
 # =============================================================================
 # Mirrors the WinLic Manager GUI application for power-user / CLI usage.
@@ -750,7 +750,7 @@ $Str = @{
     'OU_NO_NET2'    = @('Please check your network and try again.', 'Vui lòng kiểm tra mạng và thử lại.')
     'OU_DOWNLOADING' = @('Downloading latest defaults from GitHub...', 'Đang tải xuống mặc định mới nhất từ GitHub...')
     'OU_DL_FAIL'    = @('Download failed: ', 'Tải xuống thất bại: ')
-    'OU_SUCCESS'    = @('settings.ini updated successfully!', 'Đã cập nhật settings.ini thành công!')
+    'OU_SUCCESS'    = @('settings.ini updated successfully from branch: {0}', 'Đã cập nhật settings.ini thành công từ nhánh: {0}')
     'OU_FILE'       = @('File:', 'Tệp:')
     'OU_TIMESTAMP'  = @('Timestamp:', 'Dấu thời gian:')
     'OU_WRITE_FAIL' = @('Could not write settings.ini: ', 'Không thể ghi settings.ini: ')
@@ -3078,7 +3078,7 @@ function Update-DefaultSettings {
 
     try {
         [System.IO.File]::WriteAllText($SETTINGS_FILE, $combined, [System.Text.Encoding]::UTF8)
-        Write-OK  (T 'OU_SUCCESS')
+        Write-OK  ((T 'OU_SUCCESS') -f $BRANCH_VERSION)
         Write-Data (T 'OU_FILE')      $SETTINGS_FILE
         Write-Data (T 'OU_TIMESTAMP') $ts
     } catch {
