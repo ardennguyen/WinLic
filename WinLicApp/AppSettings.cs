@@ -106,10 +106,7 @@ namespace WinLicApp
             "KHJW4", // Enterprise N
             "4M68B", // Enterprise G
             "T84FV", // Enterprise G N
-            "H8Q99", // Home (KMS)
-            "844BM", // Home N (KMS)
-            "YTDFH", // Home Single Language (KMS)
-            "D3WVR", // Home Country Specific (KMS)
+
             // LTSC / IoT / LTSB
             "J462D", // LTSC 2024 / Win10 LTSC 2021 / 2019
             "7CG2H", // Enterprise N LTSC
@@ -174,10 +171,7 @@ namespace WinLicApp
             { "KHJW4", "Windows 10/11 Enterprise N  (DPH2V-TTNVB-4X9Q3-TJR4H-KHJW4)" },
             { "4M68B", "Windows 10 Enterprise G  (YYVX9-NTFWV-6MDM3-9PT4T-4M68B)" },
             { "T84FV", "Windows 10 Enterprise G N  (44RPN-FTY23-9VTTB-MP9BX-T84FV)" },
-            { "H8Q99", "Windows 10/11 Home KMS  (TX9XD-98N7V-6WMQ6-BX7FG-H8Q99)" },
-            { "844BM", "Windows 10/11 Home N KMS  (3KHY7-WNT83-DGQKR-F7HPR-844BM)" },
-            { "YTDFH", "Windows 10/11 Home Single Language KMS  (7HNRX-D7KGG-3K4RQ-4WPJ4-YTDFH)" },
-            { "D3WVR", "Windows 11 Home Country Specific KMS  (PVMJN-6DFY6-9CCP6-7BKTT-D3WVR)" },
+
             // LTSC / IoT / LTSB
             { "J462D", "Windows 11 LTSC 2024 / 10 LTSC 2021 / 2019  (M7XTQ-FN8P6-TTKYV-9D4CC-J462D)" },
             { "7CG2H", "Windows 10/11 Enterprise N LTSC  (92NFX-8DJQP-P6BBQ-THF9C-7CG2H)" },
@@ -215,7 +209,10 @@ namespace WinLicApp
             { "8HV2C", "Windows 11/10 Enterprise RTM  (XGVPP-NMH47-7TTHJ-W3FW7-8HV2C)" },
             { "X766F", "Windows 11/10 Enterprise N RTM  (WGGHN-J84D6-QYCPR-T7PJ7-X766F)" },
             { "B4H4T", "Windows 11/10 Enterprise G N RTM  (FW7NV-4T673-HF4VX-9X4MM-B4H4T)" },
-            { "H8Q99", "Windows 10 Home KMS  (TX9XD-98N7V-6WMQ6-BX7FG-H8Q99)" },
+            { "H8Q99", "Windows 10/11 Home HWID  (TX9XD-98N7V-6WMQ6-BX7FG-H8Q99)" },
+            { "844BM", "Windows 10/11 Home N HWID  (3KHY7-WNT83-DGQKR-F7HPR-844BM)" },
+            { "YTDFH", "Windows 10/11 Home Single Language HWID  (7HNRX-D7KGG-3K4RQ-4WPJ4-YTDFH)" },
+            { "D3WVR", "Windows 11 Home Country Specific HWID  (PVMJN-6DFY6-9CCP6-7BKTT-D3WVR)" },
             { "WGGBY", "Windows 10 Pro Education HWID  (8PTT6-RNW57-N3YKV-MJNWM-WGGBY)" },
             { "8DEC2", "Windows 10 Enterprise HWID  (XGVPP-NMH47-7TTHJ-W3FW7-8DEC2)" },
             { "VCFB2", "Windows 11 Pro Education HWID  (BW6C2-QMPVW-D7KKK-3GKT6-VCFB2)" },
