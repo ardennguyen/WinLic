@@ -595,41 +595,101 @@ namespace WinLicApp
                 w.WriteLine("# ╚═══════════════════════════════════════════════════════════════════════════╝");
                 w.WriteLine();
             }
+            
+            w.WriteLine();
+            w.WriteLine("# =============================================================================");
+            w.WriteLine("# [UserGvlkKeys]");
+            w.WriteLine("# Add custom GVLK or suspicious keys here. Same format as [GvlkKeys]:");
+            w.WriteLine("#   FULL-KEY = Description");
+            w.WriteLine("# =============================================================================");
             w.WriteLine("[UserGvlkKeys]");
-            w.WriteLine("; Add custom GVLK/suspicious keys here: FULL-KEY = Description");
-            foreach (var s in UserGvlkSuffixes)
-                w.WriteLine("; (stored suffix) " + s);
-            w.WriteLine();
+            w.WriteLine("; MY-CUSTOM-XXXXX-XXXXX-XXXXX = Custom suspicious key");
+            // Also write out any dynamically tracked FULL keys if we have them. (The app only tracks suffixes though)
+            foreach (var s in UserGvlkSuffixes) w.WriteLine("; (stored suffix) " + s);
 
+            w.WriteLine();
+            w.WriteLine();
+            w.WriteLine("# =============================================================================");
+            w.WriteLine("# [UserGenericKeys]");
+            w.WriteLine("# Add custom HWID/DE placeholder keys here.");
+            w.WriteLine("# Same format as [GenericKeys]:  FULL-KEY = Description");
+            w.WriteLine("# =============================================================================");
             w.WriteLine("[UserGenericKeys]");
-            w.WriteLine("; Add custom HWID/DE placeholder key suffixes: KEY-SUFFIX = Description");
-            foreach (var kv in UserGenericKeyDescriptions)
-                w.WriteLine(kv.Key + " = " + kv.Value);
-            w.WriteLine();
+            w.WriteLine("; YYYYY-YYYYY-YYYYY-YYYYY-XXXXX = My additional placeholder key");
+            // For generic keys, we have full descriptions
+            foreach (var kv in UserGenericKeyDescriptions) w.WriteLine(kv.Key + " = " + kv.Value);
 
+            w.WriteLine();
+            w.WriteLine();
+            w.WriteLine("# =============================================================================");
+            w.WriteLine("# [UserKmsPiracyDomains]");
+            w.WriteLine("# Add your own known piracy KMS hostnames here (one keyword per line).");
+            w.WriteLine("# The built-in [KmsPiracyDomains] above is also always active.");
+            w.WriteLine("# =============================================================================");
             w.WriteLine("[UserKmsPiracyDomains]");
-            w.WriteLine("; Add your own KMS piracy hostnames here");
+            w.WriteLine("; my.custom.piracy.kms.example.com");
             foreach (var s in ExtraKmsPiracyDomains) w.WriteLine(s);
-            w.WriteLine();
 
+            w.WriteLine();
+            w.WriteLine();
+            w.WriteLine("# =============================================================================");
+            w.WriteLine("# [ExtraPorts]");
+            w.WriteLine("# Additional TCP ports to probe on localhost for KMS listeners.");
+            w.WriteLine("# Built-in default: 1688 (standard Microsoft KMS port).");
+            w.WriteLine("# Some vlmcsd instances use non-standard ports configured with -P flag.");
+            w.WriteLine("# Valid range: 1-65535 (non-integer lines are silently ignored)");
+            w.WriteLine("# =============================================================================");
             w.WriteLine("[ExtraPorts]");
-            w.WriteLine("; Additional TCP ports to probe on localhost");
+            w.WriteLine("; 1689");
+            w.WriteLine("; 8080");
             foreach (var p in ExtraPorts) w.WriteLine(p);
-            w.WriteLine();
 
+            w.WriteLine();
+            w.WriteLine();
+            w.WriteLine("# =============================================================================");
+            w.WriteLine("# [ExtraServices]");
+            w.WriteLine("# Additional Windows service name keywords to flag as suspicious.");
+            w.WriteLine("# Matching is case-insensitive wildcard (*keyword*).");
+            w.WriteLine("# =============================================================================");
             w.WriteLine("[ExtraServices]");
+            w.WriteLine("; MyKmsService");
+            w.WriteLine("; CustomActivator");
             foreach (var s in ExtraServices) w.WriteLine(s);
-            w.WriteLine();
 
+            w.WriteLine();
+            w.WriteLine();
+            w.WriteLine("# =============================================================================");
+            w.WriteLine("# [ExtraTaskKeywords]");
+            w.WriteLine("# Additional scheduled task name keywords to flag as suspicious.");
+            w.WriteLine("# Matching is case-insensitive (*keyword* substring).");
+            w.WriteLine("# =============================================================================");
             w.WriteLine("[ExtraTaskKeywords]");
+            w.WriteLine("; AutoActivate");
+            w.WriteLine("; LicenseRenew");
             foreach (var s in ExtraTaskKeywords) w.WriteLine(s);
-            w.WriteLine();
 
+            w.WriteLine();
+            w.WriteLine();
+            w.WriteLine("# =============================================================================");
+            w.WriteLine("# [ExtraProcesses]");
+            w.WriteLine("# Additional process name keywords to flag as suspicious.");
+            w.WriteLine("# Matching is case-insensitive (*keyword* substring). .exe extension optional.");
+            w.WriteLine("# =============================================================================");
             w.WriteLine("[ExtraProcesses]");
+            w.WriteLine("; mykms.exe");
+            w.WriteLine("; kms_server");
             foreach (var s in ExtraProcesses) w.WriteLine(s);
-            w.WriteLine();
 
+            w.WriteLine();
+            w.WriteLine();
+            w.WriteLine("# =============================================================================");
+            w.WriteLine("# [ExtraFilePaths]");
+            w.WriteLine("# Additional absolute file or folder paths to check for activation tool traces.");
+            w.WriteLine("# Provide FULL absolute paths. Environment variables are NOT expanded here.");
+            w.WriteLine("# =============================================================================");
             w.WriteLine("[ExtraFilePaths]");
+            w.WriteLine("; C:\\Tools\\KMSTool");
+            w.WriteLine("; C:\\ProgramData\\CustomKMS\\server.exe");
             foreach (var s in ExtraFilePaths) w.WriteLine(s);
         }
 
@@ -689,90 +749,15 @@ namespace WinLicApp
             }
         }
 
-        private static string GetDefaultUserBlock() =>
-            @"# ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  USER BLOCK  --  Edit freely. NEVER overwritten by ""Update defaults"".     ║
-# ╚═══════════════════════════════════════════════════════════════════════════╝
-
-
-# =============================================================================
-# [UserGvlkKeys]
-# Add custom GVLK or suspicious keys here. Same format as [GvlkKeys]:
-#   FULL-KEY = Description
-# =============================================================================
-[UserGvlkKeys]
-; MY-CUSTOM-XXXXX-XXXXX-XXXXX = Custom suspicious key
-
-
-# =============================================================================
-# [UserGenericKeys]
-# Add custom HWID/DE placeholder keys here.
-# Same format as [GenericKeys]:  FULL-KEY = Description
-# =============================================================================
-[UserGenericKeys]
-; YYYYY-YYYYY-YYYYY-YYYYY-XXXXX = My additional placeholder key
-
-
-# =============================================================================
-# [UserKmsPiracyDomains]
-# Add your own known piracy KMS hostnames here (one keyword per line).
-# The built-in [KmsPiracyDomains] above is also always active.
-# =============================================================================
-[UserKmsPiracyDomains]
-; my.custom.piracy.kms.example.com
-
-
-# =============================================================================
-# [ExtraPorts]
-# Additional TCP ports to probe on localhost for KMS listeners.
-# Built-in default: 1688 (standard Microsoft KMS port).
-# Some vlmcsd instances use non-standard ports configured with -P flag.
-# Valid range: 1-65535 (non-integer lines are silently ignored)
-# =============================================================================
-[ExtraPorts]
-; 1689
-; 8080
-
-
-# =============================================================================
-# [ExtraServices]
-# Additional Windows service name keywords to flag as suspicious.
-# Matching is case-insensitive wildcard (*keyword*).
-# =============================================================================
-[ExtraServices]
-; MyKmsService
-; CustomActivator
-
-
-# =============================================================================
-# [ExtraTaskKeywords]
-# Additional scheduled task name keywords to flag as suspicious.
-# Matching is case-insensitive (*keyword* substring).
-# =============================================================================
-[ExtraTaskKeywords]
-; AutoActivate
-; LicenseRenew
-
-
-# =============================================================================
-# [ExtraProcesses]
-# Additional process name keywords to flag as suspicious.
-# Matching is case-insensitive (*keyword* substring). .exe extension optional.
-# =============================================================================
-[ExtraProcesses]
-; mykms.exe
-; kms_server
-
-
-# =============================================================================
-# [ExtraFilePaths]
-# Additional absolute file or folder paths to check for activation tool traces.
-# Provide FULL absolute paths. Environment variables are NOT expanded here.
-# =============================================================================
-[ExtraFilePaths]
-; C:\Tools\KMSTool
-; C:\ProgramData\CustomKMS\server.exe
-";
+        private static string GetDefaultUserBlock()
+        {
+            using var ms = new System.IO.MemoryStream();
+            using var writer = new StreamWriter(ms, System.Text.Encoding.UTF8, 4096, true);
+            WriteUserBlock(writer, includeHeader: true);
+            writer.Flush();
+            ms.Position = 0;
+            return new StreamReader(ms).ReadToEnd();
+        }
 
         public static string SettingsFilePath => SettingsPath;
     }
