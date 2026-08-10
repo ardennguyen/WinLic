@@ -112,7 +112,7 @@ Never truncate a commit message due to shell escaping.
 ### ❌ Never do these without explicit user instruction
 - Version bumps (`About_Version`, `CurrentVersion`, `$SCRIPT_VERSION`)
 - `git tag` — tagging is the user's decision
-- `git push` or `git push --tags`
+- `git push` or `git push --tags` (Note: After EVERY commit, you MUST proactively ask the user if they want you to push the changes!)
 - Branch creation or switching (`git checkout -b`, `git switch`)
 - Merging or rebasing
 
