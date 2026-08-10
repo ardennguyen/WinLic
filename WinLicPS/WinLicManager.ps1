@@ -1006,6 +1006,10 @@ $global:fullGvlkKeys = @{
     "DPH2V-TTNVB-4X9Q3-TJR4H-KHJW4" = "Windows 11/10 Enterprise N"
     "YYVX9-NTFWV-6MDM3-9PT4T-4M68B" = "Windows 11/10 Enterprise G"
     "44RPN-FTY23-9VTTB-MP9BX-T84FV" = "Windows 11/10 Enterprise G N"
+    "TX9XD-98N7V-6WMQ6-BX7FG-H8Q99" = "Windows 11/10 Home (KMS)"
+    "3KHY7-WNT83-DGQKR-F7HPR-844BM" = "Windows 11/10 Home N (KMS)"
+    "7HNRX-D7KGG-3K4RQ-4WPJ4-YTDFH" = "Windows 11/10 Home Single Language (KMS)"
+    "PVMJN-6DFY6-9CCP6-7BKTT-D3WVR" = "Windows 11 Home Country Specific (KMS)"
     "M7XTQ-FN8P6-TTKYV-9D4CC-J462D" = "Windows 11 LTSC 2024 / Win10 LTSC 2021/2019"
     "92NFX-8DJQP-P6BBQ-THF9C-7CG2H" = "Windows 11/10 Enterprise N LTSC"
     "KBN8V-HFGQ4-MGXVD-347P6-PDQGT" = "Windows IoT Enterprise LTSC 2024/2021"
@@ -1014,13 +1018,13 @@ $global:fullGvlkKeys = @{
     "WNMTR-4C88C-JK8YV-HQ7T2-76DF9" = "Windows 10 Enterprise LTSB 2015"
     "2F77B-TNFGY-69QQF-B8YKP-D69TJ" = "Windows 10 Enterprise N LTSB 2015"
     "FWN7H-PF93Q-4GGP8-M8RF3-MDWWW" = "Windows 10 Enterprise S (KMS)"
-}
-
-$global:fullGenericKeys = @{
     "GCRJD-8NW9H-F2CDX-CCM8D-9D6T9" = "Windows 8.1 Pro"
     "HMCNV-VVBFX-7HMBH-CTY9B-B4FXY" = "Windows 8.1 Pro N"
     "MHF9N-XY6XB-WVXMC-BTDCT-MKKG7" = "Windows 8.1 Enterprise"
     "TT4HM-HN7YT-62K67-RGRQJ-JFFXW" = "Windows 8.1 Enterprise N"
+}
+
+$global:fullGenericKeys = @{
     "YTMG3-N6DKC-DKB77-7M9GH-8HVX7" = "Windows 11/10 Home (RTM)"
     "4CPRK-NM3K3-X6XXQ-RXX86-WXCHW" = "Windows 11/10 Home N (RTM)"
     "BT79Q-G7N6G-PGBYW-4YWX6-6F4BT" = "Windows 11/10 Home Single Language (RTM)"

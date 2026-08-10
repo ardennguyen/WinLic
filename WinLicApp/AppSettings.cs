@@ -293,6 +293,11 @@ namespace WinLicApp
         public static HashSet<string> AllGenericKeySuffixes =>
             new HashSet<string>(AllGenericKeyDescriptions.Keys, StringComparer.OrdinalIgnoreCase);
 
+        // ── Full keys for advisory notice matching ──
+        public static HashSet<string> FullGvlkKeys { get; private set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        public static HashSet<string> FullGenericKeys { get; private set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+
         // ── Merged views (defaults + ini defaults + user additions) ────────────
         public static int[] AllPorts =>
             DefaultPorts
@@ -382,6 +387,16 @@ namespace WinLicApp
             return alnum.Substring(alnum.Length - 5).ToUpperInvariant();
         }
 
+        /// <summary>
+        /// Extract the full 25-character product key string.
+        /// </summary>
+        private static string? ExtractFullKey(string keyLine)
+        {
+            var key = keyLine.Contains('=') ? keyLine.Substring(0, keyLine.IndexOf('=')).Trim() : keyLine.Trim();
+            if (key.Length == 29 && key.Contains("-")) return key.ToUpperInvariant();
+            return null;
+        }
+
         /// <summary>Strip inline comments from a settings value line (text after ';').</summary>
         private static string StripInlineComment(string line)
         {
@@ -407,6 +422,15 @@ namespace WinLicApp
             UserGvlkSuffixes.Clear();
             DefaultGenericKeyDescriptions.Clear();
             UserGenericKeyDescriptions.Clear();
+            FullGvlkKeys.Clear();
+            FullGenericKeys.Clear();
+
+            var pkRegex = new System.Text.RegularExpressions.Regex(@"\b[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            foreach (var desc in HardcodedGenericKeys.Values)
+            {
+                var match = pkRegex.Match(desc);
+                if (match.Success) FullGenericKeys.Add(match.Value.ToUpperInvariant());
+            }
 
             if (!File.Exists(SettingsPath)) return;
             try
@@ -433,6 +457,8 @@ namespace WinLicApp
                         case "GVLKKEYS":
                         {
                             var suffix = ExtractKeySuffix(value);
+                            var fullKey = ExtractFullKey(value);
+                            if (fullKey != null) FullGvlkKeys.Add(fullKey);
                             if (suffix != null)
                             {
                                 DefaultGvlkSuffixes.Add(suffix);
@@ -444,6 +470,8 @@ namespace WinLicApp
                         case "GENERICKEYS":
                         {
                             var suffix = ExtractKeySuffix(value);
+                            var fullKey = ExtractFullKey(value);
+                            if (fullKey != null) FullGenericKeys.Add(fullKey);
                             var desc   = value.Contains('=') ? value.Substring(value.IndexOf('=') + 1).Trim() : value.Trim();
                             if (suffix != null) DefaultGenericKeyDescriptions[suffix] = desc;
                             break;
@@ -466,6 +494,8 @@ namespace WinLicApp
                         case "USERGVLKKEYS":
                         {
                             var suffix = ExtractKeySuffix(value);
+                            var fullKey = ExtractFullKey(value);
+                            if (fullKey != null) FullGvlkKeys.Add(fullKey);
                             if (suffix != null) UserGvlkSuffixes.Add(suffix);
                             break;
                         }
@@ -474,6 +504,8 @@ namespace WinLicApp
                         case "USERGENERICKEYS":
                         {
                             var suffix = ExtractKeySuffix(value);
+                            var fullKey = ExtractFullKey(value);
+                            if (fullKey != null) FullGenericKeys.Add(fullKey);
                             var desc   = value.Contains('=') ? value.Substring(value.IndexOf('=') + 1).Trim() : value.Trim();
                             if (suffix != null) UserGenericKeyDescriptions[suffix] = desc;
                             break;
