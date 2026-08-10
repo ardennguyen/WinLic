@@ -48,6 +48,8 @@
   - `WinLicApp/AboutDialog.xaml.cs` → `CurrentVersion`
   - `WinLicPS/WinLicManager.ps1` → `$SCRIPT_VERSION` + header comment line 2
 
+- `WinLicPS/settings.default.ini` and `WinLicPS/settings.ini.sample` must be kept perfectly in sync for all default configuration blocks (e.g., `[GvlkKeys]`, `[GenericKeys]`). `settings.default.ini` is fetched from GitHub by the app, while `settings.ini.sample` is the ground-truth local template used during manual testing. When modifying defaults, update both files identically and never overwrite the `[User...]` blocks in `settings.ini.sample`.
+
 - Release branches follow the naming `v<MAJOR>.<MINOR>-<STAGE><N>` (e.g. `v1.3-beta2`). Hotfixes increment the stage number, not add `-hotfix` suffixes.
 
 - Every release requires all 8 artifacts:
