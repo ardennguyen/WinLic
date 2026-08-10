@@ -578,6 +578,10 @@ namespace WinLicApp
         private static void WriteUserBlock(StreamWriter w)
         {
             w.WriteLine();
+            w.WriteLine("# ╔═══════════════════════════════════════════════════════════════════════════╗");
+            w.WriteLine("# ║  USER BLOCK  --  Edit freely. NEVER overwritten by \"Update defaults\".     ║");
+            w.WriteLine("# ╚═══════════════════════════════════════════════════════════════════════════╝");
+            w.WriteLine();
             w.WriteLine("[UserGvlkKeys]");
             w.WriteLine("; Add custom GVLK/suspicious keys here: FULL-KEY = Description");
             foreach (var s in UserGvlkSuffixes)

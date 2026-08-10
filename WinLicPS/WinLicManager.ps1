@@ -2974,10 +2974,12 @@ function Update-DefaultSettings {
 
     # Build the user-block separator and default user sections using safe string building
     $br      = "`r`n"
-    $eq73    = "=" * 73
-    $sepLine = "# $eq73"
-    $sepText = '# ||  USER BLOCK  --  Edit freely. NEVER overwritten by Update-defaults.  ||'
-    $separator = ($br + $sepLine + $br + $sepText + $br + $sepLine + $br)
+    $separator = (
+        $br +
+        "# ╔═══════════════════════════════════════════════════════════════════════════╗" + $br +
+        "# ║  USER BLOCK  --  Edit freely. NEVER overwritten by `"Update defaults`".     ║" + $br +
+        "# ╚═══════════════════════════════════════════════════════════════════════════╝" + $br
+    )
 
     $userSections  = "[UserGvlkKeys]" + $br
     $userSections += "; Add custom GVLK/suspicious keys here: FULL-KEY = Description" + $br + $br
