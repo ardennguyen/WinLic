@@ -1273,6 +1273,16 @@ namespace WinLicApp
                     sb.AppendLine().Append(L.Get("OemPid_OemId") + oemId);
                 if (!string.IsNullOrEmpty(eulaType))
                     sb.AppendLine().Append(L.Get("OemPid_EulaType") + eulaType);
+                if (!string.IsNullOrEmpty(extPid))
+                {
+                    sb.AppendLine().Append(L.Get("OemPid_ExtPid") + extPid);
+                    var parts = extPid.Split('-');
+                    if (parts.Length >= 4)
+                    {
+                        string coa = parts[1] + parts[2] + parts[3];
+                        sb.AppendLine().Append(L.Get("OemPid_CoaBarcode") + coa);
+                    }
+                }
                 PidBannerText.Text = sb.ToString();
             }
             else if (rejected)
@@ -1456,6 +1466,9 @@ namespace WinLicApp
                     _lastBannerKey = fullKey;
                     LogSep();
                     LogInfo(L.Get("O2_PIDGX_HDR"));
+                    
+                    bool full = ShowFullKey;
+                    LogInfo(L.Get("O2_PIDGX_KEY_CHK") + (full ? fullKey : MaskKey(fullKey)));
 
                     bool pkcExists = System.IO.File.Exists(PkcPath);
                     if (valid && !string.IsNullOrEmpty(channel))
@@ -1476,7 +1489,16 @@ namespace WinLicApp
                         if (!string.IsNullOrEmpty(eulaType))
                             LogInfo(L.Get("OemPid_EulaType") + eulaType);
                         if (!string.IsNullOrEmpty(extPid))
+                        {
                             LogInfo(L.Get("OemPid_ExtPid") + extPid);
+                            var parts = extPid.Split('-');
+                            if (parts.Length >= 4)
+                            {
+                                string coa = parts[1] + parts[2] + parts[3];
+                                LogInfo(L.Get("OemPid_CoaBarcode") + coa);
+                                LogWarn(L.Get("OemPid_CoaWarn"));
+                            }
+                        }
                     }
                     else if (valid && string.IsNullOrEmpty(channel))
                     {

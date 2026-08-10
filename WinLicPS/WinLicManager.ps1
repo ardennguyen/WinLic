@@ -213,6 +213,11 @@ $Str = @{
                         'Phương thức kích hoạt:  KMS (Bản quyền Doanh nghiệp/Tập thể)')
     'O1_MAK_OK'    = @('Activation method:  MAK / Retail / OEM key (standard activation)',
                         'Phương thức kích hoạt:  MAK / Retail / OEM (kích hoạt tiêu chuẩn)')
+    'OemPid_EulaType'   = @('EULA:    ', 'EULA:    ')
+    'OemPid_ExtPid'     = @('EPID:    ', 'EPID:    ')
+    'OemPid_CoaBarcode' = @('COA Barcode:', 'Mã vạch COA:')
+    'OemPid_CoaWarn'    = @('[!] Tip: If your key came from a physical package (Retail Box or System Builder OEM), this 14-digit COA Barcode will perfectly match the barcode printed on your physical Microsoft sticker. For digital purchases or BIOS-embedded keys, there is no physical sticker to cross-check.',
+                            '[!] Mẹo: Nếu key của bạn đến từ gói vật lý (Hộp Bán lẻ hoặc OEM System Builder), Mã vạch COA 14 chữ số này sẽ khớp chính xác với mã vạch in trên tem Microsoft vật lý của bạn. Đối với mua hàng kỹ thuật số hoặc key nhúng trong BIOS, sẽ không có tem vật lý để đối chiếu.')
     # License status (mirror GUI LS_*)
     'O1_LS_0'      = @('Unlicensed', 'Chưa được cấp phép')
     'O1_LS_1'      = @('Licensed (Permanently Activated)', 'Đã được cấp phép (Kích hoạt vĩnh viễn)')
@@ -2137,6 +2142,10 @@ function Test-ProductKey {
     Write-Blank
     Write-Sep
     Write-Step (T 'O2_PIDGX_HDR')
+    
+    $dispKey = if ($FullKey) { $key } else { "XXXXX-XXXXX-XXXXX-XXXXX-$($key.Substring(24,5))" }
+    Write-Host ((T 'O2_PIDGX_KEY_CHK') + " $dispKey") -ForegroundColor White
+
     Write-Diag (T 'O2_PIDGX_ABOUT')
     Write-Blank
 
@@ -2176,7 +2185,13 @@ function Test-ProductKey {
         Write-Host ((T 'O2_PIDGX_EULA') + $pidResult.EulaType) -ForegroundColor Cyan
     }
     if ($pidResult.ExtPid -ne '') {
-        Write-Host ((T 'O2_PIDGX_EXTPID') + $pidResult.ExtPid) -ForegroundColor Cyan
+        Write-Host ((T 'OemPid_ExtPid') + $pidResult.ExtPid) -ForegroundColor Cyan
+        $parts = $pidResult.ExtPid.Split('-')
+        if ($parts.Length -ge 4) {
+            $coa = $parts[1] + $parts[2] + $parts[3]
+            Write-Host ((T 'OemPid_CoaBarcode') + " $coa") -ForegroundColor Cyan
+            Write-Warn (T 'OemPid_CoaWarn')
+        }
     }
     switch ($pidResult.SourceNote) {
         'pidgenx'          { }
