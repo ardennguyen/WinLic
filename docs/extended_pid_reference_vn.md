@@ -36,6 +36,8 @@ Sử dụng EPID mẫu của bạn (`XXXXX-03307-137-617516-02-1033-26200.0000-2
 *   > [!TIP]
     > **Xác minh vật lý:** Nếu bạn có bao bì đóng gói Retail hoặc OEM vật lý, việc bỏ các dấu gạch ngang khỏi phần này (ví dụ: `03307137617516`) sẽ khớp hoàn toàn với **Mã vạch COA** 14 chữ số được in trên tem chống giả vật lý của Microsoft.
 
+![COA Barcode Sample](./assets/coa_sample.png)
+
 ### 3. `EE` (Kênh Phân phối Giấy phép)
 *   **Ví dụ:** `02`
 *   **Ý nghĩa:** Mã 2 chữ số biểu thị hình thức phân phối giấy phép (Kênh Kích hoạt). Các mã phổ biến bao gồm:

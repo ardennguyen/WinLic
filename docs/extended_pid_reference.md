@@ -36,6 +36,8 @@ Using your example EPID (`XXXXX-03307-137-617516-02-1033-26200.0000-2222026`), h
 *   > [!TIP]
     > **Physical Verification:** If you have a physical retail or OEM package, removing the dashes from this section (e.g., `03307137617516`) will perfectly match the 14-digit **COA Barcode** printed on your physical Microsoft sticker.
 
+![COA Barcode Sample](./assets/coa_sample.png)
+
 ### 3. `EE` (License Channel)
 *   **Example:** `02`
 *   **Meaning:** A 2-digit code indicating how the license is distributed (the Activation Channel). Common codes include:
