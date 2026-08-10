@@ -1,7 +1,7 @@
-# =============================================================================
-# settings.default.ini  --  WinLic Manager (App + PowerShell CLI)
-# DEFAULT SETTINGS BLOCK
-# =============================================================================
+# ╔═══════════════════════════════════════════════════════════════════════════╗
+# ║ settings.default.ini  --  WinLic Manager (App + PowerShell CLI)           ║
+# ║ DEFAULT SETTINGS BLOCK                                                    ║
+# ╚═══════════════════════════════════════════════════════════════════════════╝
 #
 # This file is the AUTHORITATIVE source for WinLic's built-in scan defaults.
 # It is published in the GitHub repository and downloaded automatically when
@@ -93,6 +93,20 @@
 "4DWFP-JF3DJ-B7DTH-78FJB-PDRHK" = "Windows Server 2008 Datacenter"
 "4DDJ-2MBR3-82QGD-K2G6K-Q4RD8" = "Windows Server 2008 for Itanium-Based Systems"
 "BN3D2-R7TKB-3YPBD-8DRP2-27GG4" = "Windows 10/11 IoT Enterprise"
+
+
+# =============================================================================
+# [GenericKeys]
+# Known Windows HWID/DE (Digital Entitlement) and generic placeholder keys.
+#
+# These are the product keys used by activation methods like MAS HWID, KMS38,
+# TSforge, etc. to obtain Digital Entitlement from Microsoft.
+#
+#   Official Microsoft GVLK list (KMS activation keys):
+#   https://learn.microsoft.com/en-us/windows-server/get-started/kms-client-activation-keys
+#   MAS HWID activation documentation:
+#   https://massgrave.dev/hwid
+# =============================================================================
 [GenericKeys]
 "YTMG3-N6DKC-DKB77-7M9GH-8HVX7" = "Windows 11/10 Home RTM"
 "4CPRK-NM3K3-X6XXQ-RXX86-WXCHW" = "Windows 11/10 Home N RTM"
@@ -149,6 +163,20 @@
 "N979K-XWD77-YW3GB-HBGH6-D32MH" = "Windows 10/11 IoT Enterprise SK HWID"
 "P8Q7T-WNK7X-PMFXY-VXHBG-RRK69" = "Windows 10/11 IoT Enterprise K HWID"
 "TMP2N-KGFHJ-PWM6F-68KCQ-3PJBP" = "Windows 10/11 WNC HWID"
+
+
+# =============================================================================
+# [KmsPiracyDomains]
+# Known third-party KMS activation services on the public internet.
+#
+# HOW IT WORKS
+# Any configured KMS server whose hostname contains one of these keywords
+# (case-insensitive substring match) is immediately flagged as CRITICAL.
+# The scan then also attempts DNS resolution to confirm the server is active.
+#
+# Microsoft does NOT provide public KMS servers. Any internet-facing KMS
+# host is by definition an unauthorized activation service.
+# =============================================================================
 [KmsPiracyDomains]
 msguides         ; km8.msguides.com, kms2.msguides.com, kms9.msguides.com
 kms.loli         ; kms.loli.beer
