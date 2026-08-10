@@ -35,8 +35,7 @@ namespace WinLicApp
                 "settings.ini");
 
         /// <summary>GitHub raw URL for the default settings block.</summary>
-        private const string DefaultsUrl =
-            "https://raw.githubusercontent.com/ardennguyen/WinLic/main/WinLicPS/settings.default.ini";
+
 
         /// <summary>
         /// Marker line that separates the DEFAULT block from the USER block
@@ -539,7 +538,7 @@ namespace WinLicApp
                 try
                 {
                     using var w = new StreamWriter(SettingsPath, append: false);
-                    WriteUserBlock(w);
+                    WriteUserBlock(w, includeHeader: true);
                 }
                 catch { }
                 return;
@@ -554,34 +553,47 @@ namespace WinLicApp
                 // Build the new user block content
                 using var ms = new System.IO.MemoryStream();
                 using var writer = new StreamWriter(ms, System.Text.Encoding.UTF8, 4096, true);
-                WriteUserBlock(writer);
+                WriteUserBlock(writer); // generate WITHOUT header
                 writer.Flush();
                 ms.Position = 0;
                 var newUserBlock = new StreamReader(ms).ReadToEnd();
 
                 if (markerLine >= 0)
                 {
-                    // Preserve default block up to (and including) the marker, replace user block
-                    var defaultPart = string.Join(Environment.NewLine, lines.Take(markerLine + 1));
+                    // The old header had a bottom border on the line after the marker.
+                    // To preserve the existing header perfectly, we take markerLine + 2 lines.
+                    // This includes the top border (if any), the middle marker line, and the bottom border.
+                    var linesToTake = markerLine + 2 <= lines.Count ? markerLine + 2 : lines.Count;
+                    var defaultPart = string.Join(Environment.NewLine, lines.Take(linesToTake));
                     File.WriteAllText(SettingsPath,
                         defaultPart + Environment.NewLine + Environment.NewLine + newUserBlock);
                 }
                 else
                 {
-                    // No marker found — append user block
-                    File.AppendAllText(SettingsPath, Environment.NewLine + newUserBlock);
+                    // No marker found — append user block WITH header
+                    var header = string.Join(Environment.NewLine, new[]
+                    {
+                        "# ╔═══════════════════════════════════════════════════════════════════════════╗",
+                        "# ║  USER BLOCK  --  Edit freely. NEVER overwritten by \"Update defaults\".     ║",
+                        "# ╚═══════════════════════════════════════════════════════════════════════════╝",
+                        ""
+                    });
+                    File.AppendAllText(SettingsPath, Environment.NewLine + header + newUserBlock);
                 }
             }
             catch { /* ignore write failures */ }
         }
 
-        private static void WriteUserBlock(StreamWriter w)
+        private static void WriteUserBlock(StreamWriter w, bool includeHeader = false)
         {
             w.WriteLine();
-            w.WriteLine("# ╔═══════════════════════════════════════════════════════════════════════════╗");
-            w.WriteLine("# ║  USER BLOCK  --  Edit freely. NEVER overwritten by \"Update defaults\".     ║");
-            w.WriteLine("# ╚═══════════════════════════════════════════════════════════════════════════╝");
-            w.WriteLine();
+            if (includeHeader)
+            {
+                w.WriteLine("# ╔═══════════════════════════════════════════════════════════════════════════╗");
+                w.WriteLine("# ║  USER BLOCK  --  Edit freely. NEVER overwritten by \"Update defaults\".     ║");
+                w.WriteLine("# ╚═══════════════════════════════════════════════════════════════════════════╝");
+                w.WriteLine();
+            }
             w.WriteLine("[UserGvlkKeys]");
             w.WriteLine("; Add custom GVLK/suspicious keys here: FULL-KEY = Description");
             foreach (var s in UserGvlkSuffixes)
@@ -630,9 +642,13 @@ namespace WinLicApp
         {
             try
             {
+                var branchMatch = Regex.Match(AboutDialog.AppVersion, @"^v\d+\.\d+");
+                var branch = branchMatch.Success ? branchMatch.Value : "main";
+                var defaultsUrl = $"https://raw.githubusercontent.com/ardennguyen/WinLic/{branch}/WinLicPS/settings.default.ini";
+
                 using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
                 http.DefaultRequestHeaders.Add("User-Agent", "WinLicApp/1.0");
-                var downloaded = await http.GetStringAsync(DefaultsUrl);
+                var downloaded = await http.GetStringAsync(defaultsUrl);
 
                 string userBlock = "";
                 if (File.Exists(SettingsPath))

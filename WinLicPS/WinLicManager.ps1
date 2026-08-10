@@ -739,8 +739,8 @@ $Str = @{
                          'Tải xuống settings.default.ini mới nhất từ kho GitHub WinLic.')
     'OU_INFO2'      = @('Your user-added entries (ExtraPorts, ExtraServices, etc.) are preserved.',
                          'Các mục bạn đã thêm (ExtraPorts, ExtraServices, v.v.) được giữ lại.')
-    'OU_INFO3'      = @('Source: https://raw.githubusercontent.com/ardennguyen/WinLic/main/WinLicPS/settings.default.ini',
-                         'Nguồn: https://raw.githubusercontent.com/ardennguyen/WinLic/main/WinLicPS/settings.default.ini')
+    'OU_INFO3'      = @("Source: https://raw.githubusercontent.com/ardennguyen/WinLic/$SCRIPT_VERSION/WinLicPS/settings.default.ini",
+                         "Nguồn: https://raw.githubusercontent.com/ardennguyen/WinLic/$SCRIPT_VERSION/WinLicPS/settings.default.ini")
     'OU_NO_NET1'    = @('No internet connection detected -- cannot reach GitHub.', 'Không phát hiện kết nối internet -- không thể kết nối GitHub.')
     'OU_NO_NET2'    = @('Please check your network and try again.', 'Vui lòng kiểm tra mạng và thử lại.')
     'OU_DOWNLOADING' = @('Downloading latest defaults from GitHub...', 'Đang tải xuống mặc định mới nhất từ GitHub...')
@@ -2945,7 +2945,7 @@ function Update-DefaultSettings {
     }
 
     Write-Step (T 'OU_DOWNLOADING')
-    $url      = "https://raw.githubusercontent.com/ardennguyen/WinLic/main/WinLicPS/settings.default.ini"
+    $url      = "https://raw.githubusercontent.com/ardennguyen/WinLic/$SCRIPT_VERSION/WinLicPS/settings.default.ini"
     $tmpPath  = Join-Path $SCRIPT_DIR "settings.default.ini.tmp"
 
     try {
