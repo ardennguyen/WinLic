@@ -1285,7 +1285,6 @@ namespace WinLicApp
                     sb.AppendLine().Append(L.Get("OemPid_EulaType") + eulaType);
                 if (!string.IsNullOrEmpty(extPid))
                 {
-                    sb.AppendLine().Append(L.Get("OemPid_ExtPid") + extPid);
                     var parts = extPid.Split('-');
                     if (parts.Length >= 4)
                     {
