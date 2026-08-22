@@ -1,0 +1,40 @@
+# Ruff configuration — https://docs.astral.sh/ruff/configuration/
+# Applies to any Python files in the repo (scratch scripts, future tooling).
+# CodeRabbit's built-in Ruff tool uses this config automatically.
+
+# Target Python 3.10+ (minimum for modern features)
+target-version = "py310"
+
+# Line length
+line-length = 120
+
+[lint]
+# Enable recommended rule sets
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort (import sorting)
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "S",    # flake8-bandit (security)
+    "SIM",  # flake8-simplify
+    "RUF",  # Ruff-specific rules
+]
+
+ignore = [
+    "S101",   # assert used — acceptable in scripts
+    "S603",   # subprocess call — acceptable for tooling scripts
+    "S607",   # partial executable path — acceptable for tooling
+]
+
+[lint.per-file-ignores]
+# Agent scratch scripts are throwaway — relax rules
+"agent/**" = ["S", "E501"]
+
+[format]
+# Use double quotes
+quote-style = "double"
+# Use spaces for indentation
+indent-style = "space"

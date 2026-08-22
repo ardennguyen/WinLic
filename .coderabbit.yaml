@@ -1,0 +1,108 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+# ── General ──────────────────────────────────────────────────────────────
+language: "en-US"
+
+# ── Tone & style ─────────────────────────────────────────────────────────
+tone_instructions: >-
+  Be concise. Focus on bugs, security issues, and logic errors rather than
+  stylistic nit-picks. The project targets .NET Framework 4.8 (WPF) and
+  PowerShell 5.1/7+. Vietnamese diacritics in strings are intentional and
+  must NOT be flagged.
+
+# ── Review behaviour ─────────────────────────────────────────────────────
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  sequence_diagrams: true
+  changed_files_summary: true
+  labeling_instructions: []
+
+  path_instructions:
+    - path: "WinLicApp/**/*.cs"
+      instructions: >-
+        C# WPF desktop app targeting .NET Framework 4.8. Uses nullable
+        reference types. Review for null-safety, WPF binding issues,
+        threading (Dispatcher), and resource disposal.
+
+    - path: "WinLicApp/**/*.xaml"
+      instructions: >-
+        WPF XAML files. Check for binding errors, missing converters,
+        accessibility (AutomationProperties), and consistent styling.
+
+    - path: "WinLicPS/WinLicManager.ps1"
+      instructions: >-
+        Single-file PowerShell CLI tool (~10k+ lines). Must parse cleanly
+        in both PS5 (powershell.exe) and PS7 (pwsh). File MUST be saved
+        with UTF-8 BOM. Embedded Vietnamese strings use proper diacritics
+        — never flag those. Watch for: single-quotes inside double-quoted
+        strings, [brackets] parsed as type literals, || parsed as OR
+        operator in strings. All $Str entries are bilingual @('EN','VI').
+
+    - path: "WinLicPS/*.ini"
+      instructions: >-
+        INI config files. settings.default.ini and settings.ini.sample
+        must stay in sync for default config blocks ([GvlkKeys],
+        [GenericKeys]). Never overwrite [User...] blocks in the sample.
+
+    - path: "**/*.md"
+      instructions: >-
+        Documentation files — bilingual (EN + VI) for release notes.
+        Check markdown formatting and link validity.
+
+  # Automatically review PRs — skip drafts
+  auto_review:
+    enabled: true
+    drafts: false
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT MERGE"
+    base_branches:
+      - "main"
+
+# ── Chat ─────────────────────────────────────────────────────────────────
+chat:
+  auto_reply: true
+
+# ── Tools ────────────────────────────────────────────────────────────────
+tools:
+  # PowerShell linter — critical for this project
+  psscriptanalyzer:
+    enabled: true
+
+  # Shell script linter
+  shellcheck:
+    enabled: true
+
+  # Markdown linter
+  markdownlint:
+    enabled: true
+
+  # Python linter (for any .py files in PRs)
+  ruff:
+    enabled: true
+
+  # YAML linter
+  yamllint:
+    enabled: true
+
+  # AST pattern matching (multi-language)
+  ast-grep:
+    enabled: true
+
+  # Security scanning
+  opengrep:
+    enabled: true
+
+  # Secret detection
+  betterleaks:
+    enabled: true
+
+  # GitHub Actions linter
+  actionlint:
+    enabled: true
